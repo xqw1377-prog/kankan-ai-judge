@@ -1,38 +1,73 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import TheEye from "@/components/TheEye";
 import ScanOverlay from "@/components/ScanOverlay";
 import VerdictCard from "@/components/VerdictCard";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 type AppPhase = "idle" | "scanning" | "result";
 
-const MOCK_RESULTS = [
-  { food: "炸鸡腿", sin: 82, roast: "这玩意的油量够你跑三圈操场了。吃完记得给膝盖道个歉。" },
-  { food: "珍珠奶茶", sin: 75, roast: "珍珠是淀粉，奶是植脂末，茶是糖水。三重暴击，恭喜你。" },
-  { food: "沙拉", sin: 15, roast: "行吧，今天装得挺像健康人的。但那沙拉酱我看见了。" },
-  { food: "火锅", sin: 95, roast: "一顿火锅，三天的卡路里。你不是在吃饭，你在渡劫。" },
-  { food: "泡面", sin: 68, roast: "深夜泡面，灵魂的自我放逐。调料包全放了吧？我知道的。" },
-];
+interface FoodResult {
+  food: string;
+  sin: number;
+  roast: string;
+}
+
+const FALLBACK_RESULT: FoodResult = {
+  food: "神秘食物",
+  sin: 50,
+  roast: "AI 短路了，但你心里清楚自己吃了什么。",
+};
 
 const Index = () => {
   const [phase, setPhase] = useState<AppPhase>("idle");
   const [imageData, setImageData] = useState<string>("");
-  const [result, setResult] = useState(MOCK_RESULTS[0]);
+  const [result, setResult] = useState<FoodResult>(FALLBACK_RESULT);
+  const { toast } = useToast();
 
-  const handleCapture = useCallback((data: string) => {
+  const handleCapture = useCallback(async (data: string) => {
     setImageData(data);
     setPhase("scanning");
-  }, []);
 
-  useEffect(() => {
-    if (phase === "scanning") {
-      const timer = setTimeout(() => {
-        const randomResult = MOCK_RESULTS[Math.floor(Math.random() * MOCK_RESULTS.length)];
-        setResult(randomResult);
-        setPhase("result");
-      }, 2800);
-      return () => clearTimeout(timer);
+    try {
+      const { data: fnData, error } = await supabase.functions.invoke("analyze-food", {
+        body: { imageBase64: data },
+      });
+
+      if (error) {
+        console.error("Edge function error:", error);
+        toast({
+          title: "分析失败",
+          description: "AI 暂时开小差了，请重试",
+          variant: "destructive",
+        });
+        setResult(FALLBACK_RESULT);
+      } else if (fnData?.error) {
+        toast({
+          title: "分析失败",
+          description: fnData.error,
+          variant: "destructive",
+        });
+        setResult(FALLBACK_RESULT);
+      } else {
+        setResult({
+          food: fnData.food || "未知食物",
+          sin: typeof fnData.sin === "number" ? fnData.sin : 50,
+          roast: fnData.roast || "AI 无话可说。",
+        });
+      }
+    } catch (err) {
+      console.error("Request failed:", err);
+      toast({
+        title: "网络错误",
+        description: "请检查网络连接后重试",
+        variant: "destructive",
+      });
+      setResult(FALLBACK_RESULT);
     }
-  }, [phase]);
+
+    setPhase("result");
+  }, [toast]);
 
   const handleRetake = () => {
     setPhase("idle");
