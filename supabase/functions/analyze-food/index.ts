@@ -12,8 +12,8 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64 } = await req.json();
-    if (!imageBase64) {
+    const { imageBase64, imageUrl } = await req.json();
+    if (!imageBase64 && !imageUrl) {
       return new Response(JSON.stringify({ error: "No image provided" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -25,10 +25,18 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Extract mime type and base64 data
-    const match = imageBase64.match(/^data:(image\/\w+);base64,(.+)$/);
-    const mimeType = match ? match[1] : "image/jpeg";
-    const base64Data = match ? match[2] : imageBase64;
+    // Build image content for the API
+    let imageContent: { type: string; image_url: { url: string } };
+    if (imageUrl) {
+      // Direct URL
+      imageContent = { type: "image_url", image_url: { url: imageUrl } };
+    } else {
+      // Extract mime type and base64 data
+      const match = imageBase64.match(/^data:(image\/[\w+]+);base64,(.+)$/);
+      const mimeType = match ? match[1] : "image/jpeg";
+      const base64Data = match ? match[2] : imageBase64;
+      imageContent = { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } };
+    }
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -60,12 +68,7 @@ serve(async (req) => {
             {
               role: "user",
               content: [
-                {
-                  type: "image_url",
-                  image_url: {
-                    url: `data:${mimeType};base64,${base64Data}`,
-                  },
-                },
+                imageContent,
                 {
                   type: "text",
                   text: "看看这是什么食物？给个判决！",
