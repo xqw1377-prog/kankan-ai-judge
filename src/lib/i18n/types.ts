@@ -158,4 +158,6 @@ export interface Dictionary {
   dailyBalance: string;
   actual: string;
   predicted7d: string;
+  glRiskWarning: string;
+  glHigh: string;
 }

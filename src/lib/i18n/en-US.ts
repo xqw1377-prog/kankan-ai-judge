@@ -153,4 +153,6 @@ export const enUS: Dictionary = {
   dailyBalance: "Daily Balance",
   actual: "Actual",
   predicted7d: "7-Day Forecast",
+  glRiskWarning: "GL Risk",
+  glHigh: "High",
 };
