@@ -207,6 +207,18 @@ const Result = () => {
           </div>
         </div>
 
+        {/* Allergen warning - forced above verdict */}
+        {allergenWarnings.length > 0 && (
+          <div className="bg-destructive/10 border-2 border-destructive/40 rounded-2xl p-4 mb-5 animate-slide-up flex items-start gap-3">
+            <span className="text-2xl leading-none mt-0.5">🚨</span>
+            <div>
+              <p className="text-sm font-bold text-destructive">过敏风险警告</p>
+              <p className="text-sm font-semibold text-destructive/90 mt-1">检测到忌口食材：{allergenWarnings.join("、")}</p>
+              <p className="text-xs text-destructive/60 mt-1">您在画像中标记了对以上食材过敏，请谨慎食用</p>
+            </div>
+          </div>
+        )}
+
         {/* Magazine-style verdict hero */}
         {(verdict || roast) && (
           <section className="mb-6 animate-slide-up" style={{ animationDelay: "0.05s" }}>
@@ -238,14 +250,6 @@ const Result = () => {
               )}
             </div>
           </section>
-        )}
-
-        {/* Allergen warning */}
-        {allergenWarnings.length > 0 && (
-          <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 animate-slide-up">
-            <p className="text-sm font-semibold text-destructive">⚠️ 检测到可能的过敏食材：{allergenWarnings.join("、")}</p>
-            <p className="text-xs text-destructive/70 mt-1">您在画像中标记了对以上食材过敏，请谨慎食用</p>
-          </div>
         )}
 
         {/* Ingredients */}
