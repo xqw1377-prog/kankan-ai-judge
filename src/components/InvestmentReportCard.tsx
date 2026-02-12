@@ -20,10 +20,10 @@ const BRAND: Record<Locale, {
   "zh-CN": {
     tagline: "每 一 口 都 有 据 可 循",
     beta: "KANKAN 实验室内测官",
-    title: "Q1 膳食资产季报",
-    giVol: "GI 波动率",
+    title: "Q1 膳食健康检测报告",
+    giVol: "GL 波动指数",
     balance: "均衡度",
-    advice: "调仓建议",
+    advice: "优化建议",
     assets: "摄入资产",
     liabilities: "代谢负债",
     protein: "蛋白质",
@@ -31,16 +31,16 @@ const BRAND: Record<Locale, {
     sodium: "钠",
     sugar: "精制糖",
     satFat: "饱和脂肪",
-    glCurve: "GL 净值曲线",
-    correctionLog: "调仓操作记录",
+    glCurve: "GL 波动曲线",
+    correctionLog: "纠错审计记录",
   },
   "en-US": {
     tagline: "D A T A - D R I V E N   D I N I N G",
     beta: "KANKAN Lab Beta Tester",
-    title: "Q1 Diet Asset Report",
-    giVol: "GI Volatility",
+    title: "Q1 Dietary Health Report",
+    giVol: "GL Fluctuation",
     balance: "Balance Score",
-    advice: "Rebalance Advice",
+    advice: "Optimization Advice",
     assets: "Intake Assets",
     liabilities: "Metabolic Liabilities",
     protein: "Protein",
@@ -48,8 +48,8 @@ const BRAND: Record<Locale, {
     sodium: "Sodium",
     sugar: "Refined Sugar",
     satFat: "Saturated Fat",
-    glCurve: "GL Net Value Curve",
-    correctionLog: "Correction Log",
+    glCurve: "GL Fluctuation Curve",
+    correctionLog: "Correction Audit Log",
   },
 };
 
@@ -145,7 +145,7 @@ const InvestmentReportCard = forwardRef<HTMLDivElement, InvestmentReportCardProp
             background: "rgba(212,175,55,0.08)", border: "1px solid rgba(212,175,55,0.15)",
             borderRadius: 16, padding: "3px 12px", marginBottom: 16,
           }}>
-            <span style={{ fontSize: 12 }}>📊</span>
+            <span style={{ fontSize: 12 }}>🔬</span>
             <span style={{ fontSize: 9, fontWeight: 800, color: GOLD, letterSpacing: 2, textTransform: "uppercase" as const }}>
               {brand.title}
             </span>

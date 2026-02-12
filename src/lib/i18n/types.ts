@@ -197,7 +197,7 @@ export interface Dictionary {
   giHigh: string;
   giLow: string;
 
-  // Investment Report
+  // Dietary Assessment Report
   investmentReport: string;
   quarterlyReport: string;
   avgGiVolatility: string;
@@ -229,7 +229,7 @@ export interface Dictionary {
   glRiskZone: string;
   weekLabel: (n: number) => string;
 
-  // Correction Records
+  // Correction Audit
   correctionLog: string;
   correctionEntry: (pct: string) => string;
   userOptimized: string;
