@@ -147,4 +147,10 @@ export const zhCN: Dictionary = {
   virtualTable: "虚拟餐桌",
   claimedIntake: "我的认领摄入",
   inviteTablemate: "邀请桌友共同记录",
+
+  performanceTracker: "身体资产性能追踪",
+  weightTrend: "体重趋势",
+  dailyBalance: "今日收支",
+  actual: "实际",
+  predicted7d: "7日预测",
 };

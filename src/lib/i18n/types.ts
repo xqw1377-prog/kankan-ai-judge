@@ -151,4 +151,11 @@ export interface Dictionary {
   virtualTable: string;
   claimedIntake: string;
   inviteTablemate: string;
+
+  // Performance Tracker
+  performanceTracker: string;
+  weightTrend: string;
+  dailyBalance: string;
+  actual: string;
+  predicted7d: string;
 }
