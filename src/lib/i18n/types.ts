@@ -185,10 +185,15 @@ export interface Dictionary {
   editExpDesc: string;
   editExpDescUpdated: string;
   cookingMethod: string;
+  cookPanFried: string;
   cookFried: string;
   cookSteamed: string;
   cookBoiled: string;
   cookStirFried: string;
   cookRaw: string;
   oilAbsorptionHint: string;
+  dataStoredToResearchLab: string;
+  precisionUp: string;
+  giHigh: string;
+  giLow: string;
 }

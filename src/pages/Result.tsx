@@ -73,7 +73,7 @@ const Result = () => {
   const {
     food = "", calories = 0, protein_g = 0, fat_g = 0, carbs_g = 0,
     ingredients = [], verdict = "", suggestion = "",
-    cooking_scene = "takeout", roast = "",
+    cooking_scene = "takeout", roast = "", gi_value,
   } = result || {};
 
   const userAllergies = profile?.allergies?.split(/[,，、\s]+/).filter(Boolean) || [];
@@ -313,6 +313,7 @@ const Result = () => {
           carbs_g={carbs_g}
           targetCalories={profile?.targets?.calories || 2100}
           weight={profile?.weight_kg || 70}
+          gi_value={gi_value}
         />
 
         {suggestion && (
