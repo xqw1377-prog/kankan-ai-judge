@@ -2,6 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Award, Calendar, Utensils } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
+import DietRing from "@/components/DietRing";
+import AnimatedScore from "@/components/AnimatedScore";
 
 const GOAL_LABELS: Record<string, string> = {
   fat_loss: "减脂",
@@ -10,7 +12,6 @@ const GOAL_LABELS: Record<string, string> = {
   maintain: "保持",
 };
 
-// Simple health score calculation
 function calcHealthScore(totalMeals: number, uniqueDays: number): { score: number; level: string; levelDesc: string } {
   const base = Math.min(totalMeals * 50, 3000) + uniqueDays * 100;
   const score = Math.min(base, 9999);
@@ -22,19 +23,15 @@ function calcHealthScore(totalMeals: number, uniqueDays: number): { score: numbe
   return { score, level, levelDesc };
 }
 
-// Calculate consecutive days streak
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
   const uniqueSorted = [...new Set(dates.map(d => new Date(d).toDateString()))]
     .map(d => new Date(d).getTime())
     .sort((a, b) => b - a);
-
   let streak = 1;
   const DAY = 86400000;
   for (let i = 0; i < uniqueSorted.length - 1; i++) {
-    if (uniqueSorted[i] - uniqueSorted[i + 1] <= DAY * 1.5) {
-      streak++;
-    } else break;
+    if (uniqueSorted[i] - uniqueSorted[i + 1] <= DAY * 1.5) { streak++; } else break;
   }
   return streak;
 }
@@ -71,9 +68,7 @@ const Profile = () => {
       <section className="px-5 mb-6">
         <div className="bg-card rounded-2xl p-5 shadow-card">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-2xl">
-              👤
-            </div>
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-2xl">👤</div>
             <div className="flex-1">
               <h2 className="font-bold text-lg">{nickname}</h2>
               <p className="text-sm text-muted-foreground">
@@ -93,7 +88,15 @@ const Profile = () => {
         </div>
       </section>
 
-      {/* Health stats */}
+      {/* Diet Ring */}
+      <section className="px-5 mb-6">
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3">饮食年轮</h3>
+        <div className="bg-card rounded-2xl p-5 shadow-card flex justify-center">
+          <DietRing meals={meals} />
+        </div>
+      </section>
+
+      {/* Health stats with animated score */}
       <section className="px-5 mb-6">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">健康资产</h3>
         <div className="bg-card rounded-2xl p-5 shadow-card mb-3">
@@ -102,7 +105,7 @@ const Profile = () => {
               <Award className="w-5 h-5 text-primary" />
               <span className="text-sm font-semibold">健康分</span>
             </div>
-            <span className="text-2xl font-bold text-primary">{score}</span>
+            <AnimatedScore target={score} />
           </div>
           <p className="text-xs text-muted-foreground">
             等级：{level} · {levelDesc}

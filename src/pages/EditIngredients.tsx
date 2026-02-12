@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Check, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, Check, Plus, Trash2, Minus, Sparkles } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useToast } from "@/hooks/use-toast";
 
@@ -8,6 +8,8 @@ interface Ingredient {
   name: string;
   grams: number;
 }
+
+const STEP = 10; // grams per step
 
 const EditIngredients = () => {
   const location = useLocation();
@@ -25,6 +27,7 @@ const EditIngredients = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [addName, setAddName] = useState("");
   const [addGrams, setAddGrams] = useState("");
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const handleEditStart = (idx: number) => {
     setEditingIdx(idx);
@@ -53,9 +56,15 @@ const EditIngredients = () => {
     setShowAdd(false);
   };
 
-  // Simple calorie estimation per ingredient (rough average)
+  // Quick +/- stepper
+  const handleStep = (idx: number, delta: number) => {
+    const updated = [...ingredients];
+    const newGrams = Math.max(1, updated[idx].grams + delta);
+    updated[idx] = { ...updated[idx], grams: newGrams };
+    setIngredients(updated);
+  };
+
   const estimateNutrition = (items: Ingredient[]) => {
-    // Very rough: ~1.5 kcal/g average for mixed food
     const totalGrams = items.reduce((s, i) => s + i.grams, 0);
     const calories = Math.round(totalGrams * 1.5);
     const protein_g = Math.round(totalGrams * 0.08);
@@ -64,45 +73,66 @@ const EditIngredients = () => {
     return { calories, protein_g, fat_g, carbs_g };
   };
 
+  const triggerConfetti = useCallback(() => {
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 2000);
+  }, []);
+
   const handleSave = async () => {
     if (fromResult && resultState) {
-      // Navigate back to result with updated ingredients
       const nutrition = estimateNutrition(ingredients);
-      navigate("/result", {
-        state: {
-          ...resultState,
-          result: {
-            ...resultState.result,
-            ingredients,
-            ...nutrition,
-          },
-        },
-        replace: true,
+      triggerConfetti();
+      toast({
+        title: "🎉 KANKAN 变得更聪明了！",
+        description: "经验值 +1 · 感谢你的纠正",
       });
+      setTimeout(() => {
+        navigate("/result", {
+          state: {
+            ...resultState,
+            result: { ...resultState.result, ingredients, ...nutrition },
+          },
+          replace: true,
+        });
+      }, 800);
     } else if (mealId) {
       const nutrition = estimateNutrition(ingredients);
-      await updateMeal(mealId, {
-        ingredients: ingredients as any,
-        ...nutrition,
+      await updateMeal(mealId, { ingredients: ingredients as any, ...nutrition });
+      triggerConfetti();
+      toast({
+        title: "🎉 KANKAN 变得更聪明了！",
+        description: "经验值 +1 · 数据已更新",
       });
-      toast({ title: "已保存 ✓" });
-      navigate(-1);
+      setTimeout(() => navigate(-1), 800);
     }
   };
 
-  const handleDeleteMeal = async () => {
-    if (!mealId) return;
-    if (!confirm("确定删除本餐吗？")) return;
-    const { deleteMeal } = await import("@/hooks/useMeals").then(m => {
-      // Can't use hook here, navigate back with delete signal
-      return { deleteMeal: null };
-    });
-    // Navigate back with delete flag
-    navigate("/", { replace: true });
-  };
-
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background relative">
+      {/* Confetti overlay */}
+      {showConfetti && (
+        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
+          <div className="animate-scale-in flex flex-col items-center gap-2">
+            <Sparkles className="w-16 h-16 text-primary animate-pulse" />
+            <span className="text-lg font-bold text-primary animate-fade-in">EXP +1</span>
+          </div>
+          {/* Confetti particles */}
+          {Array.from({ length: 20 }).map((_, i) => (
+            <div
+              key={i}
+              className="absolute w-2 h-2 rounded-full"
+              style={{
+                background: ["#4CAF50", "#FF9800", "#2196F3", "#E91E63", "#9C27B0"][i % 5],
+                left: `${20 + Math.random() * 60}%`,
+                top: `${30 + Math.random() * 40}%`,
+                animation: `confetti-fall ${0.8 + Math.random() * 0.6}s ease-out forwards`,
+                animationDelay: `${Math.random() * 0.3}s`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
       {/* Header */}
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0">
         <button onClick={() => navigate(-1)} className="p-2">
@@ -115,13 +145,12 @@ const EditIngredients = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">
-        {/* Food name */}
         <div className="text-center mb-6">
           <span className="text-3xl">🍜</span>
           <h2 className="text-xl font-bold mt-1">{foodName || "食物"}</h2>
         </div>
 
-        {/* Ingredient list */}
+        {/* Ingredient list with stepper */}
         <div className="bg-card rounded-xl shadow-card divide-y divide-border mb-4">
           {ingredients.map((item, idx) => (
             <div key={idx}>
@@ -146,37 +175,38 @@ const EditIngredients = () => {
                     <span className="text-sm text-muted-foreground">g</span>
                   </div>
                   <div className="flex gap-2">
-                    <button
-                      onClick={() => handleDelete(idx)}
-                      className="px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-xs font-semibold"
-                    >
+                    <button onClick={() => handleDelete(idx)} className="px-3 py-2 rounded-lg border border-destructive/30 text-destructive text-xs font-semibold">
                       删除
                     </button>
-                    <button
-                      onClick={() => setEditingIdx(null)}
-                      className="px-3 py-2 rounded-lg border border-border text-xs font-semibold"
-                    >
+                    <button onClick={() => setEditingIdx(null)} className="px-3 py-2 rounded-lg border border-border text-xs font-semibold">
                       取消
                     </button>
-                    <button
-                      onClick={handleEditSave}
-                      className="flex-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold"
-                    >
+                    <button onClick={handleEditSave} className="flex-1 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-semibold">
                       确认
                     </button>
                   </div>
                 </div>
               ) : (
-                <button
-                  onClick={() => handleEditStart(idx)}
-                  className="w-full flex items-center justify-between px-4 py-3.5 text-sm active:bg-secondary/50 transition-colors"
-                >
-                  <span>{item.name}</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">{item.grams}g</span>
-                    <span className="text-muted-foreground">›</span>
+                <div className="flex items-center px-4 py-3">
+                  <button onClick={() => handleEditStart(idx)} className="flex-1 text-left text-sm">
+                    {item.name}
+                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleStep(idx, -STEP)}
+                      className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center active:scale-90 transition-transform"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-sm font-semibold w-12 text-center tabular-nums">{item.grams}g</span>
+                    <button
+                      onClick={() => handleStep(idx, STEP)}
+                      className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center active:scale-90 transition-transform"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
                   </div>
-                </button>
+                </div>
               )}
             </div>
           ))}
@@ -213,18 +243,14 @@ const EditIngredients = () => {
             </div>
           </div>
         ) : (
-          <button
-            onClick={() => setShowAdd(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 text-sm text-primary font-semibold"
-          >
+          <button onClick={() => setShowAdd(true)} className="w-full flex items-center justify-center gap-2 py-3 text-sm text-primary font-semibold">
             <Plus className="w-4 h-4" /> 添加其他食材
           </button>
         )}
 
-        {/* Delete meal (only for saved meals) */}
         {mealId && (
           <button
-            onClick={handleDeleteMeal}
+            onClick={() => { if (confirm("确定删除本餐吗？")) navigate("/", { replace: true }); }}
             className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 mt-8"
           >
             <Trash2 className="w-4 h-4" /> 删除本餐

@@ -1,6 +1,6 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Pencil, Share2, Download, X } from "lucide-react";
+import { ChevronLeft, Home, Pencil, Share2, Download, X, UtensilsCrossed, Package } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
@@ -8,6 +8,17 @@ import NutritionBar from "@/components/NutritionBar";
 import ShareCard from "@/components/ShareCard";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
+
+/** Bold text wrapped in 【】 brackets */
+function renderSuggestionWithBold(text: string) {
+  const parts = text.split(/(【[^】]+】)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("【") && part.endsWith("】")) {
+      return <strong key={i} className="text-primary font-bold">{part.slice(1, -1)}</strong>;
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
 
 const Result = () => {
   const location = useLocation();
@@ -22,20 +33,54 @@ const Result = () => {
   const [shareImage, setShareImage] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
-  const { food = "", calories = 0, protein_g = 0, fat_g = 0, carbs_g = 0, ingredients = [], verdict = "", suggestion = "" } = result || {};
+  const {
+    food = "", calories = 0, protein_g = 0, fat_g = 0, carbs_g = 0,
+    ingredients = [], verdict = "", suggestion = "",
+    cooking_scene = "takeout", roast = "",
+  } = result || {};
 
   const userAllergies = profile?.allergies?.split(/[,，、\s]+/).filter(Boolean) || [];
   const allergenWarnings = ingredients
     .filter((item: any) => userAllergies.some((a: string) => item.name?.includes(a)))
     .map((item: any) => item.name);
 
-  const isNegative = verdict.includes("超标") || verdict.includes("过量") || verdict.includes("偏高");
-  const isPositive = verdict.includes("不错") || verdict.includes("健康") || verdict.includes("均衡");
-  const verdictBg = isNegative
-    ? "bg-destructive/5 border-destructive/20"
-    : isPositive
+  // Calculate nutrition match percentage for card theme
+  const matchPct = useMemo(() => {
+    if (!profile?.targets) return 50;
+    const t = profile.targets;
+    const calPct = t.calories > 0 ? Math.min(calories / t.calories, 1.5) : 1;
+    const proPct = t.protein_g > 0 ? Math.min(protein_g / t.protein_g, 1.5) : 1;
+    const fatPct = t.fat_g > 0 ? Math.min(fat_g / t.fat_g, 1.5) : 1;
+    const carbPct = t.carbs_g > 0 ? Math.min(carbs_g / t.carbs_g, 1.5) : 1;
+    // How close each is to ideal single-meal portion (~33% of daily)
+    const idealRatio = 0.33;
+    const scores = [calPct, proPct, fatPct, carbPct].map(p => {
+      const diff = Math.abs(p - idealRatio);
+      return Math.max(0, 1 - diff * 2);
+    });
+    return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100);
+  }, [calories, protein_g, fat_g, carbs_g, profile?.targets]);
+
+  // Determine card mode
+  const isWarning = verdict.includes("超标") || verdict.includes("过量") || verdict.includes("偏高")
+    || verdict.includes("禁忌") || verdict.includes("高糖");
+  const isDisciplined = matchPct > 80 && !isWarning;
+  const isNeutral = !isDisciplined && !isWarning;
+
+  // Card theme classes
+  const cardTheme = isDisciplined
     ? "bg-primary/5 border-primary/20"
+    : isWarning
+    ? "bg-accent/5 border-accent/20"
     : "bg-secondary border-border";
+
+  const cardAnimation = isDisciplined
+    ? "animate-pulse-soft"
+    : isWarning
+    ? "animate-pulse"
+    : "";
+
+  const verdictIcon = isDisciplined ? "✅" : isWarning ? "⚠️" : "📋";
 
   const handleSave = useCallback(async () => {
     await saveMeal({
@@ -120,17 +165,34 @@ const Result = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-4">
+        {/* Food name + match badge */}
         <div className="text-center mb-6 animate-slide-up">
           <span className="text-4xl">🍜</span>
           <h1 className="text-2xl font-bold mt-2">{food}</h1>
+          <span className={`inline-block mt-2 text-xs font-bold px-3 py-1 rounded-full ${
+            isDisciplined ? "bg-primary/10 text-primary" : isWarning ? "bg-accent/10 text-accent" : "bg-secondary text-muted-foreground"
+          }`}>
+            {isDisciplined ? "🎯 自律模式" : isWarning ? "🔥 警示模式" : "📋 普通模式"} · 匹配度 {matchPct}%
+          </span>
         </div>
 
+        {/* Roast card */}
+        {roast && (
+          <div className={`rounded-xl p-4 mb-5 border animate-slide-up ${cardTheme} ${cardAnimation}`}>
+            <p className="text-sm font-bold leading-relaxed text-center">
+              "{roast}"
+            </p>
+          </div>
+        )}
+
+        {/* Allergen warning */}
         {allergenWarnings.length > 0 && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 animate-slide-up">
             <p className="text-sm font-semibold text-destructive">⚠️ 检测到可能的过敏食材：{allergenWarnings.join("、")}</p>
           </div>
         )}
 
+        {/* Ingredients */}
         {ingredients.length > 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
@@ -153,6 +215,7 @@ const Result = () => {
           </section>
         )}
 
+        {/* Nutrition */}
         <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.15s" }}>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
             <span className="w-8 h-px bg-border" /> 营养素分析 <span className="flex-1 h-px bg-border" />
@@ -165,24 +228,43 @@ const Result = () => {
           </div>
         </section>
 
+        {/* Verdict with themed card */}
         {verdict && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.2s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
               <span className="w-8 h-px bg-border" /> 营养判决 <span className="flex-1 h-px bg-border" />
             </h3>
-            <div className={`rounded-xl p-4 border ${verdictBg}`}>
-              <p className="text-sm leading-relaxed">{isNegative ? "⚠️" : isPositive ? "✅" : "📋"} {verdict}</p>
+            <div className={`rounded-xl p-4 border ${cardTheme} ${cardAnimation}`}>
+              <p className="text-sm leading-relaxed">{verdictIcon} {verdict}</p>
             </div>
           </section>
         )}
 
+        {/* Scene-adaptive suggestion */}
         {suggestion && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.25s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
               <span className="w-8 h-px bg-border" /> 修复建议 <span className="flex-1 h-px bg-border" />
             </h3>
             <div className="bg-card rounded-xl p-4 shadow-card">
-              <p className="text-sm leading-relaxed">💡 {suggestion}</p>
+              <div className="flex items-start gap-3">
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+                  cooking_scene === "homemade" ? "bg-primary/10" : "bg-accent/10"
+                }`}>
+                  {cooking_scene === "homemade"
+                    ? <UtensilsCrossed className="w-4 h-4 text-primary" />
+                    : <Package className="w-4 h-4 text-accent" />
+                  }
+                </div>
+                <div>
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {cooking_scene === "homemade" ? "🍳 自炊建议" : "📦 外卖建议"}
+                  </span>
+                  <p className="text-sm leading-relaxed mt-1">
+                    💡 {renderSuggestionWithBold(suggestion)}
+                  </p>
+                </div>
+              </div>
             </div>
           </section>
         )}
@@ -206,9 +288,9 @@ const Result = () => {
         </button>
       </div>
 
-      {/* Hidden share card for rendering */}
+      {/* Hidden share card */}
       <div style={{ position: "fixed", left: -9999, top: 0 }}>
-        <ShareCard ref={shareCardRef} food={food} calories={calories} protein_g={protein_g} fat_g={fat_g} carbs_g={carbs_g} verdict={verdict} ingredients={ingredients} />
+        <ShareCard ref={shareCardRef} food={food} calories={calories} protein_g={protein_g} fat_g={fat_g} carbs_g={carbs_g} verdict={verdict} roast={roast} ingredients={ingredients} />
       </div>
 
       {/* Share modal */}
