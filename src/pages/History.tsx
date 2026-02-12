@@ -7,13 +7,9 @@ const History = () => {
   const navigate = useNavigate();
   const { meals, loading } = useMeals();
 
-  // Group by date
   const grouped = meals.reduce((acc, meal) => {
     const date = new Date(meal.recorded_at).toLocaleDateString("zh-CN", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      weekday: "long",
+      year: "numeric", month: "long", day: "numeric", weekday: "long",
     });
     if (!acc[date]) acc[date] = [];
     acc[date].push(meal);
@@ -31,7 +27,7 @@ const History = () => {
   return (
     <div className="flex-1 overflow-y-auto">
       <header className="px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
-        <h1 className="text-xl font-bold">饮食记录</h1>
+        <h1 className="text-xl font-bold text-card-foreground">饮食记录</h1>
       </header>
 
       {meals.length === 0 ? (
@@ -54,10 +50,10 @@ const History = () => {
                   <button
                     key={meal.id}
                     onClick={() => navigate(`/meal/${meal.id}`)}
-                    className="w-full flex items-center justify-between bg-card rounded-xl px-4 py-3 shadow-card active:scale-[0.98] transition-transform"
+                    className="w-full flex items-center justify-between glass rounded-xl px-4 py-3 shadow-card active:scale-[0.98] transition-transform"
                   >
                     <div className="text-left">
-                      <p className="font-semibold text-sm">{meal.food_name}</p>
+                      <p className="font-semibold text-sm text-card-foreground">{meal.food_name}</p>
                       <p className="text-xs text-muted-foreground">
                         {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
                       </p>

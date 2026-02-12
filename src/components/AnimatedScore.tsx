@@ -5,7 +5,7 @@ interface AnimatedScoreProps {
   duration?: number;
 }
 
-const AnimatedScore = ({ target, duration = 1500 }: AnimatedScoreProps) => {
+const AnimatedScore = ({ target, duration = 1800 }: AnimatedScoreProps) => {
   const [current, setCurrent] = useState(0);
   const frameRef = useRef<number>();
   const prevTargetRef = useRef(0);
@@ -18,7 +18,8 @@ const AnimatedScore = ({ target, duration = 1500 }: AnimatedScoreProps) => {
     const animate = (now: number) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
+      // Deceleration easing — mechanical instrument feel
+      const eased = 1 - Math.pow(1 - progress, 4);
       setCurrent(Math.round(from + (to - from) * eased));
       if (progress < 1) {
         frameRef.current = requestAnimationFrame(animate);
@@ -33,7 +34,7 @@ const AnimatedScore = ({ target, duration = 1500 }: AnimatedScoreProps) => {
   }, [target, duration]);
 
   return (
-    <span className="text-3xl font-black text-primary tabular-nums">{current}</span>
+    <span className="text-3xl font-black text-primary tabular-nums text-glow-gold">{current}</span>
   );
 };
 
