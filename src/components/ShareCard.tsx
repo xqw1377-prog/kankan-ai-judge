@@ -198,8 +198,8 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
               fontSize: 16, fontWeight: 900, color: "#1a1a1a",
             }}>K</div>
             <div>
-              <span style={{ fontSize: 13, fontWeight: 800, color: "#D4AF37", letterSpacing: 2 }}>KANKAN AI</span>
-              <p style={{ fontSize: 8, color: "rgba(212,175,55,0.6)", margin: 0, letterSpacing: 1 }}>5年1000店计划 · 数字化饮食实验室</p>
+              <span style={{ fontSize: 13, fontWeight: 800, color: "#D4AF37", letterSpacing: 3, textTransform: "uppercase" as const }}>KANKAN AI</span>
+              <p style={{ fontSize: 7, color: "rgba(212,175,55,0.5)", margin: 0, letterSpacing: 3, textTransform: "uppercase" as const, fontWeight: 600 }}>每一口都有据可循 · 数字化饮食实验室</p>
             </div>
           </div>
           <QRPlaceholder />
