@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useMemo } from "react";
+import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Home, Pencil, Share2, Download, X, UtensilsCrossed, Package } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
@@ -9,7 +9,6 @@ import ShareCard from "@/components/ShareCard";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 
-/** Bold text wrapped in 【】 brackets */
 function renderSuggestionWithBold(text: string) {
   const parts = text.split(/(【[^】]+】)/g);
   return parts.map((part, i) => {
@@ -20,6 +19,40 @@ function renderSuggestionWithBold(text: string) {
   });
 }
 
+/** Floating sparkle particles for green mode */
+function SparkleParticles() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div
+          key={i}
+          className="absolute w-1 h-1 rounded-full bg-primary/60"
+          style={{
+            left: `${10 + Math.random() * 80}%`,
+            top: `${20 + Math.random() * 60}%`,
+            animation: `float-particle ${2 + Math.random() * 3}s ease-in-out infinite`,
+            animationDelay: `${Math.random() * 3}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Breathing wave overlay for warning mode */
+function BreathingWave() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div
+        className="absolute inset-0 animate-breathe"
+        style={{
+          background: "radial-gradient(ellipse at center, hsl(30 100% 50% / 0.06) 0%, transparent 70%)",
+        }}
+      />
+    </div>
+  );
+}
+
 const Result = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -27,6 +60,7 @@ const Result = () => {
   const { profile } = useProfile();
   const { toast } = useToast();
   const result = location.state?.result;
+  const imageData = location.state?.imageData;
   const inputRef = useRef<HTMLInputElement>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const [shareOpen, setShareOpen] = useState(false);
@@ -44,48 +78,34 @@ const Result = () => {
     .filter((item: any) => userAllergies.some((a: string) => item.name?.includes(a)))
     .map((item: any) => item.name);
 
-  // Calculate nutrition match percentage for card theme
-  const matchPct = useMemo(() => {
-    if (!profile?.targets) return 50;
+  // Score-based emotion system (0-100)
+  const matchScore = useMemo(() => {
+    if (!profile?.targets) return 60;
     const t = profile.targets;
-    const calPct = t.calories > 0 ? Math.min(calories / t.calories, 1.5) : 1;
-    const proPct = t.protein_g > 0 ? Math.min(protein_g / t.protein_g, 1.5) : 1;
-    const fatPct = t.fat_g > 0 ? Math.min(fat_g / t.fat_g, 1.5) : 1;
-    const carbPct = t.carbs_g > 0 ? Math.min(carbs_g / t.carbs_g, 1.5) : 1;
-    // How close each is to ideal single-meal portion (~33% of daily)
     const idealRatio = 0.33;
-    const scores = [calPct, proPct, fatPct, carbPct].map(p => {
-      const diff = Math.abs(p - idealRatio);
-      return Math.max(0, 1 - diff * 2);
+    const ratios = [
+      t.calories > 0 ? calories / t.calories : idealRatio,
+      t.protein_g > 0 ? protein_g / t.protein_g : idealRatio,
+      t.fat_g > 0 ? fat_g / t.fat_g : idealRatio,
+      t.carbs_g > 0 ? carbs_g / t.carbs_g : idealRatio,
+    ];
+    const scores = ratios.map(r => {
+      const diff = Math.abs(r - idealRatio);
+      return Math.max(0, 1 - diff * 2.5);
     });
     return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100);
   }, [calories, protein_g, fat_g, carbs_g, profile?.targets]);
 
-  // Determine card mode
-  const isWarning = verdict.includes("超标") || verdict.includes("过量") || verdict.includes("偏高")
-    || verdict.includes("禁忌") || verdict.includes("高糖");
-  const isDisciplined = matchPct > 80 && !isWarning;
-  const isNeutral = !isDisciplined && !isWarning;
-
-  // Card theme classes
-  const cardTheme = isDisciplined
-    ? "bg-primary/5 border-primary/20"
-    : isWarning
-    ? "bg-accent/5 border-accent/20"
-    : "bg-secondary border-border";
-
-  const cardAnimation = isDisciplined
-    ? "animate-pulse-soft"
-    : isWarning
-    ? "animate-pulse"
-    : "";
-
-  const verdictIcon = isDisciplined ? "✅" : isWarning ? "⚠️" : "📋";
+  // Determine emotion tier
+  const isWarning = matchScore < 50 || verdict.includes("超标") || verdict.includes("过量") || verdict.includes("偏高") || verdict.includes("禁忌") || verdict.includes("高糖");
+  const isGreen = matchScore >= 80 && !isWarning;
+  const emotionBg = isGreen ? "emotion-bg-green" : isWarning ? "emotion-bg-warning" : "emotion-bg-neutral";
+  const verdictIcon = isGreen ? "✅" : isWarning ? "⚠️" : "📋";
+  const modeLabel = isGreen ? "🎯 自律模式" : isWarning ? "🔥 警示模式" : "📋 普通模式";
 
   const handleSave = useCallback(async () => {
     await saveMeal({
-      food_name: food,
-      meal_type: getMealTypeByTime(),
+      food_name: food, meal_type: getMealTypeByTime(),
       calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion,
     });
     toast({ title: "已保存 ✓", description: `${food} 已记录` });
@@ -158,31 +178,66 @@ const Result = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
-      <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0">
+    <div className={`h-full flex flex-col relative ${emotionBg}`}>
+      {/* Emotion particles */}
+      {isGreen && <SparkleParticles />}
+      {isWarning && <BreathingWave />}
+
+      <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0 relative z-10">
         <button onClick={() => navigate(-1)} className="p-2"><ChevronLeft className="w-5 h-5" /></button>
         <button onClick={() => navigate("/")} className="p-2"><Home className="w-5 h-5" /></button>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-4">
-        {/* Food name + match badge */}
-        <div className="text-center mb-6 animate-slide-up">
+      <div className="flex-1 overflow-y-auto px-5 pb-4 relative z-10">
+        {/* Score badge + food name */}
+        <div className="text-center mb-5 animate-slide-up">
           <span className="text-4xl">🍜</span>
           <h1 className="text-2xl font-bold mt-2">{food}</h1>
-          <span className={`inline-block mt-2 text-xs font-bold px-3 py-1 rounded-full ${
-            isDisciplined ? "bg-primary/10 text-primary" : isWarning ? "bg-accent/10 text-accent" : "bg-secondary text-muted-foreground"
-          }`}>
-            {isDisciplined ? "🎯 自律模式" : isWarning ? "🔥 警示模式" : "📋 普通模式"} · 匹配度 {matchPct}%
-          </span>
+          <div className="flex items-center justify-center gap-2 mt-3">
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+              isGreen ? "bg-primary/10 text-primary" : isWarning ? "bg-accent/10 text-accent" : "bg-secondary text-muted-foreground"
+            }`}>
+              {modeLabel}
+            </span>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+              isGreen ? "bg-primary/10 text-primary" : isWarning ? "bg-accent/10 text-accent" : "bg-secondary text-muted-foreground"
+            }`}>
+              匹配度 {matchScore}%
+            </span>
+          </div>
         </div>
 
-        {/* Roast card */}
-        {roast && (
-          <div className={`rounded-xl p-4 mb-5 border animate-slide-up ${cardTheme} ${cardAnimation}`}>
-            <p className="text-sm font-bold leading-relaxed text-center">
-              "{roast}"
-            </p>
-          </div>
+        {/* Magazine-style verdict hero */}
+        {(verdict || roast) && (
+          <section className="mb-6 animate-slide-up" style={{ animationDelay: "0.05s" }}>
+            <div className={`rounded-2xl p-6 border relative overflow-hidden ${
+              isGreen ? "bg-primary/5 border-primary/20" : isWarning ? "bg-accent/5 border-accent/20" : "bg-card border-border"
+            }`}>
+              {isGreen && (
+                <div className="absolute inset-0 pointer-events-none">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="absolute w-1.5 h-1.5 rounded-full bg-primary/30 animate-sparkle"
+                      style={{
+                        left: `${15 + Math.random() * 70}%`,
+                        top: `${15 + Math.random() * 70}%`,
+                        animationDelay: `${i * 0.4}s`,
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+              {roast && (
+                <p className="text-xl font-black leading-snug text-center mb-3 relative z-10" style={{ letterSpacing: -0.3 }}>
+                  "{roast}"
+                </p>
+              )}
+              {verdict && (
+                <p className="text-sm leading-relaxed text-center text-muted-foreground relative z-10">
+                  {verdictIcon} {verdict}
+                </p>
+              )}
+            </div>
+          </section>
         )}
 
         {/* Allergen warning */}
@@ -228,21 +283,9 @@ const Result = () => {
           </div>
         </section>
 
-        {/* Verdict with themed card */}
-        {verdict && (
-          <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.2s" }}>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-              <span className="w-8 h-px bg-border" /> 营养判决 <span className="flex-1 h-px bg-border" />
-            </h3>
-            <div className={`rounded-xl p-4 border ${cardTheme} ${cardAnimation}`}>
-              <p className="text-sm leading-relaxed">{verdictIcon} {verdict}</p>
-            </div>
-          </section>
-        )}
-
         {/* Scene-adaptive suggestion */}
         {suggestion && (
-          <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.25s" }}>
+          <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.2s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
               <span className="w-8 h-px bg-border" /> 修复建议 <span className="flex-1 h-px bg-border" />
             </h3>
@@ -271,8 +314,8 @@ const Result = () => {
       </div>
 
       {/* Bottom buttons */}
-      <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex gap-3 shrink-0">
-        <button onClick={handleRetake} className="flex-1 py-4 rounded-2xl border border-border font-bold active:scale-[0.98] transition-all">
+      <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex gap-3 shrink-0 relative z-10">
+        <button onClick={handleRetake} className="flex-1 py-4 rounded-2xl border border-border bg-card font-bold active:scale-[0.98] transition-all">
           重拍
         </button>
         <button
@@ -290,7 +333,19 @@ const Result = () => {
 
       {/* Hidden share card */}
       <div style={{ position: "fixed", left: -9999, top: 0 }}>
-        <ShareCard ref={shareCardRef} food={food} calories={calories} protein_g={protein_g} fat_g={fat_g} carbs_g={carbs_g} verdict={verdict} roast={roast} ingredients={ingredients} />
+        <ShareCard
+          ref={shareCardRef}
+          food={food}
+          calories={calories}
+          protein_g={protein_g}
+          fat_g={fat_g}
+          carbs_g={carbs_g}
+          verdict={verdict}
+          roast={roast}
+          ingredients={ingredients}
+          imageData={imageData}
+          score={matchScore}
+        />
       </div>
 
       {/* Share modal */}
