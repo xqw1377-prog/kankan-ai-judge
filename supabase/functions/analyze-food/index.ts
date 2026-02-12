@@ -35,12 +35,12 @@ serve(async (req) => {
       imageContent = { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } };
     }
 
-    // Build user context string
     let contextStr = "";
     if (userContext) {
       if (userContext.goal) contextStr += `用户目标：${userContext.goal}。`;
       if (userContext.allergies) contextStr += `过敏/忌口：${userContext.allergies}。`;
       if (userContext.diet_preference) contextStr += `饮食偏好：${userContext.diet_preference}。`;
+      if (userContext.cooking_source) contextStr += `饮食来源：${userContext.cooking_source}。`;
     }
 
     const response = await fetch(
@@ -56,14 +56,16 @@ serve(async (req) => {
           messages: [
             {
               role: "system",
-              content: `你是"KANKAN"——一个专业但有趣的AI饮食分析师。用户会给你一张食物照片，你需要分析并返回结构化的营养数据。
+              content: `你是"KANKAN"——一个专业但毒舌有趣的AI饮食分析师。用户会给你一张食物照片，你需要分析并返回结构化的营养数据。
 
 你必须：
 1. 识别食物名称（2-8个字）
 2. 列出主要食材及估算克重
 3. 估算总热量和三大营养素
 4. 给出营养判决（一句话，针对用户目标）
-5. 给出具体可执行的修复建议
+5. 给出具体可执行的修复建议（在建议中用【】括号标注具体推荐的食物名称）
+6. 判断这是外卖/外食还是自炊场景
+7. 给出一句毒舌但有爱的吐槽（roast），20-40字，幽默犀利
 
 ${contextStr ? `用户信息：${contextStr}` : ""}
 
@@ -71,8 +73,10 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
 - 食材克重要合理估算
 - 热量和营养素要基于食材计算
 - 判决要具体、有用，结合用户目标
-- 建议要可执行，比如具体推荐某道菜
+- 建议要可执行，比如具体推荐某道菜，用【】包裹食物名
 - 如果图片不是食物，calories 给0，verdict 说"这不是食物"
+- cooking_scene: "takeout" 代表外卖/外食, "homemade" 代表自炊/家做
+- roast: 毒舌吐槽，幽默调侃用户的饮食选择
 - 使用指定的工具返回结果`,
             },
             {
@@ -109,32 +113,16 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
                       },
                       description: "食材清单",
                     },
-                    calories: {
-                      type: "number",
-                      description: "总热量 kcal",
-                    },
-                    protein_g: {
-                      type: "number",
-                      description: "蛋白质克数",
-                    },
-                    fat_g: {
-                      type: "number",
-                      description: "脂肪克数",
-                    },
-                    carbs_g: {
-                      type: "number",
-                      description: "碳水化合物克数",
-                    },
-                    verdict: {
-                      type: "string",
-                      description: "营养判决，一句话评价，30-60字",
-                    },
-                    suggestion: {
-                      type: "string",
-                      description: "修复建议，具体可执行的饮食调整建议，30-80字",
-                    },
+                    calories: { type: "number", description: "总热量 kcal" },
+                    protein_g: { type: "number", description: "蛋白质克数" },
+                    fat_g: { type: "number", description: "脂肪克数" },
+                    carbs_g: { type: "number", description: "碳水化合物克数" },
+                    verdict: { type: "string", description: "营养判决，一句话评价，30-60字" },
+                    suggestion: { type: "string", description: "修复建议，具体可执行的饮食调整建议，30-80字，用【】包裹推荐的具体食物" },
+                    cooking_scene: { type: "string", enum: ["takeout", "homemade"], description: "饮食场景：takeout=外卖/外食, homemade=自炊" },
+                    roast: { type: "string", description: "毒舌吐槽，幽默调侃，20-40字" },
                   },
-                  required: ["food", "ingredients", "calories", "protein_g", "fat_g", "carbs_g", "verdict", "suggestion"],
+                  required: ["food", "ingredients", "calories", "protein_g", "fat_g", "carbs_g", "verdict", "suggestion", "cooking_scene", "roast"],
                   additionalProperties: false,
                 },
               },
@@ -180,12 +168,11 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
       JSON.stringify({
         food: "未知食物",
         ingredients: [],
-        calories: 0,
-        protein_g: 0,
-        fat_g: 0,
-        carbs_g: 0,
+        calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0,
         verdict: "AI 无法识别，请重试。",
         suggestion: "",
+        cooking_scene: "takeout",
+        roast: "",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
