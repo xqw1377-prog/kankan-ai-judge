@@ -153,4 +153,6 @@ export const zhCN: Dictionary = {
   dailyBalance: "今日收支",
   actual: "实际",
   predicted7d: "7日预测",
+  glRiskWarning: "血糖风险",
+  glHigh: "偏高",
 };
