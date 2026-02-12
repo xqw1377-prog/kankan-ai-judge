@@ -196,4 +196,21 @@ export interface Dictionary {
   precisionUp: string;
   giHigh: string;
   giLow: string;
+
+  // Investment Report
+  investmentReport: string;
+  quarterlyReport: string;
+  avgGiVolatility: string;
+  dietAssetBalance: string;
+  futureTrend: string;
+  rebalanceSuggestion: string;
+  fiberPositionHint: string;
+  proteinPositionHint: string;
+  carbsPositionHint: string;
+  exportReport: string;
+  reportExported: string;
+  betaTester: string;
+  macroRadar: string;
+  giTrendLine: string;
+  balanceScore: string;
 }

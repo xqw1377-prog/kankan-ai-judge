@@ -5,6 +5,7 @@ import { useMeals } from "@/hooks/useMeals";
 import DietRing from "@/components/DietRing";
 import AnimatedScore from "@/components/AnimatedScore";
 import DietCreditCard from "@/components/DietCreditCard";
+import InvestmentReport from "@/components/InvestmentReport";
 import { useI18n } from "@/lib/i18n";
 
 function calcHealthScore(
@@ -128,6 +129,11 @@ const Profile = () => {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Investment Report */}
+      <section className="px-5 mb-6">
+        <InvestmentReport meals={meals} score={score} />
       </section>
 
       <section className="px-5 mb-3">
