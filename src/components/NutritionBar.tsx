@@ -15,11 +15,14 @@ const NutritionBar = ({ label, current, target, unit, color = "bg-primary" }: Nu
       <span className="text-xs font-medium text-muted-foreground w-8">{label}</span>
       <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-700 ${isOver ? "bg-destructive" : color}`}
-          style={{ width: `${pct}%` }}
+          className={`h-full rounded-full ${isOver ? "bg-destructive" : color}`}
+          style={{
+            width: `${pct}%`,
+            transition: "width 1.2s cubic-bezier(0.16, 1, 0.3, 1)",
+          }}
         />
       </div>
-      <span className="text-xs font-semibold text-foreground w-20 text-right">
+      <span className="text-xs font-semibold text-card-foreground w-20 text-right tabular-nums">
         {Math.round(current)}/{target}{unit}
       </span>
     </div>

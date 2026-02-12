@@ -6,39 +6,43 @@
 
 @layer base {
   :root {
-    --background: 150 10% 97%;
-    --foreground: 210 20% 15%;
+    --background: 220 20% 5%;
+    --foreground: 215 20% 72%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 210 20% 15%;
+    --card: 220 18% 9%;
+    --card-foreground: 215 20% 80%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 210 20% 15%;
+    --popover: 220 18% 9%;
+    --popover-foreground: 215 20% 80%;
 
-    --primary: 122 39% 49%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 43 72% 52%;
+    --primary-foreground: 220 20% 5%;
 
-    --secondary: 150 10% 93%;
-    --secondary-foreground: 210 20% 15%;
+    --secondary: 220 15% 14%;
+    --secondary-foreground: 215 20% 72%;
 
-    --muted: 150 10% 93%;
-    --muted-foreground: 210 10% 50%;
+    --muted: 220 15% 14%;
+    --muted-foreground: 215 15% 50%;
 
-    --accent: 30 100% 50%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 43 72% 52%;
+    --accent-foreground: 220 20% 5%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 150 10% 88%;
-    --input: 150 10% 88%;
-    --ring: 122 39% 49%;
+    --border: 220 15% 16%;
+    --input: 220 15% 16%;
+    --ring: 43 72% 52%;
 
     --radius: 0.75rem;
 
-    --warning: 30 100% 50%;
-    --success: 122 39% 49%;
+    --warning: 30 90% 50%;
+    --success: 160 60% 45%;
     --info: 200 80% 55%;
+
+    --gold: 43 72% 52%;
+    --gold-dim: 43 50% 35%;
+    --midnight: 220 20% 5%;
   }
 }
 
@@ -61,30 +65,45 @@
 
 @layer utilities {
   .text-glow-green {
-    text-shadow: 0 0 15px hsl(122 39% 49% / 0.4);
+    text-shadow: 0 0 15px hsl(160 60% 45% / 0.4);
+  }
+  .text-glow-gold {
+    text-shadow: 0 0 20px hsl(43 72% 52% / 0.3);
   }
   .shadow-soft {
-    box-shadow: 0 4px 20px hsl(0 0% 0% / 0.08);
+    box-shadow: 0 4px 24px hsl(0 0% 0% / 0.3);
   }
   .shadow-card {
-    box-shadow: 0 2px 12px hsl(0 0% 0% / 0.06);
+    box-shadow: 0 2px 16px hsl(0 0% 0% / 0.2);
+  }
+  .glass {
+    background: hsl(220 18% 9% / 0.6);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid hsl(220 15% 18% / 0.5);
+  }
+  .glass-strong {
+    background: hsl(220 18% 9% / 0.8);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid hsl(220 15% 20% / 0.6);
   }
 }
 
-/* ===== Emotion gradients ===== */
+/* ===== Emotion gradients (dark lab style) ===== */
 .emotion-bg-green {
-  background: linear-gradient(165deg, hsl(140 40% 96%) 0%, hsl(122 35% 94%) 50%, hsl(150 30% 95%) 100%);
+  background: linear-gradient(165deg, hsl(220 20% 5%) 0%, hsl(160 20% 8%) 50%, hsl(220 20% 6%) 100%);
 }
 .emotion-bg-neutral {
-  background: linear-gradient(165deg, hsl(30 10% 97%) 0%, hsl(30 8% 95%) 50%, hsl(40 6% 96%) 100%);
+  background: linear-gradient(165deg, hsl(220 20% 5%) 0%, hsl(220 18% 7%) 50%, hsl(220 20% 6%) 100%);
 }
 .emotion-bg-warning {
-  background: linear-gradient(165deg, hsl(20 80% 97%) 0%, hsl(10 60% 95%) 50%, hsl(30 50% 96%) 100%);
+  background: linear-gradient(165deg, hsl(220 20% 5%) 0%, hsl(10 20% 8%) 50%, hsl(220 20% 6%) 100%);
 }
 
 @keyframes pulse-soft {
   0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.9; }
+  50% { transform: scale(1.05); opacity: 0.85; }
 }
 
 @keyframes scan-line {
@@ -129,6 +148,12 @@
   100% { transform: translateY(-60px) scale(0); opacity: 0; }
 }
 
+/* Deceleration easing for instrument feel */
+@keyframes gauge-fill {
+  0% { width: 0%; }
+  100% { width: var(--target-width); }
+}
+
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
 }
@@ -139,10 +164,10 @@
   animation: spin-slow 3s linear infinite;
 }
 .animate-slide-up {
-  animation: slide-up 0.4s ease-out forwards;
+  animation: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out forwards;
+  animation: fade-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .animate-sparkle {
   animation: sparkle 2s ease-in-out infinite;

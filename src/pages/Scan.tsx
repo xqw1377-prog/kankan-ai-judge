@@ -40,9 +40,7 @@ const Scan = () => {
     startedRef.current = true;
 
     const userContext = profile ? {
-      goal: profile.goal,
-      allergies: profile.allergies,
-      diet_preference: profile.diet_preference,
+      goal: profile.goal, allergies: profile.allergies, diet_preference: profile.diet_preference,
     } : {};
 
     const fallback = {
@@ -90,12 +88,12 @@ const Scan = () => {
       </button>
 
       {images.length > 0 && (
-        <div className="relative w-64 h-64 rounded-2xl overflow-hidden shadow-card mb-8">
+        <div className="relative w-64 h-64 rounded-2xl overflow-hidden shadow-card mb-8 border border-border">
           <img src={images[currentPreview]} alt="food" className="w-full h-full object-cover transition-opacity duration-300" />
-          <div className="absolute left-0 w-full h-0.5 bg-primary shadow-[0_0_10px_hsl(122_39%_49%/0.6)] animate-scan-line" style={{ top: "0%" }} />
+          <div className="absolute left-0 w-full h-0.5 bg-primary shadow-[0_0_10px_hsl(43_72%_52%/0.6)] animate-scan-line" style={{ top: "0%" }} />
           <div className="absolute inset-0 bg-primary/5" />
           {images.length > 1 && (
-            <div className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm text-xs font-bold px-2.5 py-1 rounded-full">
+            <div className="absolute top-3 left-3 glass text-xs font-bold px-2.5 py-1 rounded-full text-card-foreground">
               {currentPreview + 1}/{images.length}
             </div>
           )}
@@ -104,7 +102,7 @@ const Scan = () => {
 
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-base font-semibold text-foreground">
+        <p className="text-base font-semibold text-card-foreground">
           {images.length > 1 ? t.scanAnalyzingMulti(images.length) : t.scanAnalyzing}
         </p>
         <p className="text-sm text-muted-foreground">{t.scanRecognizing}</p>

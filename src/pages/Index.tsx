@@ -81,16 +81,16 @@ const Index = () => {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{greeting}，</p>
-            <h1 className="text-xl font-bold">{nickname}</h1>
+            <h1 className="text-xl font-bold text-card-foreground">{nickname}</h1>
           </div>
-          <button onClick={() => navigate("/profile")} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+          <button onClick={() => navigate("/profile")} className="w-10 h-10 rounded-full glass flex items-center justify-center">
             <span className="text-lg">👤</span>
           </button>
         </div>
       </header>
 
       <section className="px-5 mb-6">
-        <div className="bg-card rounded-2xl p-5 shadow-card">
+        <div className="glass rounded-2xl p-5 shadow-card">
           <h2 className="text-sm font-semibold text-muted-foreground mb-4">{t.todayGoal}</h2>
           <div className="space-y-3">
             <NutritionBar label={t.energy} current={todayTotals.calories} target={profile.targets.calories} unit="kcal" />
@@ -103,7 +103,7 @@ const Index = () => {
 
       {photos.length > 0 && (
         <section className="px-5 mb-4 animate-fade-in">
-          <div className="bg-card rounded-2xl p-4 shadow-card">
+          <div className="glass rounded-2xl p-4 shadow-card">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-muted-foreground">{t.selectedPhotos(photos.length, MAX_PHOTOS)}</h3>
               <button onClick={() => setPhotos([])} className="text-xs text-destructive font-semibold">{t.clear}</button>
@@ -131,7 +131,9 @@ const Index = () => {
         <button
           onClick={handleCapture}
           className={`w-20 h-20 rounded-full flex items-center justify-center shadow-soft active:scale-95 transition-transform ${
-            photos.length > 0 ? "bg-primary text-primary-foreground" : "bg-primary text-primary-foreground animate-pulse-soft"
+            photos.length > 0
+              ? "bg-primary text-primary-foreground"
+              : "bg-primary text-primary-foreground animate-pulse-soft"
           }`}
         >
           <Camera className="w-8 h-8" />
@@ -153,10 +155,10 @@ const Index = () => {
               <button
                 key={meal.id}
                 onClick={() => navigate(`/meal/${meal.id}`)}
-                className="w-full flex items-center justify-between bg-card rounded-xl px-4 py-3 shadow-card active:scale-[0.98] transition-transform"
+                className="w-full flex items-center justify-between glass rounded-xl px-4 py-3 shadow-card active:scale-[0.98] transition-transform"
               >
                 <div className="text-left">
-                  <p className="font-semibold text-sm">{meal.food_name}</p>
+                  <p className="font-semibold text-sm text-card-foreground">{meal.food_name}</p>
                   <p className="text-xs text-muted-foreground">
                     {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
                   </p>

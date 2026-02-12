@@ -38,34 +38,27 @@ const MealDetail = () => {
 
   const handleEdit = () => {
     navigate("/edit-ingredients", {
-      state: {
-        mealId: meal.id,
-        foodName: meal.food_name,
-        ingredients: meal.ingredients,
-      },
+      state: { mealId: meal.id, foodName: meal.food_name, ingredients: meal.ingredients },
     });
   };
 
   return (
     <div className="h-full flex flex-col bg-background">
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0">
-        <button onClick={() => navigate(-1)} className="p-2"><ChevronLeft className="w-5 h-5" /></button>
-        <span className="font-semibold text-sm">餐品详情</span>
-        <button onClick={handleEdit} className="p-2 text-primary">
-          <Pencil className="w-4 h-4" />
-        </button>
+        <button onClick={() => navigate(-1)} className="p-2 text-muted-foreground"><ChevronLeft className="w-5 h-5" /></button>
+        <span className="font-semibold text-sm text-card-foreground">餐品详情</span>
+        <button onClick={handleEdit} className="p-2 text-primary"><Pencil className="w-4 h-4" /></button>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">
         <div className="text-center mb-6">
           <span className="text-4xl">🍜</span>
-          <h1 className="text-2xl font-bold mt-2">{meal.food_name}</h1>
+          <h1 className="text-2xl font-bold mt-2 text-card-foreground">{meal.food_name}</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleString("zh-CN")}
           </p>
         </div>
 
-        {/* Allergen warning */}
         {allergenWarnings.length > 0 && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 animate-fade-in">
             <p className="text-sm font-semibold text-destructive">⚠️ 检测到可能的过敏食材：{allergenWarnings.join("、")}</p>
@@ -73,14 +66,13 @@ const MealDetail = () => {
           </div>
         )}
 
-        {/* Ingredients */}
         {meal.ingredients.length > 0 && (
           <section className="mb-5">
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">食材清单</h3>
-            <div className="bg-card rounded-xl p-4 shadow-card">
+            <div className="glass rounded-xl p-4 shadow-card">
               {meal.ingredients.map((item: any, i: number) => (
                 <div key={i} className="flex justify-between py-1.5 border-b border-border last:border-0">
-                  <span className="text-sm flex items-center gap-1">
+                  <span className="text-sm flex items-center gap-1 text-card-foreground">
                     {allergenWarnings.includes(item.name) && <span className="text-destructive">⚠️</span>}
                     {item.name}
                   </span>
@@ -88,19 +80,15 @@ const MealDetail = () => {
                 </div>
               ))}
             </div>
-            <button
-              onClick={handleEdit}
-              className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 ml-1"
-            >
+            <button onClick={handleEdit} className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 ml-1">
               <Pencil className="w-3 h-3" /> 编辑食材
             </button>
           </section>
         )}
 
-        {/* Nutrition */}
         <section className="mb-5">
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">营养素分析</h3>
-          <div className="bg-card rounded-xl p-4 shadow-card space-y-3">
+          <div className="glass rounded-xl p-4 shadow-card space-y-3">
             <NutritionBar label="能量" current={meal.calories} target={profile?.targets?.calories || 2100} unit="kcal" />
             <NutritionBar label="蛋白" current={meal.protein_g} target={profile?.targets?.protein_g || 120} unit="g" />
             <NutritionBar label="脂肪" current={meal.fat_g} target={profile?.targets?.fat_g || 58} unit="g" />
@@ -111,8 +99,8 @@ const MealDetail = () => {
         {meal.verdict && (
           <section className="mb-5">
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">营养判决</h3>
-            <div className="bg-secondary rounded-xl p-4">
-              <p className="text-sm">⚠️ {meal.verdict}</p>
+            <div className="glass rounded-xl p-4">
+              <p className="text-sm text-card-foreground">⚠️ {meal.verdict}</p>
             </div>
           </section>
         )}
@@ -120,8 +108,8 @@ const MealDetail = () => {
         {meal.suggestion && (
           <section className="mb-5">
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">修复建议</h3>
-            <div className="bg-card rounded-xl p-4 shadow-card">
-              <p className="text-sm">💡 {meal.suggestion}</p>
+            <div className="glass rounded-xl p-4 shadow-card">
+              <p className="text-sm text-card-foreground">💡 {meal.suggestion}</p>
             </div>
           </section>
         )}

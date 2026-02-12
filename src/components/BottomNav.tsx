@@ -17,7 +17,7 @@ const BottomNav = () => {
   if (hiddenPaths.some(p => location.pathname.startsWith(p))) return null;
 
   return (
-    <nav className="shrink-0 flex items-center justify-around border-t border-border bg-card py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <nav className="shrink-0 flex items-center justify-around glass-strong py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       {tabs.map(({ path, icon: Icon, label }) => {
         const active = location.pathname === path;
         return (

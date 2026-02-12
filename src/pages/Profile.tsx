@@ -58,10 +58,10 @@ const Profile = () => {
   return (
     <div className="flex-1 overflow-y-auto">
       <header className="px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t.myPage}</h1>
+        <h1 className="text-xl font-bold text-card-foreground">{t.myPage}</h1>
         <button
           onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-xs font-semibold"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-semibold text-muted-foreground"
         >
           <Globe className="w-3.5 h-3.5" />
           {locale === "zh-CN" ? "EN" : "中"}
@@ -69,11 +69,11 @@ const Profile = () => {
       </header>
 
       <section className="px-5 mb-6">
-        <div className="bg-card rounded-2xl p-5 shadow-card">
+        <div className="glass rounded-2xl p-5 shadow-card">
           <div className="flex items-center gap-4">
             <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-2xl">👤</div>
             <div className="flex-1 min-w-0">
-              <h2 className="font-bold text-lg">{nickname}</h2>
+              <h2 className="font-bold text-lg text-card-foreground">{nickname}</h2>
               <p className="text-sm text-muted-foreground">
                 {profile.age}{t.ageSuffix} · {genderLabel} · {profile.height_cm}cm / {profile.weight_kg}kg
               </p>
@@ -82,7 +82,7 @@ const Profile = () => {
               </p>
             </div>
           </div>
-          <button onClick={() => navigate("/onboarding")} className="mt-4 w-full py-2.5 rounded-xl border border-border text-sm font-semibold active:scale-[0.98] transition-all">
+          <button onClick={() => navigate("/onboarding")} className="mt-4 w-full py-2.5 rounded-xl border border-border text-sm font-semibold active:scale-[0.98] transition-all text-card-foreground">
             {t.editProfile}
           </button>
         </div>
@@ -90,18 +90,18 @@ const Profile = () => {
 
       <section className="px-5 mb-6">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.dietRing}</h3>
-        <div className="bg-card rounded-2xl p-5 shadow-card flex justify-center">
+        <div className="glass rounded-2xl p-5 shadow-card flex justify-center">
           <DietRing meals={meals} />
         </div>
       </section>
 
       <section className="px-5 mb-6">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.healthAssets}</h3>
-        <div className="bg-card rounded-2xl p-5 shadow-card mb-3">
+        <div className="glass rounded-2xl p-5 shadow-card mb-3">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <Award className="w-5 h-5 text-primary" />
-              <span className="text-sm font-semibold">{t.healthScore}</span>
+              <span className="text-sm font-semibold text-card-foreground">{t.healthScore}</span>
             </div>
             <AnimatedScore target={score} />
           </div>
@@ -110,33 +110,29 @@ const Profile = () => {
           </p>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          <div className="bg-card rounded-xl p-3 shadow-card text-center">
-            <Calendar className="w-4 h-4 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold">{streak}</p>
-            <p className="text-[10px] text-muted-foreground">{t.consecutiveDays}</p>
-          </div>
-          <div className="bg-card rounded-xl p-3 shadow-card text-center">
-            <Calendar className="w-4 h-4 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold">{uniqueDays}</p>
-            <p className="text-[10px] text-muted-foreground">{t.recordDays}</p>
-          </div>
-          <div className="bg-card rounded-xl p-3 shadow-card text-center">
-            <Utensils className="w-4 h-4 text-primary mx-auto mb-1" />
-            <p className="text-lg font-bold">{meals.length}</p>
-            <p className="text-[10px] text-muted-foreground">{t.totalMeals}</p>
-          </div>
+          {[
+            { icon: Calendar, value: streak, label: t.consecutiveDays },
+            { icon: Calendar, value: uniqueDays, label: t.recordDays },
+            { icon: Utensils, value: meals.length, label: t.totalMeals },
+          ].map(({ icon: Icon, value, label }) => (
+            <div key={label} className="glass rounded-xl p-3 shadow-card text-center">
+              <Icon className="w-4 h-4 text-primary mx-auto mb-1" />
+              <p className="text-lg font-bold text-card-foreground">{value}</p>
+              <p className="text-[10px] text-muted-foreground">{label}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       <section className="px-5 mb-3">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.preferences}</h3>
-        <div className="bg-card rounded-xl shadow-card divide-y divide-border">
+        <div className="glass rounded-xl shadow-card divide-y divide-border">
           {[
             { label: t.allergenManagement, info: profile.allergies || t.notSet },
             { label: t.reminderSettings, info: "" },
             { label: t.privacy, info: "" },
           ].map(item => (
-            <button key={item.label} className="w-full flex items-center justify-between px-4 py-3.5 text-sm">
+            <button key={item.label} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground">
               <span className="truncate">{item.label}</span>
               <div className="flex items-center gap-1 shrink-0">
                 {item.info && <span className="text-xs text-muted-foreground truncate max-w-[120px]">{item.info}</span>}
@@ -149,9 +145,9 @@ const Profile = () => {
 
       <section className="px-5 pb-8">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.other}</h3>
-        <div className="bg-card rounded-xl shadow-card divide-y divide-border">
+        <div className="glass rounded-xl shadow-card divide-y divide-border">
           {[t.helpFeedback, t.aboutUs].map(item => (
-            <button key={item} className="w-full flex items-center justify-between px-4 py-3.5 text-sm">
+            <button key={item} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground">
               <span>{item}</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>

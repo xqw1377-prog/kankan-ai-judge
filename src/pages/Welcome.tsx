@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { Utensils } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 
 const Welcome = () => {
@@ -10,11 +9,11 @@ const Welcome = () => {
     <div className="h-full flex flex-col items-center justify-center bg-background px-8">
       <div className="flex flex-col items-center gap-6 animate-fade-in">
         <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
-          <Utensils className="w-12 h-12 text-primary" />
+          <span className="text-4xl font-black text-primary text-glow-gold">K</span>
         </div>
         <div className="text-center">
-          <h1 className="text-4xl font-black tracking-tight text-foreground">{t.appName}</h1>
-          <p className="text-muted-foreground mt-2 text-base">{t.welcomeSubtitle}</p>
+          <h1 className="text-4xl font-black tracking-tight text-primary text-glow-gold">{t.appName}</h1>
+          <p className="text-muted-foreground mt-2 text-base tracking-widest">{t.welcomeSubtitle}</p>
         </div>
       </div>
       <div className="mt-16 w-full max-w-xs flex flex-col gap-3">

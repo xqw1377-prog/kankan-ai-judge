@@ -20,7 +20,6 @@ function renderSuggestionWithBold(text: string) {
   });
 }
 
-/** Floating sparkle particles for green mode */
 function SparkleParticles() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -40,15 +39,12 @@ function SparkleParticles() {
   );
 }
 
-/** Breathing wave overlay for warning mode */
 function BreathingWave() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       <div
         className="absolute inset-0 animate-breathe"
-        style={{
-          background: "radial-gradient(ellipse at center, hsl(30 100% 50% / 0.06) 0%, transparent 70%)",
-        }}
+        style={{ background: "radial-gradient(ellipse at center, hsl(30 100% 50% / 0.06) 0%, transparent 70%)" }}
       />
     </div>
   );
@@ -81,16 +77,15 @@ const Result = () => {
     .filter((item: any) => userAllergies.some((a: string) => item.name?.includes(a)))
     .map((item: any) => item.name);
 
-  // Score-based emotion system (0-100)
   const matchScore = useMemo(() => {
     if (!profile?.targets) return 60;
-    const t = profile.targets;
+    const tgt = profile.targets;
     const idealRatio = 0.33;
     const ratios = [
-      t.calories > 0 ? calories / t.calories : idealRatio,
-      t.protein_g > 0 ? protein_g / t.protein_g : idealRatio,
-      t.fat_g > 0 ? fat_g / t.fat_g : idealRatio,
-      t.carbs_g > 0 ? carbs_g / t.carbs_g : idealRatio,
+      tgt.calories > 0 ? calories / tgt.calories : idealRatio,
+      tgt.protein_g > 0 ? protein_g / tgt.protein_g : idealRatio,
+      tgt.fat_g > 0 ? fat_g / tgt.fat_g : idealRatio,
+      tgt.carbs_g > 0 ? carbs_g / tgt.carbs_g : idealRatio,
     ];
     const scores = ratios.map(r => {
       const diff = Math.abs(r - idealRatio);
@@ -99,7 +94,6 @@ const Result = () => {
     return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100);
   }, [calories, protein_g, fat_g, carbs_g, profile?.targets]);
 
-  // Determine emotion tier
   const isWarning = matchScore < 50 || verdict.includes("超标") || verdict.includes("过量") || verdict.includes("偏高") || verdict.includes("禁忌") || verdict.includes("高糖");
   const isGreen = matchScore >= 80 && !isWarning;
   const emotionBg = isGreen ? "emotion-bg-green" : isWarning ? "emotion-bg-warning" : "emotion-bg-neutral";
@@ -182,35 +176,32 @@ const Result = () => {
 
   return (
     <div className={`h-full flex flex-col relative ${emotionBg}`}>
-      {/* Emotion particles */}
       {isGreen && <SparkleParticles />}
       {isWarning && <BreathingWave />}
 
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0 relative z-10">
-        <button onClick={() => navigate(-1)} className="p-2"><ChevronLeft className="w-5 h-5" /></button>
-        <button onClick={() => navigate("/")} className="p-2"><Home className="w-5 h-5" /></button>
+        <button onClick={() => navigate(-1)} className="p-2 text-muted-foreground"><ChevronLeft className="w-5 h-5" /></button>
+        <button onClick={() => navigate("/")} className="p-2 text-muted-foreground"><Home className="w-5 h-5" /></button>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-4 relative z-10">
-        {/* Score badge + food name */}
         <div className="text-center mb-5 animate-slide-up">
           <span className="text-4xl">🍜</span>
-          <h1 className="text-2xl font-bold mt-2">{food}</h1>
+          <h1 className="text-2xl font-bold mt-2 text-card-foreground">{food}</h1>
           <div className="flex items-center justify-center gap-2 mt-3">
             <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-              isGreen ? "bg-primary/10 text-primary" : isWarning ? "bg-accent/10 text-accent" : "bg-secondary text-muted-foreground"
+              isGreen ? "bg-success/10 text-success" : isWarning ? "bg-warning/10 text-warning" : "bg-secondary text-muted-foreground"
             }`}>
               {modeLabel}
             </span>
             <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-              isGreen ? "bg-primary/10 text-primary" : isWarning ? "bg-accent/10 text-accent" : "bg-secondary text-muted-foreground"
+              isGreen ? "bg-success/10 text-success" : isWarning ? "bg-warning/10 text-warning" : "bg-secondary text-muted-foreground"
             }`}>
               {t.matchScore(matchScore)}
             </span>
           </div>
         </div>
 
-        {/* Original photos gallery */}
         {allImages.length > 1 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.02s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
@@ -237,27 +228,22 @@ const Result = () => {
           </div>
         )}
 
-        {/* Magazine-style verdict hero */}
         {(verdict || roast) && (
           <section className="mb-6 animate-slide-up" style={{ animationDelay: "0.05s" }}>
-            <div className={`rounded-2xl p-6 border relative overflow-hidden ${
-              isGreen ? "bg-primary/5 border-primary/20" : isWarning ? "bg-accent/5 border-accent/20" : "bg-card border-border"
-            }`}>
+            <div className={`glass rounded-2xl p-6 relative overflow-hidden ${
+              isGreen ? "border-success/20" : isWarning ? "border-warning/20" : ""
+            }`} style={{ borderWidth: 1 }}>
               {isGreen && (
                 <div className="absolute inset-0 pointer-events-none">
                   {Array.from({ length: 6 }).map((_, i) => (
-                    <div key={i} className="absolute w-1.5 h-1.5 rounded-full bg-primary/30 animate-sparkle"
-                      style={{
-                        left: `${15 + Math.random() * 70}%`,
-                        top: `${15 + Math.random() * 70}%`,
-                        animationDelay: `${i * 0.4}s`,
-                      }}
+                    <div key={i} className="absolute w-1.5 h-1.5 rounded-full bg-success/30 animate-sparkle"
+                      style={{ left: `${15 + Math.random() * 70}%`, top: `${15 + Math.random() * 70}%`, animationDelay: `${i * 0.4}s` }}
                     />
                   ))}
                 </div>
               )}
               {roast && (
-                <p className="text-xl font-black leading-snug text-center mb-3 relative z-10" style={{ letterSpacing: -0.3 }}>
+                <p className="text-xl font-black leading-snug text-center mb-3 relative z-10 text-card-foreground" style={{ letterSpacing: -0.3 }}>
                   "{roast}"
                 </p>
               )}
@@ -270,16 +256,15 @@ const Result = () => {
           </section>
         )}
 
-        {/* Ingredients */}
         {ingredients.length > 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
               <span className="w-8 h-px bg-border" /> {t.ingredientList} <span className="flex-1 h-px bg-border" />
             </h3>
-            <div className="bg-card rounded-xl p-4 shadow-card">
+            <div className="glass rounded-xl p-4 shadow-card">
               {ingredients.map((item: any, i: number) => (
                 <div key={i} className="flex justify-between py-1.5 border-b border-border last:border-0">
-                  <span className="text-sm flex items-center gap-1">
+                  <span className="text-sm flex items-center gap-1 text-card-foreground">
                     {allergenWarnings.includes(item.name) && <span className="text-destructive">⚠️</span>}
                     {item.name}
                   </span>
@@ -293,12 +278,11 @@ const Result = () => {
           </section>
         )}
 
-        {/* Nutrition */}
         <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.15s" }}>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
             <span className="w-8 h-px bg-border" /> {t.nutritionAnalysis} <span className="flex-1 h-px bg-border" />
           </h3>
-          <div className="bg-card rounded-xl p-4 shadow-card space-y-3">
+          <div className="glass rounded-xl p-4 shadow-card space-y-3">
             <NutritionBar label={t.energy} current={calories} target={profile?.targets?.calories || 2100} unit="kcal" />
             <NutritionBar label={t.protein} current={protein_g} target={profile?.targets?.protein_g || 120} unit="g" />
             <NutritionBar label={t.fat} current={fat_g} target={profile?.targets?.fat_g || 58} unit="g" />
@@ -306,27 +290,26 @@ const Result = () => {
           </div>
         </section>
 
-        {/* Scene-adaptive suggestion */}
         {suggestion && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.2s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
               <span className="w-8 h-px bg-border" /> {t.repairSuggestion} <span className="flex-1 h-px bg-border" />
             </h3>
-            <div className="bg-card rounded-xl p-4 shadow-card">
+            <div className="glass rounded-xl p-4 shadow-card">
               <div className="flex items-start gap-3">
                 <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  cooking_scene === "homemade" ? "bg-primary/10" : "bg-accent/10"
+                  cooking_scene === "homemade" ? "bg-success/10" : "bg-warning/10"
                 }`}>
                   {cooking_scene === "homemade"
-                    ? <UtensilsCrossed className="w-4 h-4 text-primary" />
-                    : <Package className="w-4 h-4 text-accent" />
+                    ? <UtensilsCrossed className="w-4 h-4 text-success" />
+                    : <Package className="w-4 h-4 text-warning" />
                   }
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
                     {cooking_scene === "homemade" ? t.homemadeSuggestion : t.takeoutSuggestion}
                   </span>
-                  <p className="text-sm leading-relaxed mt-1">
+                  <p className="text-sm leading-relaxed mt-1 text-card-foreground">
                     💡 {renderSuggestionWithBold(suggestion)}
                   </p>
                 </div>
@@ -336,9 +319,8 @@ const Result = () => {
         )}
       </div>
 
-      {/* Bottom buttons */}
       <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex gap-3 shrink-0 relative z-10">
-        <button onClick={handleRetake} className="flex-1 py-4 rounded-2xl border border-border bg-card font-bold active:scale-[0.98] transition-all truncate">
+        <button onClick={handleRetake} className="flex-1 py-4 rounded-2xl border border-border glass font-bold active:scale-[0.98] transition-all truncate text-card-foreground">
           {t.retake}
         </button>
         <button
@@ -354,25 +336,15 @@ const Result = () => {
         </button>
       </div>
 
-      {/* Hidden share card */}
       <div style={{ position: "fixed", left: -9999, top: 0 }}>
         <ShareCard
           ref={shareCardRef}
-          food={food}
-          calories={calories}
-          protein_g={protein_g}
-          fat_g={fat_g}
-          carbs_g={carbs_g}
-          verdict={verdict}
-          roast={roast}
-          ingredients={ingredients}
-          imageData={imageData}
-          score={matchScore}
-          locale={locale}
+          food={food} calories={calories} protein_g={protein_g} fat_g={fat_g} carbs_g={carbs_g}
+          verdict={verdict} roast={roast} ingredients={ingredients} imageData={imageData}
+          score={matchScore} locale={locale}
         />
       </div>
 
-      {/* Share modal */}
       {shareOpen && shareImage && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in">
           <button onClick={() => { setShareOpen(false); setShareImage(null); }} className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 p-2 text-muted-foreground">
@@ -382,7 +354,7 @@ const Result = () => {
             <img src={shareImage} alt="分享卡片" className="w-full rounded-2xl shadow-soft mb-6" style={{ maxHeight: "60vh", objectFit: "contain" }} />
             <p className="text-center text-xs text-muted-foreground mb-5">{t.longPressToSave}</p>
             <div className="flex gap-3">
-              <button onClick={handleDownload} className="flex-1 py-4 rounded-2xl border border-border font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate">
+              <button onClick={handleDownload} className="flex-1 py-4 rounded-2xl border border-border glass font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate text-card-foreground">
                 <Download className="w-4 h-4 shrink-0" /> {t.saveToAlbum}
               </button>
               <button onClick={handleShare} className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate">
