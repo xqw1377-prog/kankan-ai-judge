@@ -1,17 +1,18 @@
 import { Home, ClipboardList, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-
-const tabs = [
-  { path: "/", icon: Home, label: "首页" },
-  { path: "/history", icon: ClipboardList, label: "记录" },
-  { path: "/profile", icon: User, label: "我的" },
-];
+import { useI18n } from "@/lib/i18n";
 
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useI18n();
 
-  // Hide on onboarding and scan pages
+  const tabs = [
+    { path: "/", icon: Home, label: t.navHome },
+    { path: "/history", icon: ClipboardList, label: t.navHistory },
+    { path: "/profile", icon: User, label: t.navProfile },
+  ];
+
   const hiddenPaths = ["/onboarding", "/scan", "/result", "/edit-ingredients", "/welcome", "/meal/"];
   if (hiddenPaths.some(p => location.pathname.startsWith(p))) return null;
 

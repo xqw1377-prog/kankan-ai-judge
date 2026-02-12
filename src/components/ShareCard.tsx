@@ -1,4 +1,5 @@
 import { forwardRef } from "react";
+import type { Locale } from "@/lib/i18n";
 
 interface ShareCardProps {
   food: string;
@@ -11,7 +12,13 @@ interface ShareCardProps {
   ingredients: { name: string; grams: number }[];
   imageData?: string;
   score?: number;
+  locale?: Locale;
 }
+
+const BRAND_TEXT: Record<Locale, { tagline: string; lab: string; calLabel: string; proteinLabel: string; fatLabel: string; carbsLabel: string }> = {
+  "zh-CN": { tagline: "每一口都有据可循", lab: "数字化饮食实验室", calLabel: "热量", proteinLabel: "蛋白质", fatLabel: "脂肪", carbsLabel: "碳水" },
+  "en-US": { tagline: "Data-driven Dining", lab: "Digital Dining Laboratory", calLabel: "Cal", proteinLabel: "Protein", fatLabel: "Fat", carbsLabel: "Carbs" },
+};
 
 function MacroRing({ value, max, color, label, unit }: { value: number; max: number; color: string; label: string; unit: string }) {
   const r = 28;
@@ -66,7 +73,8 @@ function QRPlaceholder() {
 }
 
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
-  ({ food, calories, protein_g, fat_g, carbs_g, verdict, roast, ingredients, imageData, score = 60 }, ref) => {
+  ({ food, calories, protein_g, fat_g, carbs_g, verdict, roast, ingredients, imageData, score = 60, locale = "zh-CN" }, ref) => {
+    const brand = BRAND_TEXT[locale];
     const now = new Date();
     const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}`;
     const isNeg = score < 50;
@@ -152,10 +160,10 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
 
         {/* Macro ring charts */}
         <div style={{ display: "flex", justifyContent: "space-around", padding: "20px 16px" }}>
-          <MacroRing value={calories} max={2100} color="#66BB6A" label="热量" unit="kcal" />
-          <MacroRing value={protein_g} max={120} color="#42A5F5" label="蛋白质" unit="g" />
-          <MacroRing value={fat_g} max={58} color="#FFA726" label="脂肪" unit="g" />
-          <MacroRing value={carbs_g} max={263} color="#AB47BC" label="碳水" unit="g" />
+          <MacroRing value={calories} max={2100} color="#66BB6A" label={brand.calLabel} unit="kcal" />
+          <MacroRing value={protein_g} max={120} color="#42A5F5" label={brand.proteinLabel} unit="g" />
+          <MacroRing value={fat_g} max={58} color="#FFA726" label={brand.fatLabel} unit="g" />
+          <MacroRing value={carbs_g} max={263} color="#AB47BC" label={brand.carbsLabel} unit="g" />
         </div>
 
         {/* Ingredients pills */}
@@ -199,7 +207,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
             }}>K</div>
             <div>
               <span style={{ fontSize: 13, fontWeight: 800, color: "#D4AF37", letterSpacing: 3, textTransform: "uppercase" as const }}>KANKAN AI</span>
-              <p style={{ fontSize: 7, color: "rgba(212,175,55,0.5)", margin: 0, letterSpacing: 3, textTransform: "uppercase" as const, fontWeight: 600 }}>每一口都有据可循 · 数字化饮食实验室</p>
+              <p style={{ fontSize: 7, color: "rgba(212,175,55,0.5)", margin: 0, letterSpacing: 3, textTransform: "uppercase" as const, fontWeight: 600, wordBreak: "break-word" as const }}>{brand.tagline} · {brand.lab}</p>
             </div>
           </div>
           <QRPlaceholder />
