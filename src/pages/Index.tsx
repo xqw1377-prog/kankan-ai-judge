@@ -1,117 +1,129 @@
-import { useState, useCallback } from "react";
-import TheEye from "@/components/TheEye";
-import ScanOverlay from "@/components/ScanOverlay";
-import VerdictCard from "@/components/VerdictCard";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-
-type AppPhase = "idle" | "scanning" | "result";
-
-interface FoodResult {
-  food: string;
-  sin: number;
-  roast: string;
-}
-
-const FALLBACK_RESULT: FoodResult = {
-  food: "神秘食物",
-  sin: 50,
-  roast: "AI 短路了，但你心里清楚自己吃了什么。",
-};
+import { useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Camera } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
+import { useMeals } from "@/hooks/useMeals";
+import NutritionBar from "@/components/NutritionBar";
+import { getMealTypeLabel } from "@/lib/nutrition";
 
 const Index = () => {
-  const [phase, setPhase] = useState<AppPhase>("idle");
-  const [imageData, setImageData] = useState<string>("");
-  const [result, setResult] = useState<FoodResult>(FALLBACK_RESULT);
-  const { toast } = useToast();
+  const navigate = useNavigate();
+  const { profile, loading: profileLoading } = useProfile();
+  const { todayMeals, todayTotals, loading: mealsLoading } = useMeals();
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleCapture = useCallback(async (data: string) => {
-    setImageData(data);
-    setPhase("scanning");
-
-    try {
-      const { data: fnData, error } = await supabase.functions.invoke("analyze-food", {
-        body: { imageBase64: data },
-      });
-
-      if (error) {
-        console.error("Edge function error:", error);
-        toast({
-          title: "分析失败",
-          description: "AI 暂时开小差了，请重试",
-          variant: "destructive",
-        });
-        setResult(FALLBACK_RESULT);
-      } else if (fnData?.error) {
-        toast({
-          title: "分析失败",
-          description: fnData.error,
-          variant: "destructive",
-        });
-        setResult(FALLBACK_RESULT);
-      } else {
-        setResult({
-          food: fnData.food || "未知食物",
-          sin: typeof fnData.sin === "number" ? fnData.sin : 50,
-          roast: fnData.roast || "AI 无话可说。",
-        });
-      }
-    } catch (err) {
-      console.error("Request failed:", err);
-      toast({
-        title: "网络错误",
-        description: "请检查网络连接后重试",
-        variant: "destructive",
-      });
-      setResult(FALLBACK_RESULT);
+  // Redirect to welcome/onboarding if needed
+  useEffect(() => {
+    if (!profileLoading && !profile) {
+      navigate("/welcome", { replace: true });
+    } else if (!profileLoading && profile && !profile.onboarding_completed) {
+      navigate("/onboarding", { replace: true });
     }
+  }, [profile, profileLoading, navigate]);
 
-    setPhase("result");
-  }, [toast]);
+  const handleCapture = () => inputRef.current?.click();
 
-  const handleRetake = () => {
-    setPhase("idle");
-    setImageData("");
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const imageData = ev.target?.result as string;
+      navigate("/scan", { state: { imageData } });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
   };
 
-  const handleShare = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: "KanKan 看看",
-        text: `${result.food} 的罪恶值：${result.sin}%！${result.roast}`,
-      }).catch(() => {});
-    }
-  };
+  if (profileLoading || mealsLoading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!profile) return null;
+
+  const nickname = profile.gender === "female" ? "小丽" : "小张";
+  const hour = new Date().getHours();
+  const greeting = hour < 11 ? "早安" : hour < 14 ? "午安" : hour < 18 ? "下午好" : "晚上好";
 
   return (
-    <div className="h-full flex flex-col bg-background relative overflow-hidden">
+    <div className="flex-1 overflow-y-auto">
       {/* Header */}
-      <header className="pt-12 pb-4 text-center shrink-0">
-        <h1 className="text-3xl font-black tracking-tight">
-          <span className="text-primary text-glow-orange">看看</span>
-          <span className="text-foreground/50 text-sm font-bold ml-2">KanKan</span>
-        </h1>
+      <header className="px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">{greeting}，</p>
+            <h1 className="text-xl font-bold">{nickname}</h1>
+          </div>
+          <button
+            onClick={() => navigate("/profile")}
+            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
+          >
+            <span className="text-lg">👤</span>
+          </button>
+        </div>
       </header>
 
-      {/* Content */}
-      {phase === "idle" && <TheEye onCapture={handleCapture} />}
-      {phase === "scanning" && <ScanOverlay imageData={imageData} />}
-      {phase === "result" && (
-        <VerdictCard
-          foodName={result.food}
-          sinValue={result.sin}
-          roast={result.roast}
-          onRetake={handleRetake}
-          onShare={handleShare}
-        />
-      )}
+      {/* Today's progress */}
+      <section className="px-5 mb-6">
+        <div className="bg-card rounded-2xl p-5 shadow-card">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4">今日目标</h2>
+          <div className="space-y-3">
+            <NutritionBar label="能量" current={todayTotals.calories} target={profile.targets.calories} unit="kcal" />
+            <NutritionBar label="蛋白" current={todayTotals.protein_g} target={profile.targets.protein_g} unit="g" />
+            <NutritionBar label="脂肪" current={todayTotals.fat_g} target={profile.targets.fat_g} unit="g" />
+            <NutritionBar label="碳水" current={todayTotals.carbs_g} target={profile.targets.carbs_g} unit="g" />
+          </div>
+        </div>
+      </section>
 
-      {/* Bottom hint */}
-      {phase === "idle" && (
-        <p className="text-center text-muted-foreground text-xs pb-8 shrink-0">
-          点击之眼 · 透视你的食物
-        </p>
-      )}
+      {/* Camera button */}
+      <section className="flex flex-col items-center mb-6">
+        <button
+          onClick={handleCapture}
+          className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft animate-pulse-soft active:scale-95 transition-transform"
+        >
+          <Camera className="w-8 h-8" />
+        </button>
+        <p className="text-sm text-muted-foreground mt-3">拍下你的餐食</p>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleFileChange}
+        />
+      </section>
+
+      {/* Recent meals */}
+      <section className="px-5 pb-6">
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3">最近记录</h2>
+        {todayMeals.length === 0 ? (
+          <p className="text-center text-muted-foreground text-sm py-8">暂无记录，拍下第一餐吧</p>
+        ) : (
+          <div className="space-y-2">
+            {todayMeals.slice(0, 3).map(meal => (
+              <button
+                key={meal.id}
+                onClick={() => navigate(`/meal/${meal.id}`)}
+                className="w-full flex items-center justify-between bg-card rounded-xl px-4 py-3 shadow-card active:scale-[0.98] transition-transform"
+              >
+                <div className="text-left">
+                  <p className="font-semibold text-sm">{meal.food_name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+                <span className="text-sm font-bold text-primary">{meal.calories}kcal</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };
