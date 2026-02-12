@@ -12,7 +12,7 @@ const BottomNav = () => {
   const navigate = useNavigate();
 
   // Hide on onboarding and scan pages
-  const hiddenPaths = ["/onboarding", "/scan", "/result"];
+  const hiddenPaths = ["/onboarding", "/scan", "/result", "/edit-ingredients", "/welcome", "/meal/"];
   if (hiddenPaths.some(p => location.pathname.startsWith(p))) return null;
 
   return (

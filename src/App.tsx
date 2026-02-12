@@ -9,6 +9,7 @@ import Onboarding from "./pages/Onboarding";
 import Index from "./pages/Index";
 import Scan from "./pages/Scan";
 import Result from "./pages/Result";
+import EditIngredients from "./pages/EditIngredients";
 import History from "./pages/History";
 import MealDetail from "./pages/MealDetail";
 import Profile from "./pages/Profile";
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/scan" element={<Scan />} />
             <Route path="/result" element={<Result />} />
+            <Route path="/edit-ingredients" element={<EditIngredients />} />
             <Route path="/history" element={<History />} />
             <Route path="/meal/:id" element={<MealDetail />} />
             <Route path="/profile" element={<Profile />} />
