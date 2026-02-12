@@ -126,7 +126,7 @@ function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
   );
 }
 
-// ──── GL Net Value K-Line (Recharts) ────
+// ──── GL Fluctuation Glow Area Chart ────
 function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predicted?: boolean }[]; t: any }) {
   const riskThreshold = 60;
 
@@ -459,7 +459,7 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
           <BalanceSheet meals={meals} t={t} />
         </div>
 
-        {/* ═══ GL Net Value K-Line (Recharts) ═══ */}
+        {/* ═══ GL Fluctuation Glow Area Chart ═══ */}
         <div className="px-5 pb-4 relative z-10">
           <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">{t.glNetValueCurve}</p>
           <GLNetValueChart data={glData} t={t} />
