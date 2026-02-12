@@ -9,6 +9,7 @@ import Welcome from "./pages/Welcome";
 import Onboarding from "./pages/Onboarding";
 import Index from "./pages/Index";
 import Scan from "./pages/Scan";
+import Audit from "./pages/Audit";
 import Result from "./pages/Result";
 import EditIngredients from "./pages/EditIngredients";
 import History from "./pages/History";
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/onboarding" element={<Onboarding />} />
               <Route path="/" element={<Index />} />
               <Route path="/scan" element={<Scan />} />
+              <Route path="/audit" element={<Audit />} />
               <Route path="/result" element={<Result />} />
               <Route path="/edit-ingredients" element={<EditIngredients />} />
               <Route path="/history" element={<History />} />

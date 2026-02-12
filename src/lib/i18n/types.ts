@@ -235,4 +235,27 @@ export interface Dictionary {
   userOptimized: string;
   assetValuationUp: string;
   noCorrectionRecords: string;
+
+  // Audit Workspace
+  auditWorkspace: string;
+  visualAudit: string;
+  auditParameters: string;
+  dropOrCapture: string;
+  spatialClaimRatio: string;
+  cookingCorrection: string;
+  computeProgress: string;
+  generateAudit: string;
+  gdasPenetration: string;
+  estimatedOilIntake: string;
+  inflammationRisk: string;
+  metabolicQuotaRemaining: string;
+  digitalHealthAuditReport: string;
+  closeReport: string;
+  noImageUploaded: string;
+  auditComplete: string;
+  ingredientCoordinates: string;
+  riskLevel: string;
+  riskLow: string;
+  riskMedium: string;
+  riskHigh: string;
 }
