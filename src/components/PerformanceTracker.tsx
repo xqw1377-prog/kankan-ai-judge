@@ -315,6 +315,16 @@ export default function PerformanceTracker({
 
   }, [allPoints, history, prediction, minVal, maxVal, animProgress, glRisk, breathePhase]);
 
+  // Generate GL heatmap data (simulated hourly GL distribution)
+  const glHeatmapData = useMemo(() => {
+    const data: number[] = [];
+    for (let i = 0; i < 14; i++) {
+      const base = glRisk.isHigh ? 0.6 : glRisk.isLow ? 0.2 : 0.4;
+      data.push(Math.min(1, Math.max(0, base + (Math.random() - 0.5) * 0.4)));
+    }
+    return data;
+  }, [glRisk.isHigh, glRisk.isLow]);
+
   const deficit = dailyDeficit;
   const deficitLabel = deficit > 0
     ? `−${Math.abs(Math.round(deficit))} kcal`
@@ -344,7 +354,7 @@ export default function PerformanceTracker({
               {t.weightTrend}
             </span>
             <div className="flex items-baseline gap-1 mt-0.5">
-              <span className="text-lg font-bold text-card-foreground">{weight}</span>
+              <span className="text-lg font-bold text-card-foreground font-mono">{weight}</span>
               <span className="text-xs text-muted-foreground">kg</span>
             </div>
           </div>
@@ -354,7 +364,7 @@ export default function PerformanceTracker({
                 <span className="text-[10px] text-destructive uppercase tracking-wider font-semibold flex items-center justify-end gap-1">
                   ⚠️ {t.glRiskWarning}
                 </span>
-                <div className="text-xs font-bold mt-0.5 text-destructive animate-pulse-soft">
+                <div className="text-xs font-bold mt-0.5 text-destructive animate-pulse-soft font-mono">
                   GL {t.glHigh}
                 </div>
               </>
@@ -363,7 +373,7 @@ export default function PerformanceTracker({
                 <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
                   {t.dailyBalance}
                 </span>
-                <div className={`text-sm font-bold mt-0.5 ${deficit > 0 ? "text-success" : "text-warning"}`}>
+                <div className={`text-sm font-bold mt-0.5 font-mono ${deficit > 0 ? "text-success" : "text-warning"}`}>
                   {deficitLabel}
                 </div>
               </>
@@ -378,6 +388,36 @@ export default function PerformanceTracker({
             className="w-full h-full"
             style={{ width: "100%", height: 160 }}
           />
+        </div>
+
+        {/* GL Distribution Heatmap */}
+        <div className="mt-3 mb-1">
+          <p className="text-[8px] text-muted-foreground uppercase tracking-widest font-semibold mb-1.5">
+            GL Distribution
+          </p>
+          <div className="flex gap-[2px] h-3 rounded overflow-hidden">
+            {glHeatmapData.map((v, i) => {
+              // Deep blue → titanium gold gradient based on GL intensity
+              const r = Math.round(20 + v * 192);
+              const g = Math.round(30 + v * 145);
+              const b = Math.round(80 + (1 - v) * 100);
+              const alpha = 0.5 + v * 0.5;
+              return (
+                <div
+                  key={i}
+                  className="flex-1 transition-all duration-700"
+                  style={{
+                    background: `rgba(${r},${g},${b},${alpha})`,
+                    boxShadow: v > 0.7 ? `0 0 6px rgba(${r},${g},${b},0.4)` : undefined,
+                  }}
+                />
+              );
+            })}
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[7px] text-muted-foreground" style={{ opacity: 0.5 }}>Low GL</span>
+            <span className="text-[7px] text-muted-foreground" style={{ opacity: 0.5 }}>High GL</span>
+          </div>
         </div>
 
         {/* Legend */}
