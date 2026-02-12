@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Trash2 } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import NutritionBar from "@/components/NutritionBar";
@@ -17,8 +17,9 @@ const MealDetail = () => {
 
   if (!meal) {
     return (
-      <div className="h-full flex items-center justify-center">
+      <div className="h-full flex flex-col items-center justify-center gap-3">
         <p className="text-muted-foreground">记录不存在</p>
+        <button onClick={() => navigate(-1)} className="text-primary text-sm font-semibold">返回</button>
       </div>
     );
   }
@@ -30,12 +31,24 @@ const MealDetail = () => {
     navigate(-1);
   };
 
+  const handleEdit = () => {
+    navigate("/edit-ingredients", {
+      state: {
+        mealId: meal.id,
+        foodName: meal.food_name,
+        ingredients: meal.ingredients,
+      },
+    });
+  };
+
   return (
     <div className="h-full flex flex-col bg-background">
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0">
         <button onClick={() => navigate(-1)} className="p-2"><ChevronLeft className="w-5 h-5" /></button>
         <span className="font-semibold text-sm">餐品详情</span>
-        <div className="w-9" />
+        <button onClick={handleEdit} className="p-2 text-primary">
+          <Pencil className="w-4 h-4" />
+        </button>
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">
@@ -59,6 +72,12 @@ const MealDetail = () => {
                 </div>
               ))}
             </div>
+            <button
+              onClick={handleEdit}
+              className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 ml-1"
+            >
+              <Pencil className="w-3 h-3" /> 编辑食材
+            </button>
           </section>
         )}
 

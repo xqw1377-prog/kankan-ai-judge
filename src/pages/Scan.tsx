@@ -10,18 +10,39 @@ const Scan = () => {
   const { profile } = useProfile();
   const imageData = location.state?.imageData as string;
   const [cancelled, setCancelled] = useState(false);
+  const [showSlowHint, setShowSlowHint] = useState(false);
   const startedRef = useRef(false);
+  const resultReadyRef = useRef<any>(null);
+  const minTimeRef = useRef(false);
+
+  const navigateToResult = useCallback((result: any) => {
+    if (cancelled) return;
+    navigate("/result", {
+      state: { imageData, result },
+      replace: true,
+    });
+  }, [imageData, navigate, cancelled]);
 
   const analyze = useCallback(async () => {
     if (!imageData || startedRef.current) return;
     startedRef.current = true;
 
-    // Build user context for AI
     const userContext = profile ? {
       goal: profile.goal,
       allergies: profile.allergies,
       diet_preference: profile.diet_preference,
     } : {};
+
+    const fallback = {
+      food: "未知食物",
+      calories: 0,
+      protein_g: 0,
+      fat_g: 0,
+      carbs_g: 0,
+      ingredients: [],
+      verdict: "",
+      suggestion: "",
+    };
 
     try {
       const { data, error } = await supabase.functions.invoke("analyze-food", {
@@ -30,61 +51,49 @@ const Scan = () => {
 
       if (cancelled) return;
 
-      if (error || data?.error) {
-        navigate("/result", {
-          state: {
-            imageData,
-            result: {
-              food: "未知食物",
-              calories: 0,
-              protein_g: 0,
-              fat_g: 0,
-              carbs_g: 0,
-              ingredients: [],
-              verdict: "AI 暂时开小差了",
-              suggestion: "",
-            },
-          },
-          replace: true,
-        });
-        return;
-      }
+      const result = (error || data?.error) ? { ...fallback, verdict: data?.error || "AI 暂时开小差了" } : data;
 
-      navigate("/result", {
-        state: { imageData, result: data },
-        replace: true,
-      });
+      if (minTimeRef.current) {
+        navigateToResult(result);
+      } else {
+        resultReadyRef.current = result;
+      }
     } catch {
-      if (!cancelled) {
-        navigate("/result", {
-          state: {
-            imageData,
-            result: {
-              food: "未知食物",
-              calories: 0,
-              protein_g: 0,
-              fat_g: 0,
-              carbs_g: 0,
-              ingredients: [],
-              verdict: "网络错误，请重试",
-              suggestion: "",
-            },
-          },
-          replace: true,
-        });
+      if (cancelled) return;
+      const errResult = { ...fallback, verdict: "网络错误，请重试" };
+      if (minTimeRef.current) {
+        navigateToResult(errResult);
+      } else {
+        resultReadyRef.current = errResult;
       }
     }
-  }, [imageData, navigate, cancelled, profile]);
+  }, [imageData, cancelled, profile, navigateToResult]);
 
   useEffect(() => {
     if (!imageData) {
       navigate("/", { replace: true });
       return;
     }
-    // Minimum display time of 2s before showing result
-    const timer = setTimeout(() => analyze(), 100);
-    return () => clearTimeout(timer);
-  }, [imageData, navigate, analyze]);
+
+    // Start analysis immediately
+    analyze();
+
+    // Minimum 2s display time
+    const minTimer = setTimeout(() => {
+      minTimeRef.current = true;
+      if (resultReadyRef.current) {
+        navigateToResult(resultReadyRef.current);
+      }
+    }, 2000);
+
+    // Show slow hint after 5s
+    const slowTimer = setTimeout(() => setShowSlowHint(true), 5000);
+
+    return () => {
+      clearTimeout(minTimer);
+      clearTimeout(slowTimer);
+    };
+  }, [imageData, navigate, analyze, navigateToResult]);
 
   const handleCancel = () => {
     setCancelled(true);
@@ -109,10 +118,23 @@ const Scan = () => {
 
       {/* Loading indicator */}
       <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="w-10 h-10 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
         <p className="text-base font-semibold text-foreground">KANKAN 正在分析食材…</p>
         <p className="text-sm text-muted-foreground">✨ 识别中 ✨</p>
+        {showSlowHint && (
+          <p className="text-xs text-muted-foreground animate-fade-in mt-2">
+            分析时间较长，请耐心等待
+          </p>
+        )}
       </div>
+
+      {/* Cancel button at bottom */}
+      <button
+        onClick={handleCancel}
+        className="absolute bottom-[max(2rem,env(safe-area-inset-bottom))] text-sm text-muted-foreground underline"
+      >
+        取消
+      </button>
     </div>
   );
 };

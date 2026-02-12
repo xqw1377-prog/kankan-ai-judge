@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import type { UserProfile } from "@/lib/nutrition";
@@ -24,18 +24,21 @@ const COOKING_OPTIONS = ["自己", "食堂/外卖", "家人"];
 
 const Onboarding = () => {
   const navigate = useNavigate();
-  const { saveProfile } = useProfile();
+  const location = useLocation();
+  const { profile, saveProfile } = useProfile();
+  const isEditing = !!profile?.onboarding_completed;
+
   const [step, setStep] = useState(0);
   const [data, setData] = useState<UserProfile>({
-    gender: undefined,
-    age: 28,
-    height_cm: 170,
-    weight_kg: 65,
-    activity_level: undefined,
-    goal: undefined,
-    diet_preference: undefined,
-    cooking_source: undefined,
-    allergies: "",
+    gender: profile?.gender || undefined,
+    age: profile?.age || 28,
+    height_cm: profile?.height_cm || 170,
+    weight_kg: profile?.weight_kg || 65,
+    activity_level: profile?.activity_level || undefined,
+    goal: profile?.goal || undefined,
+    diet_preference: profile?.diet_preference || undefined,
+    cooking_source: profile?.cooking_source || undefined,
+    allergies: profile?.allergies || "",
   });
 
   const update = (partial: Partial<UserProfile>) => setData(prev => ({ ...prev, ...partial }));
@@ -50,8 +53,12 @@ const Onboarding = () => {
   };
 
   const handleSkip = async () => {
-    await saveProfile({ onboarding_completed: true });
-    navigate("/", { replace: true });
+    if (isEditing) {
+      navigate(-1);
+    } else {
+      await saveProfile({ onboarding_completed: true });
+      navigate("/", { replace: true });
+    }
   };
 
   const canNext = () => {
@@ -69,10 +76,19 @@ const Onboarding = () => {
           <button onClick={() => setStep(step - 1)} className="p-2 text-foreground">
             <ChevronLeft className="w-5 h-5" />
           </button>
+        ) : isEditing ? (
+          <button onClick={() => navigate(-1)} className="p-2 text-foreground">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
         ) : <div className="w-9" />}
-        {step <= 3 && (
+        {!isEditing && step <= 3 && (
           <button onClick={handleSkip} className="text-sm text-muted-foreground px-3 py-1">
             跳过
+          </button>
+        )}
+        {isEditing && (
+          <button onClick={handleSkip} className="text-sm text-muted-foreground px-3 py-1">
+            取消
           </button>
         )}
       </header>
@@ -88,12 +104,12 @@ const Onboarding = () => {
       <div className="flex-1 px-6 overflow-y-auto pb-6">
         {step === 0 && (
           <div className="animate-fade-in">
-            <h2 className="text-2xl font-bold mb-8">让我们认识你</h2>
+            <h2 className="text-2xl font-bold mb-8">{isEditing ? "修改基本信息" : "让我们认识你"}</h2>
             <div className="flex gap-4 justify-center mb-8">
               {(["male", "female"] as const).map(g => (
                 <button
                   key={g}
-                  onClick={() => update({ gender: g, height_cm: g === "female" ? 160 : 170, weight_kg: g === "female" ? 55 : 65 })}
+                  onClick={() => update({ gender: g, height_cm: data.height_cm || (g === "female" ? 160 : 170), weight_kg: data.weight_kg || (g === "female" ? 55 : 65) })}
                   className={`w-28 h-28 rounded-2xl flex flex-col items-center justify-center gap-2 border-2 transition-all ${
                     data.gender === g ? "border-primary bg-primary/10" : "border-border bg-card"
                   }`}
@@ -112,7 +128,7 @@ const Onboarding = () => {
                   max={80}
                   value={data.age || 28}
                   onChange={e => update({ age: Number(e.target.value) })}
-                  className="flex-1 accent-primary"
+                  className="flex-1 accent-[hsl(var(--primary))]"
                 />
                 <span className="text-lg font-bold w-16 text-center">{data.age} 岁</span>
               </div>
@@ -127,28 +143,14 @@ const Onboarding = () => {
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">身高</label>
                 <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min={140}
-                    max={210}
-                    value={data.height_cm || 170}
-                    onChange={e => update({ height_cm: Number(e.target.value) })}
-                    className="flex-1 accent-primary"
-                  />
+                  <input type="range" min={140} max={210} value={data.height_cm || 170} onChange={e => update({ height_cm: Number(e.target.value) })} className="flex-1 accent-[hsl(var(--primary))]" />
                   <span className="text-lg font-bold w-20 text-center">{data.height_cm} cm</span>
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">体重</label>
                 <div className="flex items-center gap-4">
-                  <input
-                    type="range"
-                    min={30}
-                    max={150}
-                    value={data.weight_kg || 65}
-                    onChange={e => update({ weight_kg: Number(e.target.value) })}
-                    className="flex-1 accent-primary"
-                  />
+                  <input type="range" min={30} max={150} value={data.weight_kg || 65} onChange={e => update({ weight_kg: Number(e.target.value) })} className="flex-1 accent-[hsl(var(--primary))]" />
                   <span className="text-lg font-bold w-20 text-center">{data.weight_kg} kg</span>
                 </div>
               </div>
@@ -202,7 +204,6 @@ const Onboarding = () => {
           <div className="animate-fade-in">
             <h2 className="text-2xl font-bold mb-2">选填，让建议更贴心</h2>
             <p className="text-sm text-muted-foreground mb-6">这些信息可以帮助 AI 给出更个性化的建议</p>
-
             <div className="space-y-5">
               <div>
                 <p className="text-sm font-medium mb-2">你的饮食偏好？</p>
@@ -220,7 +221,6 @@ const Onboarding = () => {
                   ))}
                 </div>
               </div>
-
               <div>
                 <p className="text-sm font-medium mb-2">平时谁做饭？</p>
                 <div className="flex flex-wrap gap-2">
@@ -237,7 +237,6 @@ const Onboarding = () => {
                   ))}
                 </div>
               </div>
-
               <div>
                 <p className="text-sm font-medium mb-2">过敏/忌口食物？</p>
                 <input
@@ -265,11 +264,13 @@ const Onboarding = () => {
           </button>
         ) : (
           <div className="flex gap-3">
-            <button onClick={handleSkip} className="flex-1 py-4 rounded-2xl border border-border font-bold active:scale-[0.98] transition-all">
-              跳过
-            </button>
+            {!isEditing && (
+              <button onClick={handleSkip} className="flex-1 py-4 rounded-2xl border border-border font-bold active:scale-[0.98] transition-all">
+                跳过
+              </button>
+            )}
             <button onClick={handleFinish} className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-bold active:scale-[0.98] transition-all">
-              完成
+              {isEditing ? "保存" : "完成"}
             </button>
           </div>
         )}

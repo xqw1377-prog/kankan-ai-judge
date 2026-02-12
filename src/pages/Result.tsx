@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home } from "lucide-react";
+import { ChevronLeft, Home, Pencil } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
@@ -23,6 +23,12 @@ const Result = () => {
   }
 
   const { food, calories = 0, protein_g = 0, fat_g = 0, carbs_g = 0, ingredients = [], verdict = "", suggestion = "" } = result;
+
+  // Check for allergen warnings
+  const userAllergies = profile?.allergies?.split(/[,，、\s]+/).filter(Boolean) || [];
+  const allergenWarnings = ingredients
+    .filter((item: any) => userAllergies.some(a => item.name?.includes(a)))
+    .map((item: any) => item.name);
 
   const handleSave = async () => {
     await saveMeal({
@@ -53,9 +59,25 @@ const Result = () => {
     e.target.value = "";
   };
 
+  const handleEditIngredients = () => {
+    navigate("/edit-ingredients", {
+      state: {
+        foodName: food,
+        ingredients,
+        fromResult: true,
+        resultState: location.state,
+      },
+    });
+  };
+
   // Determine verdict style
-  const isNegative = calories > (profile?.targets?.calories || 2000) * 0.5;
-  const verdictBg = isNegative ? "bg-destructive/5 border-destructive/20" : verdict.includes("不错") || verdict.includes("健康") ? "bg-primary/5 border-primary/20" : "bg-secondary";
+  const isNegative = verdict.includes("超标") || verdict.includes("过量") || verdict.includes("偏高");
+  const isPositive = verdict.includes("不错") || verdict.includes("健康") || verdict.includes("均衡");
+  const verdictBg = isNegative
+    ? "bg-destructive/5 border-destructive/20"
+    : isPositive
+    ? "bg-primary/5 border-primary/20"
+    : "bg-secondary border-border";
 
   return (
     <div className="h-full flex flex-col bg-background">
@@ -72,6 +94,15 @@ const Result = () => {
           <h1 className="text-2xl font-bold mt-2">{food}</h1>
         </div>
 
+        {/* Allergen warning */}
+        {allergenWarnings.length > 0 && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 animate-slide-up">
+            <p className="text-sm font-semibold text-destructive">
+              ⚠️ 检测到可能的过敏食材：{allergenWarnings.join("、")}
+            </p>
+          </div>
+        )}
+
         {/* Ingredients */}
         {ingredients.length > 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
@@ -81,11 +112,20 @@ const Result = () => {
             <div className="bg-card rounded-xl p-4 shadow-card">
               {ingredients.map((item: any, i: number) => (
                 <div key={i} className="flex justify-between py-1.5 border-b border-border last:border-0">
-                  <span className="text-sm">{item.name}</span>
+                  <span className="text-sm flex items-center gap-1">
+                    {allergenWarnings.includes(item.name) && <span className="text-destructive">⚠️</span>}
+                    {item.name}
+                  </span>
                   <span className="text-sm text-muted-foreground">{item.grams}g</span>
                 </div>
               ))}
             </div>
+            <button
+              onClick={handleEditIngredients}
+              className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 ml-1"
+            >
+              <Pencil className="w-3 h-3" /> 编辑食材
+            </button>
           </section>
         )}
 
@@ -109,7 +149,9 @@ const Result = () => {
               <span className="w-8 h-px bg-border" /> 营养判决 <span className="flex-1 h-px bg-border" />
             </h3>
             <div className={`rounded-xl p-4 border ${verdictBg}`}>
-              <p className="text-sm leading-relaxed">⚠️ {verdict}</p>
+              <p className="text-sm leading-relaxed">
+                {isNegative ? "⚠️" : isPositive ? "✅" : "📋"} {verdict}
+              </p>
             </div>
           </section>
         )}
