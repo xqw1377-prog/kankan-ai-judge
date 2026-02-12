@@ -97,7 +97,7 @@ function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
       {/* Assets (Left) */}
       <div className="rounded-xl p-3" style={{ background: DARK_BG, border: `1px solid ${CARD_BORDER}` }}>
         <p className="text-[9px] font-bold uppercase tracking-wider mb-2" style={{ color: GOLD_DIM }}>
-          📈 {t.intakeAssets}
+          🧬 {t.intakeAssets}
         </p>
         <div className="space-y-2">
           {assets.map((a) => (
@@ -111,7 +111,7 @@ function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
       {/* Liabilities (Right) */}
       <div className="rounded-xl p-3" style={{ background: DARK_BG, border: `1px solid ${CARD_BORDER}` }}>
         <p className="text-[9px] font-bold uppercase tracking-wider mb-2" style={{ color: "hsl(0 60% 55% / 0.6)" }}>
-          📉 {t.metabolicLiabilities}
+          ⚠️ {t.metabolicLiabilities}
         </p>
         <div className="space-y-2">
           {liabilities.map((l) => (
@@ -417,7 +417,7 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
         <div className="px-5 pt-5 pb-3 relative z-10">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
-              <span className="text-lg">📊</span>
+              <span className="text-lg">🔬</span>
               <span className="text-xs font-bold tracking-widest uppercase" style={{ color: GOLD }}>
                 {t.quarterlyReport}
               </span>
@@ -454,7 +454,7 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
         {/* ═══ Balance Sheet ═══ */}
         <div className="px-5 pb-4 relative z-10">
           <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">
-            📋 {t.intakeAssets} / {t.metabolicLiabilities}
+            🧪 {t.intakeAssets} / {t.metabolicLiabilities}
           </p>
           <BalanceSheet meals={meals} t={t} />
         </div>
@@ -493,7 +493,7 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
         {/* Rebalance suggestions */}
         <div className="px-5 pb-4 relative z-10">
           <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">
-            💡 {t.rebalanceSuggestion}
+            🩺 {t.rebalanceSuggestion}
           </p>
           <div className="space-y-1.5">
             {suggestions.map((tip, i) => (

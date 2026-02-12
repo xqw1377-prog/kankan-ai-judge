@@ -91,7 +91,7 @@ const DietCreditCard = ({ score, level, levelDesc, beatText }: DietCreditCardPro
               K
             </div>
             <span className="text-xs font-bold tracking-[3px] uppercase" style={{ color: "#D4AF37" }}>
-              DIET CREDIT
+              HEALTH INDEX
             </span>
           </div>
           <span className="text-[10px] font-bold px-3 py-1 rounded-full"
