@@ -244,6 +244,7 @@ const Result = () => {
         {allergenWarnings.length > 0 && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 animate-slide-up">
             <p className="text-sm font-semibold text-destructive">⚠️ 检测到可能的过敏食材：{allergenWarnings.join("、")}</p>
+            <p className="text-xs text-destructive/70 mt-1">您在画像中标记了对以上食材过敏，请谨慎食用</p>
           </div>
         )}
 
