@@ -158,6 +158,11 @@ export interface Dictionary {
   totalTableWeight: string;
   claimedTotal: string;
   shareTableReport: string;
+  tableLabReport: string;
+  tableRanking: string;
+  tableCarbsSummary: (grams: number) => string;
+  avgGlRisk: string;
+  glStable: string;
 
   // Performance Tracker
   performanceTracker: string;

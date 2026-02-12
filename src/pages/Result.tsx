@@ -289,6 +289,7 @@ const Result = () => {
             protein_g={protein_g}
             fat_g={fat_g}
             carbs_g={carbs_g}
+            food={food}
             onPortionsChange={setClaimedPortions}
           />
         )}

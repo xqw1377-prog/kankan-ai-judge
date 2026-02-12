@@ -2,6 +2,9 @@ import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import BalanceGauge from "./BalanceGauge";
 import BalanceCelebration from "./BalanceCelebration";
+import TableReportCard from "./TableReportCard";
+import html2canvas from "html2canvas";
+import { useToast } from "@/hooks/use-toast";
 
 interface Ingredient {
   name: string;
@@ -14,6 +17,7 @@ interface VirtualTableProps {
   protein_g: number;
   fat_g: number;
   carbs_g: number;
+  food?: string;
   onPortionsChange: (portions: Record<string, number>) => void;
 }
 
@@ -52,9 +56,10 @@ function FanSelector({
 }
 
 export default function VirtualTable({
-  ingredients, calories, protein_g, fat_g, carbs_g, onPortionsChange,
+  ingredients, calories, protein_g, fat_g, carbs_g, food = "", onPortionsChange,
 }: VirtualTableProps) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const { toast } = useToast();
   const [portions, setPortions] = useState<Record<string, number>>(() =>
     Object.fromEntries(ingredients.map((ing) => [ing.name, 1]))
   );
@@ -62,7 +67,17 @@ export default function VirtualTable({
   const [fanPos, setFanPos] = useState({ x: 0, y: 0 });
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrated, setCelebrated] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  // Mock table members for demo
+  const mockMembers = useMemo(() => [
+    { name: locale === "zh-CN" ? "我" : "Me", avatar: "👤", scoreDelta: 8 },
+    { name: locale === "zh-CN" ? "小张" : "Zhang", avatar: "👩", scoreDelta: 5 },
+    { name: locale === "zh-CN" ? "老王" : "Wang", avatar: "👨", scoreDelta: -3 },
+    { name: locale === "zh-CN" ? "阿李" : "Li", avatar: "🧑", scoreDelta: 2 },
+  ], [locale]);
 
   const totalWeight = ingredients.reduce((sum, ing) => sum + ing.grams, 0);
   const claimedByMe = useMemo(() =>
@@ -190,14 +205,31 @@ export default function VirtualTable({
         {/* Share button (unlocked when balanced) */}
         {isBalanced && (
           <button className="w-full mt-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.97] animate-fade-in"
+            disabled={generating}
             style={{
               background: "linear-gradient(135deg, hsl(43 72% 48%), hsl(43 80% 55%))",
               color: "hsl(220, 20%, 5%)",
               boxShadow: "0 0 20px hsl(43 72% 52% / 0.3)",
             }}
-            onClick={() => {/* share handler placeholder */}}
+            onClick={async () => {
+              if (!reportRef.current) return;
+              setGenerating(true);
+              try {
+                const canvas = await html2canvas(reportRef.current, { scale: 3, useCORS: true, backgroundColor: null, logging: false });
+                const dataUrl = canvas.toDataURL("image/png");
+                const link = document.createElement("a");
+                link.href = dataUrl;
+                link.download = `KanKan-TableReport-${Date.now()}.png`;
+                link.click();
+                toast({ title: t.savedToAlbum });
+              } catch {
+                toast({ title: t.generateFailed });
+              } finally {
+                setGenerating(false);
+              }
+            }}
           >
-            🏆 {t.shareTableReport}
+            🏆 {generating ? t.generating : t.shareTableReport}
           </button>
         )}
       </div>
@@ -294,6 +326,19 @@ export default function VirtualTable({
       />
 
       <BalanceCelebration show={showCelebration} onDone={() => setShowCelebration(false)} />
+
+      {/* Hidden report card for html2canvas */}
+      <div style={{ position: "fixed", left: -9999, top: 0 }}>
+        <TableReportCard
+          ref={reportRef}
+          food={food}
+          totalWeight={totalWeight}
+          claimedWeight={totalClaimed}
+          totalCarbs={claimedCarbs}
+          members={mockMembers}
+          locale={locale}
+        />
+      </div>
     </section>
   );
 }

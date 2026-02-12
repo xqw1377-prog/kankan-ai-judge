@@ -154,6 +154,11 @@ export const zhCN: Dictionary = {
   totalTableWeight: "全桌总重",
   claimedTotal: "已认领总重",
   shareTableReport: "分享全桌战报",
+  tableLabReport: "拼桌实验室战报",
+  tableRanking: "健康分资产排行",
+  tableCarbsSummary: (g) => `本桌共消灭 ${g}g 碳水资产`,
+  avgGlRisk: "平均血糖风险",
+  glStable: "稳健",
 
   performanceTracker: "身体资产性能追踪",
   weightTrend: "体重趋势",
