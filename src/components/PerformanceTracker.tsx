@@ -8,6 +8,7 @@ interface PerformanceTrackerProps {
   carbs_g: number;
   targetCalories: number;
   weight?: number;
+  gi_value?: number;
 }
 
 // Generate mock historical data points (past 7 days)
@@ -29,14 +30,19 @@ function generatePrediction(currentWeight: number, dailyDeficit: number): number
   return pts;
 }
 
-// Estimate glycemic load risk: high carbs relative to total = high GL risk
-function estimateGLRisk(carbs_g: number, calories: number): { isHigh: boolean; level: number } {
-  if (calories <= 0) return { isHigh: false, level: 0 };
-  const carbCalRatio = (carbs_g * 4) / calories; // carb calories / total
-  // High GL when carbs contribute > 60% of calories and carbs > 50g
+// Estimate glycemic load risk: uses explicit gi_value if provided, otherwise estimates from macros
+function estimateGLRisk(carbs_g: number, calories: number, gi_value?: number): { isHigh: boolean; level: number; isLow: boolean } {
+  if (gi_value !== undefined) {
+    const isHigh = gi_value >= 70;
+    const isLow = gi_value <= 40;
+    const level = Math.min(1, Math.max(0, (gi_value - 55) / 45));
+    return { isHigh, level, isLow };
+  }
+  if (calories <= 0) return { isHigh: false, level: 0, isLow: false };
+  const carbCalRatio = (carbs_g * 4) / calories;
   const isHigh = carbCalRatio > 0.6 && carbs_g > 50;
-  const level = Math.min(1, Math.max(0, (carbCalRatio - 0.5) * 5)); // 0-1 intensity
-  return { isHigh, level };
+  const level = Math.min(1, Math.max(0, (carbCalRatio - 0.5) * 5));
+  return { isHigh, level, isLow: carbCalRatio < 0.3 };
 }
 
 export default function PerformanceTracker({
@@ -46,6 +52,7 @@ export default function PerformanceTracker({
   carbs_g,
   targetCalories,
   weight = 70,
+  gi_value,
 }: PerformanceTrackerProps) {
   const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -56,7 +63,7 @@ export default function PerformanceTracker({
   const dailyDeficit = targetCalories - calories;
   const history = useMemo(() => generateHistory(weight), [weight]);
   const prediction = useMemo(() => generatePrediction(weight, dailyDeficit), [weight, dailyDeficit]);
-  const glRisk = useMemo(() => estimateGLRisk(carbs_g, calories), [carbs_g, calories]);
+  const glRisk = useMemo(() => estimateGLRisk(carbs_g, calories, gi_value), [carbs_g, calories, gi_value]);
 
   const allPoints = useMemo(() => [...history, ...prediction.slice(1)], [history, prediction]);
   const minVal = Math.min(...allPoints) - 0.5;
@@ -180,10 +187,10 @@ export default function PerformanceTracker({
     ctx.textAlign = "center";
     ctx.fillText("TODAY", todayX, padT + chartH + 14);
 
-    // Historical line — use red tint when GL risk
-    const lineColor = glRisk.isHigh ? "rgba(255,80,60,0.85)" : "rgba(57,255,20,0.8)";
-    const glowColor = glRisk.isHigh ? "rgba(255,80,60,0.15)" : "rgba(57,255,20,0.15)";
-    const dotColor = glRisk.isHigh ? "rgba(255,80,60,0.9)" : "rgba(57,255,20,0.9)";
+    // K-line colors: red for high GI (震荡阴线), gold for low GI (阳线), green default
+    const lineColor = glRisk.isHigh ? "rgba(255,80,60,0.85)" : glRisk.isLow ? "rgba(212,175,55,0.9)" : "rgba(57,255,20,0.8)";
+    const glowColor = glRisk.isHigh ? "rgba(255,80,60,0.15)" : glRisk.isLow ? "rgba(212,175,55,0.12)" : "rgba(57,255,20,0.15)";
+    const dotColor = glRisk.isHigh ? "rgba(255,80,60,0.9)" : glRisk.isLow ? "rgba(212,175,55,0.9)" : "rgba(57,255,20,0.9)";
 
     const drawAnimatedCount = Math.ceil(animProgress * todayIdx) + 1;
     ctx.strokeStyle = lineColor;
@@ -224,10 +231,10 @@ export default function PerformanceTracker({
     // Prediction dashed line
     if (animProgress > 0.3) {
       const predAlpha = Math.min(1, (animProgress - 0.3) / 0.7);
-      const predColor = glRisk.isHigh ? `rgba(255,80,60,${0.4 * predAlpha})` : `rgba(57,255,20,${0.4 * predAlpha})`;
-      const predGlow = glRisk.isHigh ? `rgba(255,80,60,${0.06 * predAlpha})` : `rgba(57,255,20,${0.06 * predAlpha})`;
-      const predDot = glRisk.isHigh ? `rgba(255,80,60,${0.5 * predAlpha})` : `rgba(57,255,20,${0.5 * predAlpha})`;
-      const predLabel = glRisk.isHigh ? `rgba(255,80,60,${0.7 * predAlpha})` : `rgba(57,255,20,${0.7 * predAlpha})`;
+      const predColor = glRisk.isHigh ? `rgba(255,80,60,${0.4 * predAlpha})` : glRisk.isLow ? `rgba(212,175,55,${0.4 * predAlpha})` : `rgba(57,255,20,${0.4 * predAlpha})`;
+      const predGlow = glRisk.isHigh ? `rgba(255,80,60,${0.06 * predAlpha})` : glRisk.isLow ? `rgba(212,175,55,${0.06 * predAlpha})` : `rgba(57,255,20,${0.06 * predAlpha})`;
+      const predDot = glRisk.isHigh ? `rgba(255,80,60,${0.5 * predAlpha})` : glRisk.isLow ? `rgba(212,175,55,${0.5 * predAlpha})` : `rgba(57,255,20,${0.5 * predAlpha})`;
+      const predLabel = glRisk.isHigh ? `rgba(255,80,60,${0.7 * predAlpha})` : glRisk.isLow ? `rgba(212,175,55,${0.7 * predAlpha})` : `rgba(57,255,20,${0.7 * predAlpha})`;
 
       ctx.strokeStyle = predColor;
       ctx.lineWidth = 1.5;
@@ -360,17 +367,23 @@ export default function PerformanceTracker({
         {/* Legend */}
         <div className="flex items-center justify-center gap-4 mt-2">
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-0.5 rounded-full" style={{ background: glRisk.isHigh ? "rgba(255,80,60,0.8)" : "rgba(57,255,20,0.8)" }} />
+            <div className="w-3 h-0.5 rounded-full" style={{ background: glRisk.isHigh ? "rgba(255,80,60,0.8)" : glRisk.isLow ? "rgba(212,175,55,0.8)" : "rgba(57,255,20,0.8)" }} />
             <span className="text-[9px] text-muted-foreground">{t.actual}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-0.5 rounded-full opacity-50" style={{ background: glRisk.isHigh ? "rgba(255,80,60,0.5)" : "rgba(57,255,20,0.5)" }} />
+            <div className="w-3 h-0.5 rounded-full opacity-50" style={{ background: glRisk.isHigh ? "rgba(255,80,60,0.5)" : glRisk.isLow ? "rgba(212,175,55,0.5)" : "rgba(57,255,20,0.5)" }} />
             <span className="text-[9px] text-muted-foreground">{t.predicted7d}</span>
           </div>
           {glRisk.isHigh && (
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 rounded-full bg-destructive/80 animate-pulse-soft" />
               <span className="text-[9px] text-destructive font-semibold">{t.glRiskWarning}</span>
+            </div>
+          )}
+          {glRisk.isLow && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 rounded-full animate-pulse-soft" style={{ background: "rgba(212,175,55,0.8)" }} />
+              <span className="text-[9px] font-semibold text-glow-gold" style={{ color: "hsl(43, 72%, 55%)" }}>{t.giLow}</span>
             </div>
           )}
         </div>

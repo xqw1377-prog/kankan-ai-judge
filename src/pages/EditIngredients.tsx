@@ -10,15 +10,16 @@ interface Ingredient {
   grams: number;
 }
 
-type CookingMethod = "fried" | "steamed" | "boiled" | "stir_fried" | "raw";
+type CookingMethod = "pan_fried" | "fried" | "steamed" | "boiled" | "stir_fried" | "raw";
 
 // Oil absorption correction coefficients per cooking method
-const OIL_COEFFICIENTS: Record<CookingMethod, { fat: number; cal: number }> = {
-  fried:      { fat: 1.8, cal: 1.4 },
-  stir_fried: { fat: 1.3, cal: 1.15 },
-  boiled:     { fat: 1.0, cal: 1.0 },
-  steamed:    { fat: 1.0, cal: 1.0 },
-  raw:        { fat: 1.0, cal: 1.0 },
+const OIL_COEFFICIENTS: Record<CookingMethod, { fat: number; cal: number; gi_boost: number }> = {
+  pan_fried:  { fat: 1.5, cal: 1.25, gi_boost: 0.1 },
+  fried:      { fat: 1.8, cal: 1.4,  gi_boost: 0.15 },
+  stir_fried: { fat: 1.3, cal: 1.15, gi_boost: 0.05 },
+  boiled:     { fat: 1.0, cal: 1.0,  gi_boost: 0 },
+  steamed:    { fat: 1.0, cal: 1.0,  gi_boost: -0.05 },
+  raw:        { fat: 1.0, cal: 1.0,  gi_boost: -0.1 },
 };
 
 const STEP = 10;
@@ -48,12 +49,16 @@ const EditIngredients = () => {
   const nutrition = useMemo(() => {
     const totalGrams = ingredients.reduce((s, i) => s + i.grams, 0);
     const coeff = OIL_COEFFICIENTS[cookingMethod];
+    // Estimate GI value: base ~55, adjusted by cooking method and carb ratio
+    const baseGI = 55;
+    const gi_value = Math.round(Math.min(100, Math.max(20, baseGI + coeff.gi_boost * 100 + (totalGrams > 0 ? (totalGrams * 0.2 / totalGrams) * 20 - 10 : 0))));
     return {
       calories: Math.round(totalGrams * 1.5 * coeff.cal),
       protein_g: Math.round(totalGrams * 0.08),
       fat_g: Math.round(totalGrams * 0.06 * coeff.fat),
       carbs_g: Math.round(totalGrams * 0.2),
       cookingMethod,
+      gi_value,
     };
   }, [ingredients, cookingMethod]);
 
@@ -86,12 +91,20 @@ const EditIngredients = () => {
     setShowAdd(false);
   };
 
+  const showResearchFeedback = useCallback(() => {
+    toast({
+      title: "📊 " + t.dataStoredToResearchLab,
+      description: "🎯 " + t.precisionUp,
+    });
+  }, [toast, t]);
+
   const handleStep = (idx: number, delta: number) => {
     const updated = [...ingredients];
     const newGrams = Math.max(1, updated[idx].grams + delta);
     updated[idx] = { ...updated[idx], grams: newGrams };
     setIngredients(updated);
     setModifiedIdx(prev => new Set(prev).add(idx));
+    showResearchFeedback();
   };
 
   const handleSlider = (idx: number, value: number) => {
@@ -100,6 +113,11 @@ const EditIngredients = () => {
     setIngredients(updated);
     setModifiedIdx(prev => new Set(prev).add(idx));
   };
+
+  // Debounced research feedback for slider (fires on pointerUp)
+  const handleSliderCommit = useCallback(() => {
+    showResearchFeedback();
+  }, [showResearchFeedback]);
 
   const triggerConfetti = useCallback(() => {
     setShowConfetti(true);
@@ -209,6 +227,17 @@ const EditIngredients = () => {
               </div>
               <div className="text-[9px] text-muted-foreground">{t.carbs}</div>
             </div>
+            <div className="w-px h-8 bg-border" />
+            <div className="text-center flex-1">
+              <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${
+                nutrition.gi_value >= 70 ? "text-destructive" : nutrition.gi_value <= 40 ? "text-success" : "text-primary"
+              }`}>
+                {nutrition.gi_value}
+              </div>
+              <div className={`text-[9px] font-semibold ${nutrition.gi_value >= 70 ? "text-destructive/70" : "text-muted-foreground"}`}>
+                GI {nutrition.gi_value >= 70 ? `⚠️` : ""}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -216,7 +245,7 @@ const EditIngredients = () => {
         <div className="glass rounded-xl p-3 mb-5 shadow-card">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{t.cookingMethod}</span>
-            {(cookingMethod === "fried" || cookingMethod === "stir_fried") && (
+            {(cookingMethod === "fried" || cookingMethod === "stir_fried" || cookingMethod === "pan_fried") && (
               <span className="text-[9px] font-bold px-2 py-0.5 rounded-full animate-fade-in"
                 style={{ color: "hsl(30, 90%, 50%)", background: "hsl(30 90% 50% / 0.1)", border: "1px solid hsl(30 90% 50% / 0.2)" }}>
                 🛢️ {t.oilAbsorptionHint}
@@ -225,6 +254,7 @@ const EditIngredients = () => {
           </div>
           <div className="flex gap-1.5">
             {([
+              { key: "pan_fried" as CookingMethod, label: t.cookPanFried, icon: "🥘" },
               { key: "fried" as CookingMethod, label: t.cookFried, icon: "🍟" },
               { key: "stir_fried" as CookingMethod, label: t.cookStirFried, icon: "🍳" },
               { key: "boiled" as CookingMethod, label: t.cookBoiled, icon: "🍲" },
@@ -320,6 +350,8 @@ const EditIngredients = () => {
                         step={STEP}
                         value={item.grams}
                         onChange={e => handleSlider(idx, Number(e.target.value))}
+                        onPointerUp={handleSliderCommit}
+                        onTouchEnd={handleSliderCommit}
                         className="w-full h-1 rounded-full appearance-none cursor-pointer"
                         style={{
                           background: `linear-gradient(to right, hsl(43 72% 52%) 0%, hsl(43 72% 52%) ${(item.grams / Math.max(500, item.grams * 2)) * 100}%, hsl(220 15% 16%) ${(item.grams / Math.max(500, item.grams * 2)) * 100}%, hsl(220 15% 16%) 100%)`,
