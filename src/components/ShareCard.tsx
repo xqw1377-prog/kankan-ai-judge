@@ -39,6 +39,32 @@ function MacroRing({ value, max, color, label, unit }: { value: number; max: num
   );
 }
 
+/** Simple QR-like pattern rendered via divs */
+function QRPlaceholder() {
+  const grid = [
+    [1,1,1,0,1,0,1,1,1],
+    [1,0,1,0,0,0,1,0,1],
+    [1,1,1,0,1,0,1,1,1],
+    [0,0,0,0,1,0,0,0,0],
+    [1,0,1,1,0,1,1,0,1],
+    [0,0,0,0,1,0,0,0,0],
+    [1,1,1,0,0,0,1,1,1],
+    [1,0,1,0,1,0,1,0,1],
+    [1,1,1,0,1,0,1,1,1],
+  ];
+  return (
+    <div style={{
+      width: 44, height: 44, borderRadius: 6,
+      background: "white", padding: 3,
+      display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gridTemplateRows: "repeat(9, 1fr)", gap: 0.5,
+    }}>
+      {grid.flat().map((v, i) => (
+        <div key={i} style={{ background: v ? "#1a1a1a" : "white", borderRadius: 0.5 }} />
+      ))}
+    </div>
+  );
+}
+
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
   ({ food, calories, protein_g, fat_g, carbs_g, verdict, roast, ingredients, imageData, score = 60 }, ref) => {
     const now = new Date();
@@ -58,15 +84,37 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
           position: "relative",
         }}
       >
-        {/* Top: food image or gradient hero */}
+        {/* Top: food image with 16:9 aspect ratio */}
         <div style={{
-          height: 200,
-          background: imageData ? `url(${imageData}) center/cover` : "linear-gradient(135deg, #2e7d32, #4CAF50)",
+          width: 380,
+          height: Math.round(380 * 9 / 16),
           position: "relative",
+          overflow: "hidden",
+          background: "#2a2a2a",
         }}>
+          {imageData ? (
+            <img
+              src={imageData}
+              alt={food}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                objectPosition: "center",
+                display: "block",
+              }}
+              crossOrigin="anonymous"
+            />
+          ) : (
+            <div style={{
+              width: "100%", height: "100%",
+              background: "linear-gradient(135deg, #2e7d32, #4CAF50)",
+            }} />
+          )}
+          {/* Bottom gradient overlay */}
           <div style={{
             position: "absolute", inset: 0,
-            background: "linear-gradient(to bottom, transparent 30%, rgba(26,26,26,0.95) 100%)",
+            background: "linear-gradient(to bottom, transparent 40%, rgba(26,26,26,0.95) 100%)",
           }} />
           {/* Score badge */}
           <div style={{
@@ -102,7 +150,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
           </div>
         )}
 
-        {/* Macro ring charts on dark bg */}
+        {/* Macro ring charts */}
         <div style={{ display: "flex", justifyContent: "space-around", padding: "20px 16px" }}>
           <MacroRing value={calories} max={2100} color="#66BB6A" label="热量" unit="kcal" />
           <MacroRing value={protein_g} max={120} color="#42A5F5" label="蛋白质" unit="g" />
@@ -154,14 +202,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
               <p style={{ fontSize: 8, color: "rgba(212,175,55,0.6)", margin: 0, letterSpacing: 1 }}>5年1000店计划 · 数字化饮食实验室</p>
             </div>
           </div>
-          {/* QR placeholder */}
-          <div style={{
-            width: 36, height: 36, borderRadius: 6,
-            border: "1px solid rgba(212,175,55,0.3)",
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
-            <span style={{ fontSize: 8, color: "rgba(212,175,55,0.5)", fontWeight: 700 }}>QR</span>
-          </div>
+          <QRPlaceholder />
         </div>
       </div>
     );
