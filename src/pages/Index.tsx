@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera, X, ImagePlus } from "lucide-react";
+import { Camera, X, ImagePlus, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import NutritionBar from "@/components/NutritionBar";
@@ -13,7 +13,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { profile, loading: profileLoading } = useProfile();
   const { todayMeals, todayTotals, loading: mealsLoading } = useMeals();
-  const { t } = useI18n();
+  const { t, locale, setLocale } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const addMoreRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<string[]>([]);
@@ -83,9 +83,18 @@ const Index = () => {
             <p className="text-sm text-muted-foreground">{greeting}，</p>
             <h1 className="text-xl font-bold text-card-foreground">{nickname}</h1>
           </div>
-          <button onClick={() => navigate("/profile")} className="w-10 h-10 rounded-full glass flex items-center justify-center">
-            <span className="text-lg">👤</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass text-[10px] font-bold text-muted-foreground tracking-wider"
+            >
+              <Globe className="w-3 h-3" />
+              {locale === "zh-CN" ? "EN" : "中"}
+            </button>
+            <button onClick={() => navigate("/profile")} className="w-10 h-10 rounded-full glass flex items-center justify-center">
+              <span className="text-lg">👤</span>
+            </button>
+          </div>
         </div>
       </header>
 
