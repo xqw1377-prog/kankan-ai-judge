@@ -150,6 +150,10 @@ export const zhCN: Dictionary = {
   dataBalanced: "数据已平账",
   portionOverflow: "资产分配溢出",
   portionOverflowHint: "多人认领总量超过 100%，请协同修正权重",
+  assetsSettled: "数据资产已平账",
+  totalTableWeight: "全桌总重",
+  claimedTotal: "已认领总重",
+  shareTableReport: "分享全桌战报",
 
   performanceTracker: "身体资产性能追踪",
   weightTrend: "体重趋势",

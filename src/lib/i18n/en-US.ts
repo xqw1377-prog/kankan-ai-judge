@@ -150,6 +150,10 @@ export const enUS: Dictionary = {
   dataBalanced: "Balanced ✓",
   portionOverflow: "Portion overflow detected",
   portionOverflowHint: "Total claims exceed 100%. Please adjust portions collaboratively.",
+  assetsSettled: "Data Assets Settled",
+  totalTableWeight: "Total Weight",
+  claimedTotal: "Claimed",
+  shareTableReport: "Share Table Report",
 
   performanceTracker: "Performance Tracker",
   weightTrend: "Weight Trend",
