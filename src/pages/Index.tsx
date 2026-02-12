@@ -1,18 +1,21 @@
-import { useRef, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera } from "lucide-react";
+import { Camera, X, ImagePlus } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import NutritionBar from "@/components/NutritionBar";
 import { getMealTypeLabel } from "@/lib/nutrition";
+
+const MAX_PHOTOS = 5;
 
 const Index = () => {
   const navigate = useNavigate();
   const { profile, loading: profileLoading } = useProfile();
   const { todayMeals, todayTotals, loading: mealsLoading } = useMeals();
   const inputRef = useRef<HTMLInputElement>(null);
+  const addMoreRef = useRef<HTMLInputElement>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
 
-  // Redirect to welcome/onboarding if needed
   useEffect(() => {
     if (!profileLoading && !profile) {
       navigate("/welcome", { replace: true });
@@ -21,18 +24,45 @@ const Index = () => {
     }
   }, [profile, profileLoading, navigate]);
 
-  const handleCapture = () => inputRef.current?.click();
+  const handleCapture = () => {
+    if (photos.length === 0) {
+      inputRef.current?.click();
+    } else {
+      // Go to scan with all photos
+      navigate("/scan", { state: { images: photos } });
+    }
+  };
+
+  const addPhoto = (file: File) => {
+    if (photos.length >= MAX_PHOTOS) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const data = ev.target?.result as string;
+      setPhotos(prev => prev.length < MAX_PHOTOS ? [...prev, data] : prev);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const imageData = ev.target?.result as string;
-      navigate("/scan", { state: { imageData } });
-    };
-    reader.readAsDataURL(file);
+    if (photos.length === 0) {
+      // First photo - add to queue instead of navigating immediately
+      addPhoto(file);
+    } else {
+      addPhoto(file);
+    }
     e.target.value = "";
+  };
+
+  const handleAddMore = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) addPhoto(file);
+    e.target.value = "";
+  };
+
+  const removePhoto = (idx: number) => {
+    setPhotos(prev => prev.filter((_, i) => i !== idx));
   };
 
   if (profileLoading || mealsLoading) {
@@ -80,15 +110,61 @@ const Index = () => {
         </div>
       </section>
 
+      {/* Photo preview strip */}
+      {photos.length > 0 && (
+        <section className="px-5 mb-4 animate-fade-in">
+          <div className="bg-card rounded-2xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-muted-foreground">
+                已选照片 ({photos.length}/{MAX_PHOTOS})
+              </h3>
+              <button
+                onClick={() => setPhotos([])}
+                className="text-xs text-destructive font-semibold"
+              >
+                清空
+              </button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {photos.map((src, i) => (
+                <div key={i} className="relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-border">
+                  <img src={src} alt={`photo-${i}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => removePhoto(i)}
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              {photos.length < MAX_PHOTOS && (
+                <button
+                  onClick={() => addMoreRef.current?.click()}
+                  className="shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground"
+                >
+                  <ImagePlus className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Camera button */}
       <section className="flex flex-col items-center mb-6">
         <button
           onClick={handleCapture}
-          className="w-20 h-20 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft animate-pulse-soft active:scale-95 transition-transform"
+          className={`w-20 h-20 rounded-full flex items-center justify-center shadow-soft active:scale-95 transition-transform ${
+            photos.length > 0
+              ? "bg-primary text-primary-foreground"
+              : "bg-primary text-primary-foreground animate-pulse-soft"
+          }`}
         >
           <Camera className="w-8 h-8" />
         </button>
-        <p className="text-sm text-muted-foreground mt-3">拍下你的餐食</p>
+        <p className="text-sm text-muted-foreground mt-3">
+          {photos.length === 0 ? "拍下你的餐食" : `开始识别 (${photos.length}张)`}
+        </p>
         <input
           ref={inputRef}
           type="file"
@@ -96,6 +172,13 @@ const Index = () => {
           capture="environment"
           className="hidden"
           onChange={handleFileChange}
+        />
+        <input
+          ref={addMoreRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAddMore}
         />
       </section>
 
