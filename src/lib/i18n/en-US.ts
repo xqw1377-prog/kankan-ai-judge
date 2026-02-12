@@ -206,4 +206,23 @@ export const enUS: Dictionary = {
   macroRadar: "Macro Radar",
   giTrendLine: "GI Trend K-Line",
   balanceScore: "Balance Score",
+
+  intakeAssets: "Intake Assets",
+  metabolicLiabilities: "Metabolic Liabilities",
+  proteinAsset: "Protein",
+  fiberAsset: "Dietary Fiber",
+  sodiumLiability: "Sodium",
+  refinedSugarLiability: "Refined Sugar",
+  saturatedFatLiability: "Saturated Fat",
+
+  glNetValueCurve: "GL Net Value Curve",
+  glSteady: "Steady",
+  glRiskZone: "Risk Zone",
+  weekLabel: (n) => `W${n}`,
+
+  correctionLog: "Correction Log",
+  correctionEntry: (pct) => `User optimization improved asset valuation by ${pct}%`,
+  userOptimized: "User Optimized",
+  assetValuationUp: "Valuation Up",
+  noCorrectionRecords: "No correction records yet",
 };

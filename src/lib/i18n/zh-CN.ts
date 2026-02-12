@@ -206,4 +206,23 @@ export const zhCN: Dictionary = {
   macroRadar: "营养资产雷达",
   giTrendLine: "GI 走势 K 线",
   balanceScore: "均衡度评分",
+
+  intakeAssets: "摄入资产",
+  metabolicLiabilities: "代谢负债",
+  proteinAsset: "蛋白质",
+  fiberAsset: "膳食纤维",
+  sodiumLiability: "钠",
+  refinedSugarLiability: "精制糖",
+  saturatedFatLiability: "饱和脂肪",
+
+  glNetValueCurve: "GL 升糖负荷净值曲线",
+  glSteady: "稳健",
+  glRiskZone: "风险区",
+  weekLabel: (n) => `W${n}`,
+
+  correctionLog: "调仓操作记录",
+  correctionEntry: (pct) => `由于用户主动调优，资产估值提升 ${pct}%`,
+  userOptimized: "用户主动调优",
+  assetValuationUp: "资产估值提升",
+  noCorrectionRecords: "暂无纠错修正记录",
 };
