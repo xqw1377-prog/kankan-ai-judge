@@ -19,7 +19,8 @@ serve(async (req) => {
   }
 
   try {
-    const { imageBase64, imageUrl, imagesBase64, userContext } = await req.json();
+    const { imageBase64, imageUrl, imagesBase64, userContext, language = "zh-CN" } = await req.json();
+    const isEnglish = language === "en-US";
 
     // Build image content array - support single or multi
     const imageContents: { type: "image_url"; image_url: { url: string } }[] = [];
@@ -57,7 +58,30 @@ serve(async (req) => {
 
     const isMulti = imageContents.length > 1;
 
-    const systemPrompt = `你是"KANKAN"——一个专业但毒舌有趣的AI饮食分析师。${isMulti ? "用户会给你同一顿饭的多张照片（可能包含全景和特写），" : "用户会给你一张食物照片，"}你需要分析并返回结构化的营养数据。
+    const systemPrompt = isEnglish
+      ? `You are "KANKAN" — a professional but sassy AI food analyst. ${isMulti ? "The user will give you multiple photos of the same meal (panoramic + close-ups). " : "The user will give you a food photo. "}You must analyze and return structured nutrition data.
+
+You must:
+1. Identify the food name (2-8 words)
+2. List main ingredients with estimated grams
+3. Estimate total calories and macronutrients
+4. Give a one-sentence nutrition verdict targeting the user's goal
+5. Give a specific actionable suggestion (wrap recommended food names in 【】)
+6. Determine if this is takeout or homemade
+7. Give a sassy but loving roast (20-40 words, witty)
+
+${contextStr ? `User info: ${contextStr}` : ""}
+
+Rules:
+- Estimate ingredient weights reasonably
+- Base calories/macros on ingredients
+- Verdict should be specific, useful, tied to user goals
+- If not food, set calories to 0, verdict "This is not food"
+- cooking_scene: "takeout" or "homemade"
+${isMulti ? `- You'll receive multiple photos of the same meal. Identify the panoramic view first, then use close-ups for detail. Deduplicate ingredients and output actual total intake.` : ""}
+- Use the specified tool to return results
+- ALL text output (food name, ingredient names, verdict, suggestion, roast) MUST be in English`
+      : `你是"KANKAN"——一个专业但毒舌有趣的AI饮食分析师。${isMulti ? "用户会给你同一顿饭的多张照片（可能包含全景和特写），" : "用户会给你一张食物照片，"}你需要分析并返回结构化的营养数据。
 
 你必须：
 1. 识别食物名称（2-8个字）
@@ -81,9 +105,13 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
 ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，再结合特写进行去重分析，最终输出该用户实际摄入的食材总量。不要重复计算同一食材。` : ""}
 - 使用指定的工具返回结果`;
 
-    const userMessage = isMulti
-      ? `分析这组同一顿饭的 ${imageContents.length} 张照片的营养信息。请综合全景和特写去重后给出准确结果。`
-      : "分析这张食物照片的营养信息。";
+    const userMessage = isEnglish
+      ? (isMulti
+        ? `Analyze the nutrition of these ${imageContents.length} photos of the same meal. Deduplicate ingredients across panoramic and close-up shots.`
+        : "Analyze the nutrition of this food photo.")
+      : (isMulti
+        ? `分析这组同一顿饭的 ${imageContents.length} 张照片的营养信息。请综合全景和特写去重后给出准确结果。`
+        : "分析这张食物照片的营养信息。");
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",

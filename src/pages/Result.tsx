@@ -7,6 +7,7 @@ import { getMealTypeByTime } from "@/lib/nutrition";
 import NutritionBar from "@/components/NutritionBar";
 import ShareCard from "@/components/ShareCard";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
 
 function renderSuggestionWithBold(text: string) {
@@ -59,6 +60,7 @@ const Result = () => {
   const { saveMeal } = useMeals();
   const { profile } = useProfile();
   const { toast } = useToast();
+  const { t, locale } = useI18n();
   const result = location.state?.result;
   const imageData = location.state?.imageData;
   const allImages: string[] = location.state?.images || (imageData ? [imageData] : []);
@@ -102,14 +104,14 @@ const Result = () => {
   const isGreen = matchScore >= 80 && !isWarning;
   const emotionBg = isGreen ? "emotion-bg-green" : isWarning ? "emotion-bg-warning" : "emotion-bg-neutral";
   const verdictIcon = isGreen ? "✅" : isWarning ? "⚠️" : "📋";
-  const modeLabel = isGreen ? "🎯 自律模式" : isWarning ? "🔥 警示模式" : "📋 普通模式";
+  const modeLabel = isGreen ? t.modeGreen : isWarning ? t.modeWarning : t.modeNeutral;
 
   const handleSave = useCallback(async () => {
     await saveMeal({
       food_name: food, meal_type: getMealTypeByTime(),
       calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion,
     });
-    toast({ title: "已保存 ✓", description: `${food} 已记录` });
+    toast({ title: "✓", description: `${food}` });
     navigate("/", { replace: true });
   }, [saveMeal, food, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion, toast, navigate]);
 
@@ -142,7 +144,7 @@ const Result = () => {
       setShareImage(canvas.toDataURL("image/png"));
       setShareOpen(true);
     } catch {
-      toast({ title: "生成失败", description: "请重试" });
+      toast({ title: t.generateFailed, description: t.retry });
     } finally {
       setGenerating(false);
     }
@@ -154,7 +156,7 @@ const Result = () => {
     link.href = shareImage;
     link.download = `KanKan-${food}-${Date.now()}.png`;
     link.click();
-    toast({ title: "已保存到相册 📸" });
+    toast({ title: t.savedToAlbum });
   }, [shareImage, food, toast]);
 
   const handleShare = useCallback(async () => {
@@ -203,7 +205,7 @@ const Result = () => {
             <span className={`text-xs font-bold px-3 py-1 rounded-full ${
               isGreen ? "bg-primary/10 text-primary" : isWarning ? "bg-accent/10 text-accent" : "bg-secondary text-muted-foreground"
             }`}>
-              匹配度 {matchScore}%
+              {t.matchScore(matchScore)}
             </span>
           </div>
         </div>
@@ -212,7 +214,7 @@ const Result = () => {
         {allImages.length > 1 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.02s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-              <Images className="w-4 h-4" /> 原始素材 ({allImages.length}张)
+              <Images className="w-4 h-4" /> {t.originalPhotos(allImages.length)}
             </h3>
             <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
               {allImages.map((src, i) => (
@@ -228,9 +230,9 @@ const Result = () => {
           <div className="bg-destructive/10 border-2 border-destructive/40 rounded-2xl p-4 mb-5 animate-slide-up flex items-start gap-3">
             <span className="text-2xl leading-none mt-0.5">🚨</span>
             <div>
-              <p className="text-sm font-bold text-destructive">过敏风险警告</p>
-              <p className="text-sm font-semibold text-destructive/90 mt-1">检测到忌口食材：{allergenWarnings.join("、")}</p>
-              <p className="text-xs text-destructive/60 mt-1">您在画像中标记了对以上食材过敏，请谨慎食用</p>
+              <p className="text-sm font-bold text-destructive">{t.allergenWarningTitle}</p>
+              <p className="text-sm font-semibold text-destructive/90 mt-1">{t.allergenWarningDesc(allergenWarnings.join("、"))}</p>
+              <p className="text-xs text-destructive/60 mt-1">{t.allergenWarningHint}</p>
             </div>
           </div>
         )}
@@ -272,7 +274,7 @@ const Result = () => {
         {ingredients.length > 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-              <span className="w-8 h-px bg-border" /> 食材清单 <span className="flex-1 h-px bg-border" />
+              <span className="w-8 h-px bg-border" /> {t.ingredientList} <span className="flex-1 h-px bg-border" />
             </h3>
             <div className="bg-card rounded-xl p-4 shadow-card">
               {ingredients.map((item: any, i: number) => (
@@ -286,7 +288,7 @@ const Result = () => {
               ))}
             </div>
             <button onClick={handleEditIngredients} className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 ml-1">
-              <Pencil className="w-3 h-3" /> 编辑食材
+              <Pencil className="w-3 h-3" /> {t.editIngredients}
             </button>
           </section>
         )}
@@ -294,13 +296,13 @@ const Result = () => {
         {/* Nutrition */}
         <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.15s" }}>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-            <span className="w-8 h-px bg-border" /> 营养素分析 <span className="flex-1 h-px bg-border" />
+            <span className="w-8 h-px bg-border" /> {t.nutritionAnalysis} <span className="flex-1 h-px bg-border" />
           </h3>
           <div className="bg-card rounded-xl p-4 shadow-card space-y-3">
-            <NutritionBar label="能量" current={calories} target={profile?.targets?.calories || 2100} unit="kcal" />
-            <NutritionBar label="蛋白" current={protein_g} target={profile?.targets?.protein_g || 120} unit="g" />
-            <NutritionBar label="脂肪" current={fat_g} target={profile?.targets?.fat_g || 58} unit="g" />
-            <NutritionBar label="碳水" current={carbs_g} target={profile?.targets?.carbs_g || 263} unit="g" />
+            <NutritionBar label={t.energy} current={calories} target={profile?.targets?.calories || 2100} unit="kcal" />
+            <NutritionBar label={t.protein} current={protein_g} target={profile?.targets?.protein_g || 120} unit="g" />
+            <NutritionBar label={t.fat} current={fat_g} target={profile?.targets?.fat_g || 58} unit="g" />
+            <NutritionBar label={t.carbs} current={carbs_g} target={profile?.targets?.carbs_g || 263} unit="g" />
           </div>
         </section>
 
@@ -308,7 +310,7 @@ const Result = () => {
         {suggestion && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.2s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-              <span className="w-8 h-px bg-border" /> 修复建议 <span className="flex-1 h-px bg-border" />
+              <span className="w-8 h-px bg-border" /> {t.repairSuggestion} <span className="flex-1 h-px bg-border" />
             </h3>
             <div className="bg-card rounded-xl p-4 shadow-card">
               <div className="flex items-start gap-3">
@@ -322,7 +324,7 @@ const Result = () => {
                 </div>
                 <div>
                   <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                    {cooking_scene === "homemade" ? "🍳 自炊建议" : "📦 外卖建议"}
+                    {cooking_scene === "homemade" ? t.homemadeSuggestion : t.takeoutSuggestion}
                   </span>
                   <p className="text-sm leading-relaxed mt-1">
                     💡 {renderSuggestionWithBold(suggestion)}
@@ -336,19 +338,19 @@ const Result = () => {
 
       {/* Bottom buttons */}
       <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex gap-3 shrink-0 relative z-10">
-        <button onClick={handleRetake} className="flex-1 py-4 rounded-2xl border border-border bg-card font-bold active:scale-[0.98] transition-all">
-          重拍
+        <button onClick={handleRetake} className="flex-1 py-4 rounded-2xl border border-border bg-card font-bold active:scale-[0.98] transition-all truncate">
+          {t.retake}
         </button>
         <button
           onClick={generateShareImage}
           disabled={generating}
-          className="flex-1 py-4 rounded-2xl border border-primary/30 bg-primary/5 text-primary font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          className="flex-1 py-4 rounded-2xl border border-primary/30 bg-primary/5 text-primary font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate"
         >
-          <Share2 className="w-4 h-4" />
-          {generating ? "生成中…" : "分享"}
+          <Share2 className="w-4 h-4 shrink-0" />
+          {generating ? t.generating : t.share}
         </button>
-        <button onClick={handleSave} className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-bold active:scale-[0.98] transition-all">
-          记一笔
+        <button onClick={handleSave} className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-bold active:scale-[0.98] transition-all truncate">
+          {t.recordMeal}
         </button>
       </div>
 
@@ -366,6 +368,7 @@ const Result = () => {
           ingredients={ingredients}
           imageData={imageData}
           score={matchScore}
+          locale={locale}
         />
       </div>
 
@@ -377,13 +380,13 @@ const Result = () => {
           </button>
           <div className="px-6 w-full max-w-sm">
             <img src={shareImage} alt="分享卡片" className="w-full rounded-2xl shadow-soft mb-6" style={{ maxHeight: "60vh", objectFit: "contain" }} />
-            <p className="text-center text-xs text-muted-foreground mb-5">长按图片可直接保存</p>
+            <p className="text-center text-xs text-muted-foreground mb-5">{t.longPressToSave}</p>
             <div className="flex gap-3">
-              <button onClick={handleDownload} className="flex-1 py-4 rounded-2xl border border-border font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                <Download className="w-4 h-4" /> 保存图片
+              <button onClick={handleDownload} className="flex-1 py-4 rounded-2xl border border-border font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate">
+                <Download className="w-4 h-4 shrink-0" /> {t.saveToAlbum}
               </button>
-              <button onClick={handleShare} className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2">
-                <Share2 className="w-4 h-4" /> 分享给好友
+              <button onClick={handleShare} className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate">
+                <Share2 className="w-4 h-4 shrink-0" /> {t.shareToFriend}
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import NutritionBar from "@/components/NutritionBar";
 import { getMealTypeLabel } from "@/lib/nutrition";
+import { useI18n } from "@/lib/i18n";
 
 const MAX_PHOTOS = 5;
 
@@ -12,6 +13,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { profile, loading: profileLoading } = useProfile();
   const { todayMeals, todayTotals, loading: mealsLoading } = useMeals();
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   const addMoreRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<string[]>([]);
@@ -28,7 +30,6 @@ const Index = () => {
     if (photos.length === 0) {
       inputRef.current?.click();
     } else {
-      // Go to scan with all photos
       navigate("/scan", { state: { images: photos } });
     }
   };
@@ -46,12 +47,7 @@ const Index = () => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (photos.length === 0) {
-      // First photo - add to queue instead of navigating immediately
-      addPhoto(file);
-    } else {
-      addPhoto(file);
-    }
+    addPhoto(file);
     e.target.value = "";
   };
 
@@ -77,71 +73,52 @@ const Index = () => {
 
   const nickname = profile.gender === "female" ? "小丽" : "小张";
   const hour = new Date().getHours();
-  const greeting = hour < 11 ? "早安" : hour < 14 ? "午安" : hour < 18 ? "下午好" : "晚上好";
+  const greeting = hour < 11 ? t.greetingMorning : hour < 14 ? t.greetingNoon : hour < 18 ? t.greetingAfternoon : t.greetingEvening;
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {/* Header */}
       <header className="px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-muted-foreground">{greeting}，</p>
             <h1 className="text-xl font-bold">{nickname}</h1>
           </div>
-          <button
-            onClick={() => navigate("/profile")}
-            className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center"
-          >
+          <button onClick={() => navigate("/profile")} className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
             <span className="text-lg">👤</span>
           </button>
         </div>
       </header>
 
-      {/* Today's progress */}
       <section className="px-5 mb-6">
         <div className="bg-card rounded-2xl p-5 shadow-card">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-4">今日目标</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground mb-4">{t.todayGoal}</h2>
           <div className="space-y-3">
-            <NutritionBar label="能量" current={todayTotals.calories} target={profile.targets.calories} unit="kcal" />
-            <NutritionBar label="蛋白" current={todayTotals.protein_g} target={profile.targets.protein_g} unit="g" />
-            <NutritionBar label="脂肪" current={todayTotals.fat_g} target={profile.targets.fat_g} unit="g" />
-            <NutritionBar label="碳水" current={todayTotals.carbs_g} target={profile.targets.carbs_g} unit="g" />
+            <NutritionBar label={t.energy} current={todayTotals.calories} target={profile.targets.calories} unit="kcal" />
+            <NutritionBar label={t.protein} current={todayTotals.protein_g} target={profile.targets.protein_g} unit="g" />
+            <NutritionBar label={t.fat} current={todayTotals.fat_g} target={profile.targets.fat_g} unit="g" />
+            <NutritionBar label={t.carbs} current={todayTotals.carbs_g} target={profile.targets.carbs_g} unit="g" />
           </div>
         </div>
       </section>
 
-      {/* Photo preview strip */}
       {photos.length > 0 && (
         <section className="px-5 mb-4 animate-fade-in">
           <div className="bg-card rounded-2xl p-4 shadow-card">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-muted-foreground">
-                已选照片 ({photos.length}/{MAX_PHOTOS})
-              </h3>
-              <button
-                onClick={() => setPhotos([])}
-                className="text-xs text-destructive font-semibold"
-              >
-                清空
-              </button>
+              <h3 className="text-sm font-semibold text-muted-foreground">{t.selectedPhotos(photos.length, MAX_PHOTOS)}</h3>
+              <button onClick={() => setPhotos([])} className="text-xs text-destructive font-semibold">{t.clear}</button>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-1">
               {photos.map((src, i) => (
                 <div key={i} className="relative shrink-0 w-16 h-16 rounded-xl overflow-hidden border border-border">
                   <img src={src} alt={`photo-${i}`} className="w-full h-full object-cover" />
-                  <button
-                    onClick={() => removePhoto(i)}
-                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
-                  >
+                  <button onClick={() => removePhoto(i)} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
               ))}
               {photos.length < MAX_PHOTOS && (
-                <button
-                  onClick={() => addMoreRef.current?.click()}
-                  className="shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground"
-                >
+                <button onClick={() => addMoreRef.current?.click()} className="shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
                   <ImagePlus className="w-5 h-5" />
                 </button>
               )}
@@ -150,43 +127,26 @@ const Index = () => {
         </section>
       )}
 
-      {/* Camera button */}
       <section className="flex flex-col items-center mb-6">
         <button
           onClick={handleCapture}
           className={`w-20 h-20 rounded-full flex items-center justify-center shadow-soft active:scale-95 transition-transform ${
-            photos.length > 0
-              ? "bg-primary text-primary-foreground"
-              : "bg-primary text-primary-foreground animate-pulse-soft"
+            photos.length > 0 ? "bg-primary text-primary-foreground" : "bg-primary text-primary-foreground animate-pulse-soft"
           }`}
         >
           <Camera className="w-8 h-8" />
         </button>
         <p className="text-sm text-muted-foreground mt-3">
-          {photos.length === 0 ? "拍下你的餐食" : `开始识别 (${photos.length}张)`}
+          {photos.length === 0 ? t.takePhoto : t.startRecognize(photos.length)}
         </p>
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        <input
-          ref={addMoreRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleAddMore}
-        />
+        <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+        <input ref={addMoreRef} type="file" accept="image/*" className="hidden" onChange={handleAddMore} />
       </section>
 
-      {/* Recent meals */}
       <section className="px-5 pb-6">
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3">最近记录</h2>
+        <h2 className="text-sm font-semibold text-muted-foreground mb-3">{t.recentRecords}</h2>
         {todayMeals.length === 0 ? (
-          <p className="text-center text-muted-foreground text-sm py-8">暂无记录，拍下第一餐吧</p>
+          <p className="text-center text-muted-foreground text-sm py-8">{t.noRecords}</p>
         ) : (
           <div className="space-y-2">
             {todayMeals.slice(0, 3).map(meal => (
