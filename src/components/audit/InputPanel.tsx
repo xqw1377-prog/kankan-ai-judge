@@ -86,27 +86,32 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
         onClick={() => inputRef.current?.click()}
-        className="relative flex-1 min-h-[200px] rounded-xl border border-border hover:border-primary/40 transition-all cursor-pointer glass flex flex-col items-center justify-center gap-3 group overflow-hidden"
+        className="relative flex-1 min-h-[200px] rounded-xl border-2 border-primary/20 hover:border-primary/50 bg-secondary/60 transition-all cursor-pointer flex flex-col items-center justify-center gap-3 group overflow-hidden shadow-[inset_0_1px_0_hsl(var(--primary)/0.08),0_0_20px_hsl(var(--primary)/0.05)]"
       >
         {images.length > 0 ? (
           <div className="relative w-full h-full min-h-[200px]">
             <img
               src={images[images.length - 1]}
               alt="food"
-              className="w-full h-full object-cover rounded-xl"
+              className="w-full h-full object-cover rounded-[10px]"
             />
             {/* Scan overlay when analyzing */}
             {analyzing && (
-              <div className="absolute inset-0 bg-background/40 rounded-xl">
-                <div className="absolute left-0 w-full h-0.5 bg-primary shadow-[0_0_12px_hsl(43_72%_52%/0.6)] animate-scan-line" />
+              <div className="absolute inset-0 bg-background/50 rounded-[10px]">
+                <div className="absolute left-0 w-full h-0.5 bg-primary shadow-[0_0_12px_hsl(var(--primary)/0.6)] animate-scan-line" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-xs font-mono text-primary animate-pulse tracking-widest">
+                    Pixel scanning...
+                  </span>
+                </div>
               </div>
             )}
-            <div className="absolute top-3 right-3 glass px-2.5 py-1 rounded-full text-[10px] font-mono text-primary">
+            <div className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm border border-primary/30 px-2.5 py-1 rounded-full text-[10px] font-mono text-primary">
               {images.length} IMAGE{images.length > 1 ? "S" : ""} LOADED
             </div>
             {/* Pixel Analysis Ready overlay */}
             {analysisReady && !analyzing && (
-              <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm py-2 px-3 flex items-center gap-2">
+              <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm py-2 px-3 flex items-center gap-2 rounded-b-[10px]">
                 <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 <span className="text-[10px] font-mono text-success tracking-widest">
                   PIXEL ANALYSIS READY...
@@ -116,13 +121,18 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
           </div>
         ) : (
           <>
-            <div className="w-16 h-16 rounded-2xl border border-dashed border-primary/30 flex items-center justify-center group-hover:border-primary/60 transition-colors">
-              <Upload className="w-7 h-7 text-primary/50 group-hover:text-primary/80 transition-colors" />
+            <div className="w-16 h-16 rounded-2xl border-2 border-dashed border-primary/25 flex items-center justify-center group-hover:border-primary/50 transition-colors">
+              <Upload className="w-7 h-7 text-primary/40 group-hover:text-primary/70 transition-colors" />
             </div>
-            <p className="text-sm text-muted-foreground">{t.dropOrCapture}</p>
-            <div className="flex items-center gap-2 text-primary/50">
+            <p className="text-sm font-semibold text-card-foreground/80">
+              Drag & Drop Meal Image
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Click to Upload for GDAS Audit
+            </p>
+            <div className="flex items-center gap-2 text-primary/40 mt-1">
               <Camera className="w-3.5 h-3.5" />
-              <span className="text-[10px] font-mono tracking-widest">CAPTURE / DRAG</span>
+              <span className="text-[9px] font-mono tracking-widest">CAPTURE / DRAG</span>
             </div>
           </>
         )}

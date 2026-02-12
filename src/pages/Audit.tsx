@@ -66,10 +66,18 @@ const Audit = () => {
         <h1 className="text-base font-bold text-card-foreground tracking-wide">
           {t.auditWorkspace}
         </h1>
-        <div className="ml-auto flex items-center gap-1.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-          <span className="text-[10px] font-mono text-muted-foreground">GDAS v1.0</span>
-        </div>
+        <button
+          onClick={handleGenerateAudit}
+          disabled={!hasImage || auditing}
+          className={`ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold tracking-wider transition-all ${
+            hasImage && !auditing
+              ? "bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.4)] active:scale-95"
+              : "bg-muted text-muted-foreground cursor-not-allowed"
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          {auditing ? "TRANSMITTING..." : t.generateAudit}
+        </button>
       </header>
 
       {/* Dual-wing body */}
@@ -81,20 +89,6 @@ const Audit = () => {
           <AuditFindings ingredients={hasImage ? ingredients : []} hasImage={hasImage} />
         </section>
       </div>
-
-      {/* Generate Audit Button */}
-      {hasImage && (
-        <div className="shrink-0 px-4 pb-2">
-          <button
-            onClick={handleGenerateAudit}
-            disabled={auditing}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98]"
-          >
-            <Zap className="w-4 h-4" />
-            {auditing ? "TRANSMITTING TO GDAS..." : t.generateAudit}
-          </button>
-        </div>
-      )}
 
       {/* Bottom: Spatial Audit Logs */}
       <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
