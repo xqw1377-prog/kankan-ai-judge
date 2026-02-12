@@ -6,6 +6,8 @@ import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
 import NutritionBar from "@/components/NutritionBar";
 import ShareCard from "@/components/ShareCard";
+import VirtualTable from "@/components/VirtualTable";
+import InviteButton from "@/components/InviteCard";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -65,6 +67,7 @@ const Result = () => {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareImage, setShareImage] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [claimedPortions, setClaimedPortions] = useState<Record<string, number>>({});
 
   const {
     food = "", calories = 0, protein_g = 0, fat_g = 0, carbs_g = 0,
@@ -278,6 +281,17 @@ const Result = () => {
           </section>
         )}
 
+        {ingredients.length > 0 && (
+          <VirtualTable
+            ingredients={ingredients}
+            calories={calories}
+            protein_g={protein_g}
+            fat_g={fat_g}
+            carbs_g={carbs_g}
+            onPortionsChange={setClaimedPortions}
+          />
+        )}
+
         <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.15s" }}>
           <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
             <span className="w-8 h-px bg-border" /> {t.nutritionAnalysis} <span className="flex-1 h-px bg-border" />
@@ -317,6 +331,11 @@ const Result = () => {
             </div>
           </section>
         )}
+
+        {/* Invite tablemates */}
+        <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.25s" }}>
+          <InviteButton food={food} imageData={imageData} calories={calories} />
+        </section>
       </div>
 
       <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex gap-3 shrink-0 relative z-10">
