@@ -15,6 +15,11 @@ const MealDetail = () => {
 
   const meal = meals.find(m => m.id === id);
 
+  const userAllergies = profile?.allergies?.split(/[,，、\s]+/).filter(Boolean) || [];
+  const allergenWarnings = meal?.ingredients
+    .filter((item: any) => userAllergies.some((a: string) => item.name?.includes(a)))
+    .map((item: any) => item.name) || [];
+
   if (!meal) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3">
@@ -60,6 +65,14 @@ const MealDetail = () => {
           </p>
         </div>
 
+        {/* Allergen warning */}
+        {allergenWarnings.length > 0 && (
+          <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 animate-fade-in">
+            <p className="text-sm font-semibold text-destructive">⚠️ 检测到可能的过敏食材：{allergenWarnings.join("、")}</p>
+            <p className="text-xs text-destructive/70 mt-1">您在画像中标记了对以上食材过敏，请谨慎食用</p>
+          </div>
+        )}
+
         {/* Ingredients */}
         {meal.ingredients.length > 0 && (
           <section className="mb-5">
@@ -67,7 +80,10 @@ const MealDetail = () => {
             <div className="bg-card rounded-xl p-4 shadow-card">
               {meal.ingredients.map((item: any, i: number) => (
                 <div key={i} className="flex justify-between py-1.5 border-b border-border last:border-0">
-                  <span className="text-sm">{item.name}</span>
+                  <span className="text-sm flex items-center gap-1">
+                    {allergenWarnings.includes(item.name) && <span className="text-destructive">⚠️</span>}
+                    {item.name}
+                  </span>
                   <span className="text-sm text-muted-foreground">{item.grams}g</span>
                 </div>
               ))}
