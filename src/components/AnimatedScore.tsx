@@ -8,17 +8,22 @@ interface AnimatedScoreProps {
 const AnimatedScore = ({ target, duration = 1500 }: AnimatedScoreProps) => {
   const [current, setCurrent] = useState(0);
   const frameRef = useRef<number>();
+  const prevTargetRef = useRef(0);
 
   useEffect(() => {
+    const from = prevTargetRef.current;
+    const to = target;
+    if (from === to) return;
     const start = performance.now();
     const animate = (now: number) => {
       const elapsed = now - start;
       const progress = Math.min(elapsed / duration, 1);
-      // Ease out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      setCurrent(Math.round(eased * target));
+      setCurrent(Math.round(from + (to - from) * eased));
       if (progress < 1) {
         frameRef.current = requestAnimationFrame(animate);
+      } else {
+        prevTargetRef.current = to;
       }
     };
     frameRef.current = requestAnimationFrame(animate);
