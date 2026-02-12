@@ -143,4 +143,8 @@ export const zhCN: Dictionary = {
   },
   dietCreditTitle: "饮食信用资产",
   dietCreditBeat: "您的饮食资产正在增值，已击败全球 92% 的用户",
+
+  virtualTable: "虚拟餐桌",
+  claimedIntake: "我的认领摄入",
+  inviteTablemate: "邀请桌友共同记录",
 };

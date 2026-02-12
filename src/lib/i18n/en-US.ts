@@ -143,4 +143,8 @@ export const enUS: Dictionary = {
   },
   dietCreditTitle: "Diet Credit Assets",
   dietCreditBeat: "Your diet assets are appreciating — you've outperformed 92% of global users",
+
+  virtualTable: "Virtual Table",
+  claimedIntake: "My Claimed Intake",
+  inviteTablemate: "Invite Tablemates",
 };

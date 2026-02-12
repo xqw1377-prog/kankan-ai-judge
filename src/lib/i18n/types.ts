@@ -146,4 +146,9 @@ export interface Dictionary {
   goalLabels: Record<string, string>;
   dietCreditTitle: string;
   dietCreditBeat: string;
+
+  // Virtual Table
+  virtualTable: string;
+  claimedIntake: string;
+  inviteTablemate: string;
 }
