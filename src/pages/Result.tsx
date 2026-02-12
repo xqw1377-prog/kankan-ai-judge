@@ -56,7 +56,7 @@ function BreathingWave() {
 const Result = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { saveMeal } = useMeals();
+  const { saveMeal, todayMeals } = useMeals();
   const { profile } = useProfile();
   const { toast } = useToast();
   const { t, locale } = useI18n();
@@ -314,6 +314,10 @@ const Result = () => {
           targetCalories={profile?.targets?.calories || 2100}
           weight={profile?.weight_kg || 70}
           gi_value={gi_value}
+          todayMeals={[
+            ...(todayMeals || []).map(m => ({ name: m.food_name, carbs_g: m.carbs_g })),
+            { name: food, carbs_g },
+          ]}
         />
 
         {suggestion && (

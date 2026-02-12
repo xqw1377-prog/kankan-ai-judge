@@ -1,5 +1,10 @@
-import { useMemo, useRef, useEffect, useState } from "react";
+import { useMemo, useRef, useEffect, useState, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
+
+interface HeatmapMeal {
+  name: string;
+  carbs_g: number;
+}
 
 interface PerformanceTrackerProps {
   calories: number;
@@ -9,6 +14,7 @@ interface PerformanceTrackerProps {
   targetCalories: number;
   weight?: number;
   gi_value?: number;
+  todayMeals?: HeatmapMeal[];
 }
 
 function generateHistory(currentWeight: number): number[] {
@@ -43,7 +49,7 @@ function estimateGLRisk(carbs_g: number, calories: number, gi_value?: number): {
 }
 
 export default function PerformanceTracker({
-  calories, protein_g, fat_g, carbs_g, targetCalories, weight = 70, gi_value,
+  calories, protein_g, fat_g, carbs_g, targetCalories, weight = 70, gi_value, todayMeals = [],
 }: PerformanceTrackerProps) {
   const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -315,15 +321,41 @@ export default function PerformanceTracker({
 
   }, [allPoints, history, prediction, minVal, maxVal, animProgress, glRisk, breathePhase]);
 
-  // Generate GL heatmap data (simulated hourly GL distribution)
+  const [activeHeatIdx, setActiveHeatIdx] = useState<number | null>(null);
+
+  const handleHeatTap = useCallback((idx: number) => {
+    setActiveHeatIdx(prev => prev === idx ? null : idx);
+  }, []);
+
+  // Generate GL heatmap data with meal association
+  const timeSlots = useMemo(() => {
+    const hours = ["6:00","7:00","8:00","9:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00"];
+    return hours;
+  }, []);
+
   const glHeatmapData = useMemo(() => {
-    const data: number[] = [];
+    const mealSlotMap: Record<number, HeatmapMeal> = {};
+    // Map meals to approximate time slots
+    const mealTimeSlots = [2, 6, 12]; // breakfast ~8am, lunch ~12pm, dinner ~6pm
+    todayMeals.forEach((meal, i) => {
+      const slot = mealTimeSlots[i % mealTimeSlots.length];
+      mealSlotMap[slot] = meal;
+      // Spread GL effect to neighboring slots
+      if (slot > 0) mealSlotMap[slot - 1] = meal;
+      if (slot < 13) mealSlotMap[slot + 1] = meal;
+    });
+
+    const data: { value: number; glValue: number; meal?: HeatmapMeal }[] = [];
     for (let i = 0; i < 14; i++) {
       const base = glRisk.isHigh ? 0.6 : glRisk.isLow ? 0.2 : 0.4;
-      data.push(Math.min(1, Math.max(0, base + (Math.random() - 0.5) * 0.4)));
+      const hasMeal = mealSlotMap[i];
+      const mealBoost = hasMeal ? 0.15 : 0;
+      const value = Math.min(1, Math.max(0, base + mealBoost + (Math.random() - 0.5) * 0.3));
+      const glValue = Math.round(20 + value * 60);
+      data.push({ value, glValue, meal: hasMeal });
     }
     return data;
-  }, [glRisk.isHigh, glRisk.isLow]);
+  }, [glRisk.isHigh, glRisk.isLow, todayMeals]);
 
   const deficit = dailyDeficit;
   const deficitLabel = deficit > 0
@@ -391,29 +423,73 @@ export default function PerformanceTracker({
         </div>
 
         {/* GL Distribution Heatmap */}
-        <div className="mt-3 mb-1">
+        <div className="mt-3 mb-1 relative">
           <p className="text-[8px] text-muted-foreground uppercase tracking-widest font-semibold mb-1.5">
             GL Distribution
           </p>
-          <div className="flex gap-[2px] h-3 rounded overflow-hidden">
-            {glHeatmapData.map((v, i) => {
-              // Deep blue → titanium gold gradient based on GL intensity
+          <div className="flex gap-[2px] h-5 rounded overflow-hidden">
+            {glHeatmapData.map((d, i) => {
+              const v = d.value;
               const r = Math.round(20 + v * 192);
               const g = Math.round(30 + v * 145);
               const b = Math.round(80 + (1 - v) * 100);
               const alpha = 0.5 + v * 0.5;
+              const isActive = activeHeatIdx === i;
               return (
                 <div
                   key={i}
-                  className="flex-1 transition-all duration-700"
+                  className="flex-1 transition-all duration-300 cursor-pointer relative"
                   style={{
                     background: `rgba(${r},${g},${b},${alpha})`,
-                    boxShadow: v > 0.7 ? `0 0 6px rgba(${r},${g},${b},0.4)` : undefined,
+                    boxShadow: isActive
+                      ? `0 0 10px rgba(${r},${g},${b},0.7), inset 0 0 4px rgba(255,255,255,0.2)`
+                      : v > 0.7 ? `0 0 6px rgba(${r},${g},${b},0.4)` : undefined,
+                    transform: isActive ? "scaleY(1.6)" : undefined,
+                    borderRadius: isActive ? "2px" : undefined,
+                    zIndex: isActive ? 10 : undefined,
                   }}
+                  onClick={() => handleHeatTap(i)}
                 />
               );
             })}
           </div>
+
+          {/* Tooltip popover */}
+          {activeHeatIdx !== null && (
+            <div
+              className="absolute z-20 glass rounded-xl p-3 shadow-lg border border-border/50 transition-all animate-in fade-in-0 zoom-in-95 duration-200"
+              style={{
+                bottom: "calc(100% + 8px)",
+                left: `${Math.min(Math.max((activeHeatIdx / 13) * 100, 15), 85)}%`,
+                transform: "translateX(-50%)",
+                minWidth: 160,
+              }}
+            >
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[9px] text-muted-foreground font-mono">{timeSlots[activeHeatIdx]}</span>
+                <span className={`text-xs font-bold font-mono ${
+                  glHeatmapData[activeHeatIdx].glValue > 55 ? "text-destructive" : "text-success"
+                }`}>
+                  GL {glHeatmapData[activeHeatIdx].glValue}
+                </span>
+              </div>
+              {glHeatmapData[activeHeatIdx].meal ? (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold text-card-foreground truncate">
+                    🍽 {glHeatmapData[activeHeatIdx].meal!.name}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">
+                    {t.carbs}: {glHeatmapData[activeHeatIdx].meal!.carbs_g}g
+                  </p>
+                </div>
+              ) : (
+                <p className="text-[9px] text-muted-foreground italic">—</p>
+              )}
+              {/* Arrow */}
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 rotate-45 bg-card border-r border-b border-border/50" />
+            </div>
+          )}
+
           <div className="flex justify-between mt-1">
             <span className="text-[7px] text-muted-foreground" style={{ opacity: 0.5 }}>Low GL</span>
             <span className="text-[7px] text-muted-foreground" style={{ opacity: 0.5 }}>High GL</span>
