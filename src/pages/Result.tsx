@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Pencil, Share2, Download, X, UtensilsCrossed, Package } from "lucide-react";
+import { ChevronLeft, Home, Pencil, Share2, Download, X, UtensilsCrossed, Package, Images } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
@@ -61,6 +61,7 @@ const Result = () => {
   const { toast } = useToast();
   const result = location.state?.result;
   const imageData = location.state?.imageData;
+  const allImages: string[] = location.state?.images || (imageData ? [imageData] : []);
   const inputRef = useRef<HTMLInputElement>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const [shareOpen, setShareOpen] = useState(false);
@@ -207,7 +208,22 @@ const Result = () => {
           </div>
         </div>
 
-        {/* Allergen warning - forced above verdict */}
+        {/* Original photos gallery */}
+        {allImages.length > 1 && (
+          <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.02s" }}>
+            <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+              <Images className="w-4 h-4" /> 原始素材 ({allImages.length}张)
+            </h3>
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+              {allImages.map((src, i) => (
+                <div key={i} className="shrink-0 w-28 h-28 rounded-xl overflow-hidden shadow-card snap-start border border-border">
+                  <img src={src} alt={`原图-${i + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {allergenWarnings.length > 0 && (
           <div className="bg-destructive/10 border-2 border-destructive/40 rounded-2xl p-4 mb-5 animate-slide-up flex items-start gap-3">
             <span className="text-2xl leading-none mt-0.5">🚨</span>

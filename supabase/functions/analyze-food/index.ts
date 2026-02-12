@@ -6,14 +6,36 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function buildImageContent(base64: string) {
+  const match = base64.match(/^data:(image\/[\w+]+);base64,(.+)$/);
+  const mimeType = match ? match[1] : "image/jpeg";
+  const base64Data = match ? match[2] : base64;
+  return { type: "image_url" as const, image_url: { url: `data:${mimeType};base64,${base64Data}` } };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageBase64, imageUrl, userContext } = await req.json();
-    if (!imageBase64 && !imageUrl) {
+    const { imageBase64, imageUrl, imagesBase64, userContext } = await req.json();
+
+    // Build image content array - support single or multi
+    const imageContents: { type: "image_url"; image_url: { url: string } }[] = [];
+
+    if (imagesBase64 && Array.isArray(imagesBase64) && imagesBase64.length > 0) {
+      // Multi-image mode
+      for (const img of imagesBase64.slice(0, 5)) {
+        imageContents.push(buildImageContent(img));
+      }
+    } else if (imageBase64) {
+      imageContents.push(buildImageContent(imageBase64));
+    } else if (imageUrl) {
+      imageContents.push({ type: "image_url", image_url: { url: imageUrl } });
+    }
+
+    if (imageContents.length === 0) {
       return new Response(JSON.stringify({ error: "No image provided" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -25,16 +47,6 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    let imageContent: { type: string; image_url: { url: string } };
-    if (imageUrl) {
-      imageContent = { type: "image_url", image_url: { url: imageUrl } };
-    } else {
-      const match = imageBase64.match(/^data:(image\/[\w+]+);base64,(.+)$/);
-      const mimeType = match ? match[1] : "image/jpeg";
-      const base64Data = match ? match[2] : imageBase64;
-      imageContent = { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Data}` } };
-    }
-
     let contextStr = "";
     if (userContext) {
       if (userContext.goal) contextStr += `用户目标：${userContext.goal}。`;
@@ -43,20 +55,9 @@ serve(async (req) => {
       if (userContext.cooking_source) contextStr += `饮食来源：${userContext.cooking_source}。`;
     }
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            {
-              role: "system",
-              content: `你是"KANKAN"——一个专业但毒舌有趣的AI饮食分析师。用户会给你一张食物照片，你需要分析并返回结构化的营养数据。
+    const isMulti = imageContents.length > 1;
+
+    const systemPrompt = `你是"KANKAN"——一个专业但毒舌有趣的AI饮食分析师。${isMulti ? "用户会给你同一顿饭的多张照片（可能包含全景和特写），" : "用户会给你一张食物照片，"}你需要分析并返回结构化的营养数据。
 
 你必须：
 1. 识别食物名称（2-8个字）
@@ -77,13 +78,30 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
 - 如果图片不是食物，calories 给0，verdict 说"这不是食物"
 - cooking_scene: "takeout" 代表外卖/外食, "homemade" 代表自炊/家做
 - roast: 毒舌吐槽，幽默调侃用户的饮食选择
-- 使用指定的工具返回结果`,
-            },
+${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，再结合特写进行去重分析，最终输出该用户实际摄入的食材总量。不要重复计算同一食材。` : ""}
+- 使用指定的工具返回结果`;
+
+    const userMessage = isMulti
+      ? `分析这组同一顿饭的 ${imageContents.length} 张照片的营养信息。请综合全景和特写去重后给出准确结果。`
+      : "分析这张食物照片的营养信息。";
+
+    const response = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
             {
               role: "user",
               content: [
-                imageContent,
-                { type: "text", text: "分析这张食物照片的营养信息。" },
+                ...imageContents,
+                { type: "text", text: userMessage },
               ],
             },
           ],
@@ -96,10 +114,7 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
                 parameters: {
                   type: "object",
                   properties: {
-                    food: {
-                      type: "string",
-                      description: "食物名称，2-8个字",
-                    },
+                    food: { type: "string", description: "食物名称，2-8个字" },
                     ingredients: {
                       type: "array",
                       items: {
@@ -111,7 +126,7 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
                         required: ["name", "grams"],
                         additionalProperties: false,
                       },
-                      description: "食材清单",
+                      description: "食材清单（已去重）",
                     },
                     calories: { type: "number", description: "总热量 kcal" },
                     protein_g: { type: "number", description: "蛋白质克数" },
@@ -139,14 +154,12 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "请求太频繁，请稍后再试" }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
         return new Response(JSON.stringify({ error: "AI 额度已用完，请充值" }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const text = await response.text();
@@ -166,13 +179,10 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
 
     return new Response(
       JSON.stringify({
-        food: "未知食物",
-        ingredients: [],
+        food: "未知食物", ingredients: [],
         calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0,
-        verdict: "AI 无法识别，请重试。",
-        suggestion: "",
-        cooking_scene: "takeout",
-        roast: "",
+        verdict: "AI 无法识别，请重试。", suggestion: "",
+        cooking_scene: "takeout", roast: "",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

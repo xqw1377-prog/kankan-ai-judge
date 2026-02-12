@@ -8,23 +8,38 @@ const Scan = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile } = useProfile();
-  const imageData = location.state?.imageData as string;
+
+  // Support both single imageData and multi-image arrays
+  const rawImageData = location.state?.imageData as string | undefined;
+  const rawImages = location.state?.images as string[] | undefined;
+  const images: string[] = rawImages || (rawImageData ? [rawImageData] : []);
+
   const [cancelled, setCancelled] = useState(false);
   const [showSlowHint, setShowSlowHint] = useState(false);
+  const [currentPreview, setCurrentPreview] = useState(0);
   const startedRef = useRef(false);
   const resultReadyRef = useRef<any>(null);
   const minTimeRef = useRef(false);
 
+  // Cycle through preview images
+  useEffect(() => {
+    if (images.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentPreview(p => (p + 1) % images.length);
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [images.length]);
+
   const navigateToResult = useCallback((result: any) => {
     if (cancelled) return;
     navigate("/result", {
-      state: { imageData, result },
+      state: { images, imageData: images[0], result },
       replace: true,
     });
-  }, [imageData, navigate, cancelled]);
+  }, [images, navigate, cancelled]);
 
   const analyze = useCallback(async () => {
-    if (!imageData || startedRef.current) return;
+    if (images.length === 0 || startedRef.current) return;
     startedRef.current = true;
 
     const userContext = profile ? {
@@ -35,22 +50,18 @@ const Scan = () => {
 
     const fallback = {
       food: "未知食物",
-      calories: 0,
-      protein_g: 0,
-      fat_g: 0,
-      carbs_g: 0,
-      ingredients: [],
-      verdict: "",
-      suggestion: "",
+      calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0,
+      ingredients: [], verdict: "", suggestion: "",
     };
 
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-food", {
-        body: { imageBase64: imageData, userContext },
-      });
+      const body = images.length === 1
+        ? { imageBase64: images[0], userContext }
+        : { imagesBase64: images, userContext };
+
+      const { data, error } = await supabase.functions.invoke("analyze-food", { body });
 
       if (cancelled) return;
-
       const result = (error || data?.error) ? { ...fallback, verdict: data?.error || "AI 暂时开小差了" } : data;
 
       if (minTimeRef.current) {
@@ -67,33 +78,21 @@ const Scan = () => {
         resultReadyRef.current = errResult;
       }
     }
-  }, [imageData, cancelled, profile, navigateToResult]);
+  }, [images, cancelled, profile, navigateToResult]);
 
   useEffect(() => {
-    if (!imageData) {
+    if (images.length === 0) {
       navigate("/", { replace: true });
       return;
     }
-
-    // Start analysis immediately
     analyze();
-
-    // Minimum 2s display time
     const minTimer = setTimeout(() => {
       minTimeRef.current = true;
-      if (resultReadyRef.current) {
-        navigateToResult(resultReadyRef.current);
-      }
+      if (resultReadyRef.current) navigateToResult(resultReadyRef.current);
     }, 2000);
-
-    // Show slow hint after 5s
     const slowTimer = setTimeout(() => setShowSlowHint(true), 5000);
-
-    return () => {
-      clearTimeout(minTimer);
-      clearTimeout(slowTimer);
-    };
-  }, [imageData, navigate, analyze, navigateToResult]);
+    return () => { clearTimeout(minTimer); clearTimeout(slowTimer); };
+  }, [images.length, navigate, analyze, navigateToResult]);
 
   const handleCancel = () => {
     setCancelled(true);
@@ -102,24 +101,34 @@ const Scan = () => {
 
   return (
     <div className="h-full flex flex-col items-center justify-center bg-background relative">
-      {/* Cancel */}
       <button onClick={handleCancel} className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 p-2 text-muted-foreground">
         <X className="w-5 h-5" />
       </button>
 
-      {/* Image with scan effect */}
-      {imageData && (
+      {/* Image preview - cycles through multi-photos */}
+      {images.length > 0 && (
         <div className="relative w-64 h-64 rounded-2xl overflow-hidden shadow-card mb-8">
-          <img src={imageData} alt="food" className="w-full h-full object-cover" />
+          <img
+            src={images[currentPreview]}
+            alt="food"
+            className="w-full h-full object-cover transition-opacity duration-300"
+          />
           <div className="absolute left-0 w-full h-0.5 bg-primary shadow-[0_0_10px_hsl(122_39%_49%/0.6)] animate-scan-line" style={{ top: "0%" }} />
           <div className="absolute inset-0 bg-primary/5" />
+          {/* Photo counter badge */}
+          {images.length > 1 && (
+            <div className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm text-xs font-bold px-2.5 py-1 rounded-full">
+              {currentPreview + 1}/{images.length}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Loading indicator */}
       <div className="flex flex-col items-center gap-4">
         <div className="w-10 h-10 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-base font-semibold text-foreground">KANKAN 正在分析食材…</p>
+        <p className="text-base font-semibold text-foreground">
+          KANKAN 正在分析{images.length > 1 ? ` ${images.length} 张照片…` : "食材…"}
+        </p>
         <p className="text-sm text-muted-foreground">✨ 识别中 ✨</p>
         {showSlowHint && (
           <p className="text-xs text-muted-foreground animate-fade-in mt-2">
@@ -128,11 +137,7 @@ const Scan = () => {
         )}
       </div>
 
-      {/* Cancel button at bottom */}
-      <button
-        onClick={handleCancel}
-        className="absolute bottom-[max(2rem,env(safe-area-inset-bottom))] text-sm text-muted-foreground underline"
-      >
+      <button onClick={handleCancel} className="absolute bottom-[max(2rem,env(safe-area-inset-bottom))] text-sm text-muted-foreground underline">
         取消
       </button>
     </div>
