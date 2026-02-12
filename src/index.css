@@ -71,6 +71,17 @@
   }
 }
 
+/* ===== Emotion gradients ===== */
+.emotion-bg-green {
+  background: linear-gradient(165deg, hsl(140 40% 96%) 0%, hsl(122 35% 94%) 50%, hsl(150 30% 95%) 100%);
+}
+.emotion-bg-neutral {
+  background: linear-gradient(165deg, hsl(30 10% 97%) 0%, hsl(30 8% 95%) 50%, hsl(40 6% 96%) 100%);
+}
+.emotion-bg-warning {
+  background: linear-gradient(165deg, hsl(20 80% 97%) 0%, hsl(10 60% 95%) 50%, hsl(30 50% 96%) 100%);
+}
+
 @keyframes pulse-soft {
   0%, 100% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.05); opacity: 0.9; }
@@ -102,6 +113,22 @@
   100% { transform: translateY(80px) rotate(360deg) scale(0); opacity: 0; }
 }
 
+@keyframes sparkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes float-particle {
+  0% { transform: translateY(0) scale(0); opacity: 0; }
+  20% { opacity: 1; transform: translateY(-10px) scale(1); }
+  100% { transform: translateY(-60px) scale(0); opacity: 0; }
+}
+
 .animate-pulse-soft {
   animation: pulse-soft 2s ease-in-out infinite;
 }
@@ -116,4 +143,10 @@
 }
 .animate-fade-in {
   animation: fade-in 0.3s ease-out forwards;
+}
+.animate-sparkle {
+  animation: sparkle 2s ease-in-out infinite;
+}
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
 }
