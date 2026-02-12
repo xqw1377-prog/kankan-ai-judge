@@ -5,7 +5,7 @@ interface AnimatedScoreProps {
   duration?: number;
 }
 
-const AnimatedScore = ({ target, duration = 1200 }: AnimatedScoreProps) => {
+const AnimatedScore = ({ target, duration = 1500 }: AnimatedScoreProps) => {
   const [current, setCurrent] = useState(0);
   const frameRef = useRef<number>();
 
