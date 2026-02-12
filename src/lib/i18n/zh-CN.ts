@@ -178,4 +178,11 @@ export const zhCN: Dictionary = {
   editExpGain: "变得更聪明了！",
   editExpDesc: "经验值 +1 · 感谢你的纠正",
   editExpDescUpdated: "经验值 +1 · 数据已更新",
+  cookingMethod: "烹饪方式",
+  cookFried: "炸",
+  cookSteamed: "蒸",
+  cookBoiled: "煮",
+  cookStirFried: "炒",
+  cookRaw: "生/凉拌",
+  oilAbsorptionHint: "已启用吸油率修正",
 };

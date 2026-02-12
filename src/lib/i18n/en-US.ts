@@ -178,4 +178,11 @@ export const enUS: Dictionary = {
   editExpGain: "got smarter!",
   editExpDesc: "EXP +1 · Thanks for correcting",
   editExpDescUpdated: "EXP +1 · Data updated",
+  cookingMethod: "Cooking Method",
+  cookFried: "Fried",
+  cookSteamed: "Steamed",
+  cookBoiled: "Boiled",
+  cookStirFried: "Stir-fried",
+  cookRaw: "Raw/Cold",
+  oilAbsorptionHint: "Oil absorption correction applied",
 };

@@ -10,6 +10,17 @@ interface Ingredient {
   grams: number;
 }
 
+type CookingMethod = "fried" | "steamed" | "boiled" | "stir_fried" | "raw";
+
+// Oil absorption correction coefficients per cooking method
+const OIL_COEFFICIENTS: Record<CookingMethod, { fat: number; cal: number }> = {
+  fried:      { fat: 1.8, cal: 1.4 },
+  stir_fried: { fat: 1.3, cal: 1.15 },
+  boiled:     { fat: 1.0, cal: 1.0 },
+  steamed:    { fat: 1.0, cal: 1.0 },
+  raw:        { fat: 1.0, cal: 1.0 },
+};
+
 const STEP = 10;
 
 const EditIngredients = () => {
@@ -31,17 +42,20 @@ const EditIngredients = () => {
   const [addName, setAddName] = useState("");
   const [addGrams, setAddGrams] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
+  const [cookingMethod, setCookingMethod] = useState<CookingMethod>("stir_fried");
 
-  // Real-time nutrition estimation
+  // Real-time nutrition estimation with oil absorption correction
   const nutrition = useMemo(() => {
     const totalGrams = ingredients.reduce((s, i) => s + i.grams, 0);
+    const coeff = OIL_COEFFICIENTS[cookingMethod];
     return {
-      calories: Math.round(totalGrams * 1.5),
+      calories: Math.round(totalGrams * 1.5 * coeff.cal),
       protein_g: Math.round(totalGrams * 0.08),
-      fat_g: Math.round(totalGrams * 0.06),
+      fat_g: Math.round(totalGrams * 0.06 * coeff.fat),
       carbs_g: Math.round(totalGrams * 0.2),
+      cookingMethod,
     };
-  }, [ingredients]);
+  }, [ingredients, cookingMethod]);
 
   const handleEditStart = (idx: number) => {
     setEditingIdx(idx);
@@ -195,6 +209,40 @@ const EditIngredients = () => {
               </div>
               <div className="text-[9px] text-muted-foreground">{t.carbs}</div>
             </div>
+          </div>
+        </div>
+
+        {/* Cooking method selector */}
+        <div className="glass rounded-xl p-3 mb-5 shadow-card">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{t.cookingMethod}</span>
+            {(cookingMethod === "fried" || cookingMethod === "stir_fried") && (
+              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full animate-fade-in"
+                style={{ color: "hsl(30, 90%, 50%)", background: "hsl(30 90% 50% / 0.1)", border: "1px solid hsl(30 90% 50% / 0.2)" }}>
+                🛢️ {t.oilAbsorptionHint}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-1.5">
+            {([
+              { key: "fried" as CookingMethod, label: t.cookFried, icon: "🍟" },
+              { key: "stir_fried" as CookingMethod, label: t.cookStirFried, icon: "🍳" },
+              { key: "boiled" as CookingMethod, label: t.cookBoiled, icon: "🍲" },
+              { key: "steamed" as CookingMethod, label: t.cookSteamed, icon: "♨️" },
+              { key: "raw" as CookingMethod, label: t.cookRaw, icon: "🥗" },
+            ]).map(({ key, label, icon }) => (
+              <button key={key}
+                onClick={() => setCookingMethod(key)}
+                className={`flex-1 py-2 rounded-lg text-center transition-all duration-200 ${
+                  cookingMethod === key
+                    ? "bg-primary text-primary-foreground shadow-soft"
+                    : "bg-secondary text-muted-foreground hover:text-card-foreground"
+                }`}
+              >
+                <div className="text-base leading-none">{icon}</div>
+                <div className="text-[9px] font-semibold mt-1">{label}</div>
+              </button>
+            ))}
           </div>
         </div>
 
