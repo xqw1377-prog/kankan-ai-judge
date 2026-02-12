@@ -22,6 +22,7 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeProgress, setAnalyzeProgress] = useState(0);
   const [phaseIdx, setPhaseIdx] = useState(0);
+  const [analysisReady, setAnalysisReady] = useState(false);
 
   const handleFiles = useCallback(
     (files: FileList | null) => {
@@ -43,7 +44,10 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
             if (p >= 100) {
               p = 100;
               clearInterval(timer);
-              setTimeout(() => setAnalyzing(false), 600);
+              setTimeout(() => {
+                setAnalyzing(false);
+                setAnalysisReady(true);
+              }, 600);
             }
             const newPhase = Math.min(PIXEL_PHASES.length - 1, Math.floor((p / 100) * PIXEL_PHASES.length));
             if (newPhase !== phase) {
@@ -100,6 +104,15 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
             <div className="absolute top-3 right-3 glass px-2.5 py-1 rounded-full text-[10px] font-mono text-primary">
               {images.length} IMAGE{images.length > 1 ? "S" : ""} LOADED
             </div>
+            {/* Pixel Analysis Ready overlay */}
+            {analysisReady && !analyzing && (
+              <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm py-2 px-3 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                <span className="text-[10px] font-mono text-success tracking-widest">
+                  PIXEL ANALYSIS READY...
+                </span>
+              </div>
+            )}
           </div>
         ) : (
           <>

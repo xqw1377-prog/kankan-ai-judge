@@ -1,6 +1,7 @@
-import { useState } from "react";
-import { FlaskConical } from "lucide-react";
+import { useState, useCallback } from "react";
+import { FlaskConical, Zap } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
+import { toast } from "@/hooks/use-toast";
 import InputPanel from "@/components/audit/InputPanel";
 import AuditFindings, { type DetectedIngredient } from "@/components/audit/AuditFindings";
 import SpatialAuditLogs from "@/components/audit/SpatialAuditLogs";
@@ -12,14 +13,50 @@ const MOCK_INGREDIENTS: DetectedIngredient[] = [
   { name: "Tomato", grams: 60, gi: 15, gl: 0.6, oilG: 0.8, protein: 0.9, fat: 0.2, fiber: 1.2 },
 ];
 
+const AUDIT_API = "http://192.168.3.101:8080/api/v1/audit/standalone";
+
 const Audit = () => {
   const { t } = useI18n();
   const [images, setImages] = useState<string[]>([]);
   const [ingredients] = useState<DetectedIngredient[]>(MOCK_INGREDIENTS);
+  const [auditing, setAuditing] = useState(false);
 
   const hasImage = images.length > 0;
   const totalGl = ingredients.reduce((s, i) => s + i.gl, 0);
   const integrityScore = hasImage ? Math.max(0, Math.round(92 - totalGl * 0.3)) : 0;
+
+  const dataUrlToBlob = (dataUrl: string): Blob => {
+    const [meta, b64] = dataUrl.split(",");
+    const mime = meta.match(/:(.*?);/)?.[1] || "image/jpeg";
+    const bin = atob(b64);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return new Blob([arr], { type: mime });
+  };
+
+  const handleGenerateAudit = useCallback(async () => {
+    if (!hasImage) {
+      toast({ title: t.noImageUploaded, variant: "destructive" });
+      return;
+    }
+    setAuditing(true);
+    try {
+      const formData = new FormData();
+      images.forEach((img, idx) => {
+        formData.append("files", dataUrlToBlob(img), `image_${idx}.jpg`);
+      });
+      const res = await fetch(AUDIT_API, { method: "POST", body: formData });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+      console.log("[GDAS] Audit response:", data);
+      toast({ title: t.auditComplete });
+    } catch (err) {
+      console.error("[GDAS] Audit request failed:", err);
+      toast({ title: "Audit endpoint unreachable", description: "Using local mock data", variant: "destructive" });
+    } finally {
+      setAuditing(false);
+    }
+  }, [hasImage, images, t]);
 
   return (
     <div className="h-full flex flex-col bg-background overflow-y-auto">
@@ -37,16 +74,27 @@ const Audit = () => {
 
       {/* Dual-wing body */}
       <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 pb-4 overflow-y-auto">
-        {/* Left Wing: Input Panel */}
         <section className="lg:w-1/2 flex flex-col">
           <InputPanel images={images} onImagesChange={setImages} />
         </section>
-
-        {/* Right Wing: Audit Findings */}
         <section className="lg:w-1/2 flex flex-col">
           <AuditFindings ingredients={hasImage ? ingredients : []} hasImage={hasImage} />
         </section>
       </div>
+
+      {/* Generate Audit Button */}
+      {hasImage && (
+        <div className="shrink-0 px-4 pb-2">
+          <button
+            onClick={handleGenerateAudit}
+            disabled={auditing}
+            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.98]"
+          >
+            <Zap className="w-4 h-4" />
+            {auditing ? "TRANSMITTING TO GDAS..." : t.generateAudit}
+          </button>
+        </div>
+      )}
 
       {/* Bottom: Spatial Audit Logs */}
       <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
