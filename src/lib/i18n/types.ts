@@ -213,4 +213,26 @@ export interface Dictionary {
   macroRadar: string;
   giTrendLine: string;
   balanceScore: string;
+
+  // Balance Sheet
+  intakeAssets: string;
+  metabolicLiabilities: string;
+  proteinAsset: string;
+  fiberAsset: string;
+  sodiumLiability: string;
+  refinedSugarLiability: string;
+  saturatedFatLiability: string;
+
+  // GL Net Value
+  glNetValueCurve: string;
+  glSteady: string;
+  glRiskZone: string;
+  weekLabel: (n: number) => string;
+
+  // Correction Records
+  correctionLog: string;
+  correctionEntry: (pct: string) => string;
+  userOptimized: string;
+  assetValuationUp: string;
+  noCorrectionRecords: string;
 }
