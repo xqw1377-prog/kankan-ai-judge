@@ -147,4 +147,10 @@ export const enUS: Dictionary = {
   virtualTable: "Virtual Table",
   claimedIntake: "My Claimed Intake",
   inviteTablemate: "Invite Tablemates",
+
+  performanceTracker: "Performance Tracker",
+  weightTrend: "Weight Trend",
+  dailyBalance: "Daily Balance",
+  actual: "Actual",
+  predicted7d: "7-Day Forecast",
 };

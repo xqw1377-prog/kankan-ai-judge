@@ -8,6 +8,7 @@ import NutritionBar from "@/components/NutritionBar";
 import ShareCard from "@/components/ShareCard";
 import VirtualTable from "@/components/VirtualTable";
 import InviteButton from "@/components/InviteCard";
+import PerformanceTracker from "@/components/PerformanceTracker";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -303,6 +304,15 @@ const Result = () => {
             <NutritionBar label={t.carbs} current={carbs_g} target={profile?.targets?.carbs_g || 263} unit="g" />
           </div>
         </section>
+
+        <PerformanceTracker
+          calories={calories}
+          protein_g={protein_g}
+          fat_g={fat_g}
+          carbs_g={carbs_g}
+          targetCalories={profile?.targets?.calories || 2100}
+          weight={profile?.weight_kg || 70}
+        />
 
         {suggestion && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.2s" }}>
