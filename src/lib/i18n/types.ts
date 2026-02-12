@@ -151,6 +151,9 @@ export interface Dictionary {
   virtualTable: string;
   claimedIntake: string;
   inviteTablemate: string;
+  dataBalanced: string;
+  portionOverflow: string;
+  portionOverflowHint: string;
 
   // Performance Tracker
   performanceTracker: string;
@@ -160,4 +163,16 @@ export interface Dictionary {
   predicted7d: string;
   glRiskWarning: string;
   glHigh: string;
+
+  // Edit Ingredients
+  editIngredientsTitle: string;
+  livePreview: string;
+  editIngredientName: string;
+  editGrams: string;
+  editAddIngredient: string;
+  editDeleteMeal: string;
+  editDeleteConfirm: string;
+  editExpGain: string;
+  editExpDesc: string;
+  editExpDescUpdated: string;
 }

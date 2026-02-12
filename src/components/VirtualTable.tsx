@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 
 interface Ingredient {
@@ -17,34 +17,29 @@ interface VirtualTableProps {
 
 const PORTION_OPTIONS = [0.1, 0.25, 0.5, 1];
 const FOOD_ICONS = ["🥩", "🥬", "🍚", "🥕", "🍳", "🧄", "🌶️", "🫘", "🥦", "🍅", "🧅", "🥜"];
+const MOCK_AVATARS = ["👤", "👩", "👨", "🧑"];
+
+// Simulate other claimers for demo
+function getMockClaims(ingName: string): { avatar: string; pct: number }[] {
+  const hash = ingName.charCodeAt(0) % 4;
+  if (hash === 0) return [{ avatar: "👩", pct: 0.25 }];
+  if (hash === 1) return [{ avatar: "👨", pct: 0.5 }, { avatar: "🧑", pct: 0.25 }];
+  return [];
+}
 
 function FanSelector({
-  open,
-  onSelect,
-  currentPortion,
-  position,
+  open, onSelect, currentPortion, position,
 }: {
-  open: boolean;
-  onSelect: (p: number) => void;
-  currentPortion: number;
-  position: { x: number; y: number };
+  open: boolean; onSelect: (p: number) => void; currentPortion: number; position: { x: number; y: number };
 }) {
   if (!open) return null;
-
   return (
-    <div
-      className="fixed z-[60] animate-scale-in"
-      style={{ left: position.x, top: position.y, transform: "translate(-50%, -110%)" }}
-    >
+    <div className="fixed z-[60] animate-scale-in" style={{ left: position.x, top: position.y, transform: "translate(-50%, -110%)" }}>
       <div className="flex gap-1 glass-strong rounded-2xl px-2 py-1.5 shadow-soft">
         {PORTION_OPTIONS.map((p) => (
-          <button
-            key={p}
-            onClick={(e) => { e.stopPropagation(); onSelect(p); }}
+          <button key={p} onClick={(e) => { e.stopPropagation(); onSelect(p); }}
             className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-              currentPortion === p
-                ? "bg-primary text-primary-foreground shadow-soft"
-                : "text-muted-foreground hover:text-card-foreground hover:bg-secondary"
+              currentPortion === p ? "bg-primary text-primary-foreground shadow-soft" : "text-muted-foreground hover:text-card-foreground hover:bg-secondary"
             }`}
           >
             {Math.round(p * 100)}%
@@ -55,13 +50,51 @@ function FanSelector({
   );
 }
 
+function BalanceScale({ totalWeight, claimedWeight }: { totalWeight: number; claimedWeight: number }) {
+  const { t } = useI18n();
+  const ratio = totalWeight > 0 ? claimedWeight / totalWeight : 0;
+  const isBalanced = Math.abs(ratio - 1) < 0.02;
+  const tiltDeg = Math.max(-15, Math.min(15, (ratio - 1) * 30));
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative flex flex-col items-center" style={{ width: 44, height: 36 }}>
+        {/* Fulcrum */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-3 rounded-full"
+          style={{ background: isBalanced ? "hsl(43 72% 52%)" : "hsl(220 15% 30%)" }}
+        />
+        {/* Beam */}
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full transition-transform duration-500"
+          style={{
+            background: isBalanced ? "hsl(43 72% 52%)" : "hsl(220 15% 30%)",
+            transform: `rotate(${tiltDeg}deg)`,
+            boxShadow: isBalanced ? "0 0 8px hsl(43 72% 52% / 0.5)" : "none",
+          }}
+        />
+        {/* Left pan */}
+        <div className="absolute bottom-3 left-0.5 w-3 h-1 rounded-sm"
+          style={{ background: isBalanced ? "hsl(43 72% 52% / 0.6)" : "hsl(220 15% 25%)" }}
+        />
+        {/* Right pan */}
+        <div className="absolute bottom-3 right-0.5 w-3 h-1 rounded-sm"
+          style={{ background: isBalanced ? "hsl(43 72% 52% / 0.6)" : "hsl(220 15% 25%)" }}
+        />
+        {/* Gold glow when balanced */}
+        {isBalanced && (
+          <div className="absolute inset-0 animate-pulse-soft rounded-full"
+            style={{ background: "radial-gradient(circle, hsl(43 72% 52% / 0.2) 0%, transparent 70%)" }}
+          />
+        )}
+      </div>
+      <span className={`text-[10px] font-bold ${isBalanced ? "text-primary text-glow-gold" : "text-muted-foreground"}`}>
+        {isBalanced ? t.dataBalanced : `${Math.round(ratio * 100)}%`}
+      </span>
+    </div>
+  );
+}
+
 export default function VirtualTable({
-  ingredients,
-  calories,
-  protein_g,
-  fat_g,
-  carbs_g,
-  onPortionsChange,
+  ingredients, calories, protein_g, fat_g, carbs_g, onPortionsChange,
 }: VirtualTableProps) {
   const { t } = useI18n();
   const [portions, setPortions] = useState<Record<string, number>>(() =>
@@ -71,11 +104,36 @@ export default function VirtualTable({
   const [fanPos, setFanPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const totalRatio = useCallback(() => {
-    const total = ingredients.reduce((sum, ing) => sum + ing.grams, 0);
-    if (total === 0) return 1;
-    return ingredients.reduce((sum, ing) => sum + ing.grams * (portions[ing.name] ?? 1), 0) / total;
+  // Calculate total claimed vs total weight
+  const totalWeight = ingredients.reduce((sum, ing) => sum + ing.grams, 0);
+  const claimedByMe = useMemo(() =>
+    ingredients.reduce((sum, ing) => sum + ing.grams * (portions[ing.name] ?? 1), 0),
+    [ingredients, portions]
+  );
+  const othersClaimed = useMemo(() =>
+    ingredients.reduce((sum, ing) => {
+      const claims = getMockClaims(ing.name);
+      return sum + ing.grams * claims.reduce((s, c) => s + c.pct, 0);
+    }, 0),
+    [ingredients]
+  );
+  const totalClaimed = claimedByMe + othersClaimed;
+
+  // Check per-ingredient overflow
+  const overflowItems = useMemo(() => {
+    const items: string[] = [];
+    ingredients.forEach(ing => {
+      const myPct = portions[ing.name] ?? 1;
+      const otherPct = getMockClaims(ing.name).reduce((s, c) => s + c.pct, 0);
+      if (myPct + otherPct > 1.01) items.push(ing.name);
+    });
+    return items;
   }, [ingredients, portions]);
+
+  const totalRatio = useCallback(() => {
+    if (totalWeight === 0) return 1;
+    return claimedByMe / totalWeight;
+  }, [claimedByMe, totalWeight]);
 
   const claimedCal = Math.round(calories * totalRatio());
   const claimedProtein = Math.round(protein_g * totalRatio() * 10) / 10;
@@ -104,7 +162,6 @@ export default function VirtualTable({
     return () => window.removeEventListener("click", handler);
   }, []);
 
-  // Circular table layout
   const radius = 70;
   const centerX = 50;
   const centerY = 50;
@@ -115,45 +172,44 @@ export default function VirtualTable({
         <span className="w-8 h-px bg-border" /> {t.virtualTable} <span className="flex-1 h-px bg-border" />
       </h3>
 
-      {/* Today's claimed intake summary */}
+      {/* Claimed intake summary + balance scale */}
       <div className="glass rounded-xl p-3 mb-3 shadow-card">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-muted-foreground font-semibold">{t.claimedIntake}</span>
-          <div className="flex gap-3 text-xs">
-            <span className="text-primary font-bold">{claimedCal} <span className="text-muted-foreground font-normal">kcal</span></span>
-            <span className="text-card-foreground">P {claimedProtein}g</span>
-            <span className="text-card-foreground">F {claimedFat}g</span>
-            <span className="text-card-foreground">C {claimedCarbs}g</span>
-          </div>
+          <BalanceScale totalWeight={totalWeight} claimedWeight={totalClaimed} />
+        </div>
+        <div className="flex gap-3 text-xs">
+          <span className="text-primary font-bold">{claimedCal} <span className="text-muted-foreground font-normal">kcal</span></span>
+          <span className="text-card-foreground">P {claimedProtein}g</span>
+          <span className="text-card-foreground">F {claimedFat}g</span>
+          <span className="text-card-foreground">C {claimedCarbs}g</span>
         </div>
       </div>
 
+      {/* Overflow warning */}
+      {overflowItems.length > 0 && (
+        <div className="glass rounded-xl p-3 mb-3 shadow-card border border-destructive/30 animate-pulse-soft">
+          <p className="text-xs text-destructive font-semibold flex items-center gap-1">
+            ⚠️ {t.portionOverflow}
+          </p>
+          <p className="text-[10px] text-destructive/70 mt-1">{t.portionOverflowHint}</p>
+        </div>
+      )}
+
       {/* Virtual table layout */}
       <div ref={containerRef} className="glass rounded-2xl p-4 shadow-card relative" style={{ minHeight: 200 }}>
-        {/* Table surface */}
         <div className="relative mx-auto" style={{ width: 220, height: 220 }}>
           {/* Table circle */}
-          <div
-            className="absolute rounded-full border border-border"
+          <div className="absolute rounded-full border border-border"
             style={{
-              left: "50%",
-              top: "50%",
-              width: 180,
-              height: 180,
-              transform: "translate(-50%, -50%)",
+              left: "50%", top: "50%", width: 180, height: 180, transform: "translate(-50%, -50%)",
               background: "radial-gradient(circle, hsl(220 18% 11%) 0%, hsl(220 18% 8%) 100%)",
             }}
           />
-
           {/* Center plate */}
-          <div
-            className="absolute rounded-full flex items-center justify-center"
+          <div className="absolute rounded-full flex items-center justify-center"
             style={{
-              left: "50%",
-              top: "50%",
-              width: 50,
-              height: 50,
-              transform: "translate(-50%, -50%)",
+              left: "50%", top: "50%", width: 50, height: 50, transform: "translate(-50%, -50%)",
               background: "radial-gradient(circle, hsl(43 72% 52% / 0.15) 0%, transparent 70%)",
               border: "1px solid hsl(43 72% 52% / 0.2)",
             }}
@@ -161,7 +217,7 @@ export default function VirtualTable({
             <span className="text-lg">🍽️</span>
           </div>
 
-          {/* Ingredient items around the table */}
+          {/* Ingredient items */}
           {ingredients.slice(0, 8).map((ing, i) => {
             const angle = (i / Math.min(ingredients.length, 8)) * Math.PI * 2 - Math.PI / 2;
             const x = centerX + Math.cos(angle) * (radius / 110 * 50);
@@ -169,50 +225,51 @@ export default function VirtualTable({
             const portion = portions[ing.name] ?? 1;
             const isActive = activeItem === ing.name;
             const isPartial = portion < 1;
+            const isOverflow = overflowItems.includes(ing.name);
+            const claims = getMockClaims(ing.name);
 
             return (
-              <button
-                key={ing.name}
+              <button key={ing.name}
                 onClick={(e) => { e.stopPropagation(); handleItemClick(ing.name, e); }}
-                className={`absolute flex flex-col items-center transition-all duration-300 ${
-                  isActive ? "scale-125 z-20" : "z-10"
-                }`}
-                style={{
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  transform: "translate(-50%, -50%)",
-                }}
+                className={`absolute flex flex-col items-center transition-all duration-300 ${isActive ? "scale-125 z-20" : "z-10"}`}
+                style={{ left: `${x}%`, top: `${y}%`, transform: "translate(-50%, -50%)" }}
               >
-                <div
-                  className={`w-11 h-11 rounded-full flex items-center justify-center relative transition-all duration-300 ${
-                    isActive ? "ring-2 ring-primary shadow-soft" : ""
-                  }`}
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center relative transition-all duration-300 ${
+                  isActive ? "ring-2 ring-primary shadow-soft" : ""
+                } ${isOverflow ? "ring-2 ring-destructive animate-pulse-soft" : ""}`}
                   style={{
                     background: isActive
                       ? "radial-gradient(circle, hsl(43 72% 52% / 0.25) 0%, hsl(220 18% 12%) 100%)"
                       : "hsl(220 18% 12%)",
-                    border: `1px solid ${isActive ? "hsl(43 72% 52% / 0.5)" : "hsl(220 15% 18% / 0.5)"}`,
+                    border: `1px solid ${isOverflow ? "hsl(0 72% 55% / 0.5)" : isActive ? "hsl(43 72% 52% / 0.5)" : "hsl(220 15% 18% / 0.5)"}`,
                     opacity: isPartial ? 0.6 + portion * 0.4 : 1,
                   }}
                 >
                   <span className="text-lg">{FOOD_ICONS[i % FOOD_ICONS.length]}</span>
-                  {/* Gold shimmer on active */}
                   {isActive && (
-                    <div
-                      className="absolute inset-0 rounded-full pointer-events-none animate-pulse-soft"
-                      style={{
-                        background: "radial-gradient(circle, hsl(43 72% 52% / 0.3) 0%, transparent 70%)",
-                      }}
+                    <div className="absolute inset-0 rounded-full pointer-events-none animate-pulse-soft"
+                      style={{ background: "radial-gradient(circle, hsl(43 72% 52% / 0.3) 0%, transparent 70%)" }}
                     />
                   )}
                 </div>
-                <span className="text-[9px] text-muted-foreground mt-1 max-w-[50px] truncate leading-none">
-                  {ing.name}
-                </span>
+                <span className="text-[9px] text-muted-foreground mt-1 max-w-[50px] truncate leading-none">{ing.name}</span>
+
+                {/* Portion label */}
                 {portion < 1 && (
-                  <span className="text-[8px] text-primary font-bold mt-0.5">
-                    {Math.round(portion * 100)}%
-                  </span>
+                  <span className="text-[8px] text-primary font-bold mt-0.5">{Math.round(portion * 100)}%</span>
+                )}
+
+                {/* Avatar row for claimers */}
+                {claims.length > 0 && (
+                  <div className="flex -space-x-1 mt-0.5">
+                    {claims.map((c, ci) => (
+                      <div key={ci} className="w-3.5 h-3.5 rounded-full flex items-center justify-center text-[7px]"
+                        style={{ background: "hsl(220 18% 15%)", border: "1px solid hsl(220 15% 22%)" }}
+                      >
+                        {c.avatar}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </button>
             );
@@ -220,12 +277,8 @@ export default function VirtualTable({
         </div>
       </div>
 
-      {/* Fan selector popup */}
-      <FanSelector
-        open={!!activeItem}
-        currentPortion={activeItem ? (portions[activeItem] ?? 1) : 1}
-        position={fanPos}
-        onSelect={(p) => activeItem && handlePortionSelect(activeItem, p)}
+      <FanSelector open={!!activeItem} currentPortion={activeItem ? (portions[activeItem] ?? 1) : 1}
+        position={fanPos} onSelect={(p) => activeItem && handlePortionSelect(activeItem, p)}
       />
     </section>
   );
