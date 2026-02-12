@@ -154,6 +154,10 @@ export interface Dictionary {
   dataBalanced: string;
   portionOverflow: string;
   portionOverflowHint: string;
+  assetsSettled: string;
+  totalTableWeight: string;
+  claimedTotal: string;
+  shareTableReport: string;
 
   // Performance Tracker
   performanceTracker: string;

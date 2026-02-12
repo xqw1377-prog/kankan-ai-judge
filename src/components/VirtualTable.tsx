@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
+import BalanceGauge from "./BalanceGauge";
+import BalanceCelebration from "./BalanceCelebration";
 
 interface Ingredient {
   name: string;
@@ -17,7 +19,6 @@ interface VirtualTableProps {
 
 const PORTION_OPTIONS = [0.1, 0.25, 0.5, 1];
 const FOOD_ICONS = ["🥩", "🥬", "🍚", "🥕", "🍳", "🧄", "🌶️", "🫘", "🥦", "🍅", "🧅", "🥜"];
-const MOCK_AVATARS = ["👤", "👩", "👨", "🧑"];
 
 // Simulate other claimers for demo
 function getMockClaims(ingName: string): { avatar: string; pct: number }[] {
@@ -50,49 +51,6 @@ function FanSelector({
   );
 }
 
-function BalanceScale({ totalWeight, claimedWeight }: { totalWeight: number; claimedWeight: number }) {
-  const { t } = useI18n();
-  const ratio = totalWeight > 0 ? claimedWeight / totalWeight : 0;
-  const isBalanced = Math.abs(ratio - 1) < 0.02;
-  const tiltDeg = Math.max(-15, Math.min(15, (ratio - 1) * 30));
-
-  return (
-    <div className="flex items-center gap-3">
-      <div className="relative flex flex-col items-center" style={{ width: 44, height: 36 }}>
-        {/* Fulcrum */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-3 rounded-full"
-          style={{ background: isBalanced ? "hsl(43 72% 52%)" : "hsl(220 15% 30%)" }}
-        />
-        {/* Beam */}
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-10 h-0.5 rounded-full transition-transform duration-500"
-          style={{
-            background: isBalanced ? "hsl(43 72% 52%)" : "hsl(220 15% 30%)",
-            transform: `rotate(${tiltDeg}deg)`,
-            boxShadow: isBalanced ? "0 0 8px hsl(43 72% 52% / 0.5)" : "none",
-          }}
-        />
-        {/* Left pan */}
-        <div className="absolute bottom-3 left-0.5 w-3 h-1 rounded-sm"
-          style={{ background: isBalanced ? "hsl(43 72% 52% / 0.6)" : "hsl(220 15% 25%)" }}
-        />
-        {/* Right pan */}
-        <div className="absolute bottom-3 right-0.5 w-3 h-1 rounded-sm"
-          style={{ background: isBalanced ? "hsl(43 72% 52% / 0.6)" : "hsl(220 15% 25%)" }}
-        />
-        {/* Gold glow when balanced */}
-        {isBalanced && (
-          <div className="absolute inset-0 animate-pulse-soft rounded-full"
-            style={{ background: "radial-gradient(circle, hsl(43 72% 52% / 0.2) 0%, transparent 70%)" }}
-          />
-        )}
-      </div>
-      <span className={`text-[10px] font-bold ${isBalanced ? "text-primary text-glow-gold" : "text-muted-foreground"}`}>
-        {isBalanced ? t.dataBalanced : `${Math.round(ratio * 100)}%`}
-      </span>
-    </div>
-  );
-}
-
 export default function VirtualTable({
   ingredients, calories, protein_g, fat_g, carbs_g, onPortionsChange,
 }: VirtualTableProps) {
@@ -102,9 +60,10 @@ export default function VirtualTable({
   );
   const [activeItem, setActiveItem] = useState<string | null>(null);
   const [fanPos, setFanPos] = useState({ x: 0, y: 0 });
+  const [showCelebration, setShowCelebration] = useState(false);
+  const [celebrated, setCelebrated] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Calculate total claimed vs total weight
   const totalWeight = ingredients.reduce((sum, ing) => sum + ing.grams, 0);
   const claimedByMe = useMemo(() =>
     ingredients.reduce((sum, ing) => sum + ing.grams * (portions[ing.name] ?? 1), 0),
@@ -118,8 +77,19 @@ export default function VirtualTable({
     [ingredients]
   );
   const totalClaimed = claimedByMe + othersClaimed;
+  const isBalanced = totalWeight > 0 && Math.abs(totalClaimed / totalWeight - 1) < 0.02;
 
-  // Check per-ingredient overflow
+  // Trigger celebration once when balanced
+  useEffect(() => {
+    if (isBalanced && !celebrated) {
+      setShowCelebration(true);
+      setCelebrated(true);
+    }
+    if (!isBalanced) {
+      setCelebrated(false);
+    }
+  }, [isBalanced, celebrated]);
+
   const overflowItems = useMemo(() => {
     const items: string[] = [];
     ingredients.forEach(ing => {
@@ -172,18 +142,64 @@ export default function VirtualTable({
         <span className="w-8 h-px bg-border" /> {t.virtualTable} <span className="flex-1 h-px bg-border" />
       </h3>
 
-      {/* Claimed intake summary + balance scale */}
-      <div className="glass rounded-xl p-3 mb-3 shadow-card">
+      {/* Black-Gold Balance Gauge Dashboard */}
+      <div className="glass rounded-2xl p-4 mb-3 shadow-card relative overflow-hidden">
+        {isBalanced && (
+          <div className="absolute inset-0 pointer-events-none animate-breathe"
+            style={{ background: "radial-gradient(ellipse at center, hsl(43 72% 52% / 0.1) 0%, transparent 70%)" }}
+          />
+        )}
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-muted-foreground font-semibold">{t.claimedIntake}</span>
-          <BalanceScale totalWeight={totalWeight} claimedWeight={totalClaimed} />
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⚖️</span>
+            <span className="text-xs text-muted-foreground font-semibold">{t.claimedIntake}</span>
+          </div>
+          {isBalanced && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full text-glow-gold"
+              style={{ color: "hsl(43, 72%, 55%)", background: "hsl(43 72% 52% / 0.12)", border: "1px solid hsl(43 72% 52% / 0.2)" }}>
+              {t.dataBalanced}
+            </span>
+          )}
         </div>
-        <div className="flex gap-3 text-xs">
+
+        <BalanceGauge totalWeight={totalWeight} claimedWeight={totalClaimed} isBalanced={isBalanced} />
+
+        {/* Weight labels */}
+        <div className="flex justify-between mt-1 px-2">
+          <div className="text-center">
+            <p className="text-[9px] text-muted-foreground">{t.totalTableWeight}</p>
+            <p className="text-xs font-bold text-card-foreground">{totalWeight}g</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[9px] text-muted-foreground">{t.claimedTotal}</p>
+            <p className={`text-xs font-bold ${isBalanced ? "text-glow-gold" : ""}`}
+              style={{ color: isBalanced ? "hsl(43, 72%, 55%)" : undefined }}>
+              {Math.round(totalClaimed)}g
+            </p>
+          </div>
+        </div>
+
+        {/* Nutrition summary */}
+        <div className="flex gap-3 text-xs mt-3 pt-3 border-t border-border">
           <span className="text-primary font-bold">{claimedCal} <span className="text-muted-foreground font-normal">kcal</span></span>
           <span className="text-card-foreground">P {claimedProtein}g</span>
           <span className="text-card-foreground">F {claimedFat}g</span>
           <span className="text-card-foreground">C {claimedCarbs}g</span>
         </div>
+
+        {/* Share button (unlocked when balanced) */}
+        {isBalanced && (
+          <button className="w-full mt-3 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-[0.97] animate-fade-in"
+            style={{
+              background: "linear-gradient(135deg, hsl(43 72% 48%), hsl(43 80% 55%))",
+              color: "hsl(220, 20%, 5%)",
+              boxShadow: "0 0 20px hsl(43 72% 52% / 0.3)",
+            }}
+            onClick={() => {/* share handler placeholder */}}
+          >
+            🏆 {t.shareTableReport}
+          </button>
+        )}
       </div>
 
       {/* Overflow warning */}
@@ -253,13 +269,9 @@ export default function VirtualTable({
                   )}
                 </div>
                 <span className="text-[9px] text-muted-foreground mt-1 max-w-[50px] truncate leading-none">{ing.name}</span>
-
-                {/* Portion label */}
                 {portion < 1 && (
                   <span className="text-[8px] text-primary font-bold mt-0.5">{Math.round(portion * 100)}%</span>
                 )}
-
-                {/* Avatar row for claimers */}
                 {claims.length > 0 && (
                   <div className="flex -space-x-1 mt-0.5">
                     {claims.map((c, ci) => (
@@ -280,6 +292,8 @@ export default function VirtualTable({
       <FanSelector open={!!activeItem} currentPortion={activeItem ? (portions[activeItem] ?? 1) : 1}
         position={fanPos} onSelect={(p) => activeItem && handlePortionSelect(activeItem, p)}
       />
+
+      <BalanceCelebration show={showCelebration} onDone={() => setShowCelebration(false)} />
     </section>
   );
 }
