@@ -4,6 +4,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import DietRing from "@/components/DietRing";
 import AnimatedScore from "@/components/AnimatedScore";
+import DietCreditCard from "@/components/DietCreditCard";
 import { useI18n } from "@/lib/i18n";
 
 function calcHealthScore(
@@ -67,6 +68,11 @@ const Profile = () => {
           {locale === "zh-CN" ? "EN" : "中"}
         </button>
       </header>
+
+      {/* Diet Credit Card */}
+      <section className="px-5 mb-6">
+        <DietCreditCard score={score} level={level} levelDesc={levelDesc} beatText={t.dietCreditBeat} />
+      </section>
 
       <section className="px-5 mb-6">
         <div className="glass rounded-2xl p-5 shadow-card">

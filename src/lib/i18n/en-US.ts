@@ -141,4 +141,6 @@ export const enUS: Dictionary = {
     sugar_control: "Sugar Control",
     maintain: "Maintain",
   },
+  dietCreditTitle: "Diet Credit Assets",
+  dietCreditBeat: "Your diet assets are appreciating — you've outperformed 92% of global users",
 };

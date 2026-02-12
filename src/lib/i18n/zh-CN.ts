@@ -141,4 +141,6 @@ export const zhCN: Dictionary = {
     sugar_control: "控糖",
     maintain: "保持",
   },
+  dietCreditTitle: "饮食信用资产",
+  dietCreditBeat: "您的饮食资产正在增值，已击败全球 92% 的用户",
 };

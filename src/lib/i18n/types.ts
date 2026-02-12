@@ -144,4 +144,6 @@ export interface Dictionary {
   levelNewbie: string;
   levelNewbieDesc: string;
   goalLabels: Record<string, string>;
+  dietCreditTitle: string;
+  dietCreditBeat: string;
 }
