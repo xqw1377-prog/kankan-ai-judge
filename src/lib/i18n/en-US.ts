@@ -154,6 +154,11 @@ export const enUS: Dictionary = {
   totalTableWeight: "Total Weight",
   claimedTotal: "Claimed",
   shareTableReport: "Share Table Report",
+  tableLabReport: "Table Lab Battle Report",
+  tableRanking: "Health Score Ranking",
+  tableCarbsSummary: (g) => `This table consumed ${g}g of carb assets`,
+  avgGlRisk: "Avg GL Risk",
+  glStable: "Stable",
 
   performanceTracker: "Performance Tracker",
   weightTrend: "Weight Trend",
