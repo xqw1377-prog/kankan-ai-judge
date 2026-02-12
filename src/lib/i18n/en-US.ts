@@ -147,6 +147,9 @@ export const enUS: Dictionary = {
   virtualTable: "Virtual Table",
   claimedIntake: "My Claimed Intake",
   inviteTablemate: "Invite Tablemates",
+  dataBalanced: "Balanced ✓",
+  portionOverflow: "Portion overflow detected",
+  portionOverflowHint: "Total claims exceed 100%. Please adjust portions collaboratively.",
 
   performanceTracker: "Performance Tracker",
   weightTrend: "Weight Trend",
@@ -155,4 +158,15 @@ export const enUS: Dictionary = {
   predicted7d: "7-Day Forecast",
   glRiskWarning: "GL Risk",
   glHigh: "High",
+
+  editIngredientsTitle: "Edit Ingredients",
+  livePreview: "Live Preview",
+  editIngredientName: "Ingredient name",
+  editGrams: "Grams",
+  editAddIngredient: "Add Ingredient",
+  editDeleteMeal: "Delete Meal",
+  editDeleteConfirm: "Delete this meal?",
+  editExpGain: "got smarter!",
+  editExpDesc: "EXP +1 · Thanks for correcting",
+  editExpDescUpdated: "EXP +1 · Data updated",
 };

@@ -147,6 +147,9 @@ export const zhCN: Dictionary = {
   virtualTable: "虚拟餐桌",
   claimedIntake: "我的认领摄入",
   inviteTablemate: "邀请桌友共同记录",
+  dataBalanced: "数据已平账",
+  portionOverflow: "资产分配溢出",
+  portionOverflowHint: "多人认领总量超过 100%，请协同修正权重",
 
   performanceTracker: "身体资产性能追踪",
   weightTrend: "体重趋势",
@@ -155,4 +158,15 @@ export const zhCN: Dictionary = {
   predicted7d: "7日预测",
   glRiskWarning: "血糖风险",
   glHigh: "偏高",
+
+  editIngredientsTitle: "编辑食材",
+  livePreview: "实时预览",
+  editIngredientName: "食材名称",
+  editGrams: "克重",
+  editAddIngredient: "添加食材",
+  editDeleteMeal: "删除本餐",
+  editDeleteConfirm: "确定删除本餐吗？",
+  editExpGain: "变得更聪明了！",
+  editExpDesc: "经验值 +1 · 感谢你的纠正",
+  editExpDescUpdated: "经验值 +1 · 数据已更新",
 };
