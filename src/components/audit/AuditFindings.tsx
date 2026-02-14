@@ -43,7 +43,6 @@ const AuditFindings = ({ ingredients, hasImage }: AuditFindingsProps) => {
 
   return (
     <div className="flex flex-col gap-4 h-full">
-      {/* Title */}
       <div className="flex items-center gap-2">
         <Microscope className="w-4 h-4 text-primary" />
         <span className="text-xs font-semibold text-card-foreground tracking-wide">
@@ -51,19 +50,19 @@ const AuditFindings = ({ ingredients, hasImage }: AuditFindingsProps) => {
         </span>
       </div>
 
-      {/* GL Gauge */}
-      <div className="glass rounded-xl p-4 flex flex-col items-center">
+      {/* GL Gauge — staggered fade in */}
+      <div className="glass rounded-xl p-4 flex flex-col items-center animate-result-in" style={{ animationDelay: "0.1s", opacity: 0 }}>
         <GLGauge value={totalGl} />
       </div>
 
-      {/* Nutritional Transparency */}
-      <div className="glass rounded-xl p-4">
+      {/* Nutritional Transparency — staggered fade in */}
+      <div className="glass rounded-xl p-4 animate-result-in" style={{ animationDelay: "0.3s", opacity: 0 }}>
         <NutritionalTransparency protein={proteinPct} fat={fatPct} fiber={fiberPct} />
       </div>
 
-      {/* Ingredient mini-list */}
+      {/* Ingredient list — staggered fade in */}
       {ingredients.length > 0 && (
-        <div className="glass rounded-xl p-3 space-y-1.5">
+        <div className="glass rounded-xl p-3 space-y-1.5 animate-result-in" style={{ animationDelay: "0.5s", opacity: 0 }}>
           <span className="text-[10px] font-mono text-muted-foreground tracking-widest">
             DETECTED COMPOUNDS
           </span>
