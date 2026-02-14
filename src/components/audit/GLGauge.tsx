@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useI18n } from "@/lib/i18n";
 
 interface GLGaugeProps {
   value: number; // 0-100 GL value
@@ -6,6 +7,7 @@ interface GLGaugeProps {
 }
 
 const GLGauge = ({ value, max = 80 }: GLGaugeProps) => {
+  const { t } = useI18n();
   const normalized = Math.min(100, (value / max) * 100);
   const angle = (normalized / 100) * 180; // 0 to 180 degrees for half circle
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -77,7 +79,7 @@ const GLGauge = ({ value, max = 80 }: GLGaugeProps) => {
     ctx.fill();
   }, [value, angle, normalized, max]);
 
-  const riskLabel = normalized > 70 ? "HIGH PRESSURE" : normalized > 40 ? "MODERATE" : "LOW";
+  const riskLabel = normalized > 70 ? t.auditHighPressure : normalized > 40 ? t.auditModerate : t.auditLowPressure;
   const riskColor = normalized > 70 ? "text-destructive" : normalized > 40 ? "text-primary" : "text-success";
 
   return (
@@ -87,7 +89,7 @@ const GLGauge = ({ value, max = 80 }: GLGaugeProps) => {
         <span className="text-2xl font-mono font-bold text-card-foreground">
           {value.toFixed(1)}
         </span>
-        <span className="text-[10px] font-mono text-muted-foreground">Glycemic Load</span>
+        <span className="text-[10px] font-mono text-muted-foreground">{t.auditGlycemicLoad}</span>
         <span className={`text-[10px] font-mono font-bold mt-1 ${riskColor}`}>
           {riskLabel}
         </span>

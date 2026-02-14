@@ -8,25 +8,6 @@ interface InputPanelProps {
   onImagesChange: (images: string[]) => void;
 }
 
-const PIXEL_PHASES = [
-  "Scanning pixel density matrix...",
-  "Detecting hidden oil signatures...",
-  "Mapping ingredient boundaries...",
-  "Quantifying spatial distribution...",
-  "Finalizing pixel analysis...",
-];
-
-const MOLECULAR_TAGS = [
-  "Analyzing Glycemic Load...",
-  "Detecting Trans-fats...",
-  "Mapping Saturated Lipids...",
-  "Quantifying Fiber Density...",
-  "Scanning Protein Chains...",
-  "Isolating Sodium Clusters...",
-  "Tracing Carb Polymers...",
-  "Measuring Oil Penetration...",
-];
-
 interface FloatingTag {
   id: number;
   text: string;
@@ -45,7 +26,9 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
   const [floatingTags, setFloatingTags] = useState<FloatingTag[]>([]);
   const tagIdRef = useRef(0);
 
-  // Floating molecular tags during scan
+  const PIXEL_PHASES = t.auditPixelPhases;
+  const MOLECULAR_TAGS = t.auditMolecularTags;
+
   useEffect(() => {
     if (!analyzing) {
       setFloatingTags([]);
@@ -61,7 +44,7 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
       setFloatingTags((prev) => [...prev.slice(-4), tag]);
     }, 500);
     return () => clearInterval(interval);
-  }, [analyzing, scanLineY]);
+  }, [analyzing, scanLineY, MOLECULAR_TAGS]);
 
   const handleFiles = useCallback(
     (files: FileList | null) => {
@@ -101,7 +84,7 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
         reader.readAsDataURL(file);
       });
     },
-    [images, onImagesChange]
+    [images, onImagesChange, PIXEL_PHASES]
   );
 
   const handleDrop = useCallback(
@@ -117,11 +100,10 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
       <div className="flex items-center gap-2">
         <ScanLine className="w-4 h-4 text-primary" />
         <span className="text-xs font-semibold text-card-foreground tracking-wide">
-          X-RAY UPLOAD ZONE
+          {t.auditXrayZone}
         </span>
       </div>
 
-      {/* Upload Card — frosted black */}
       <div
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
@@ -135,10 +117,8 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
               alt="food"
               className="w-full h-full object-cover rounded-[10px]"
             />
-            {/* X-Ray scan overlay */}
             {analyzing && (
               <div className="absolute inset-0 bg-background/60 rounded-[10px]">
-                {/* Laser scan line */}
                 <div
                   className="absolute left-0 w-full h-[2px] transition-[top] duration-150 ease-linear"
                   style={{
@@ -147,12 +127,10 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
                     boxShadow: "0 0 16px 4px hsl(var(--primary) / 0.5), 0 0 40px 8px hsl(var(--primary) / 0.2)",
                   }}
                 />
-                {/* Grid lines for X-ray effect */}
                 <div className="absolute inset-0 opacity-10" style={{
                   backgroundImage: "repeating-linear-gradient(90deg, hsl(var(--primary)) 0px, transparent 1px, transparent 40px)",
                 }} />
 
-                {/* Floating molecular tags */}
                 {floatingTags.map((tag) => (
                   <div
                     key={tag.id}
@@ -168,20 +146,20 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="px-4 py-2 rounded-lg bg-background/70 backdrop-blur-sm border border-primary/20">
                     <span className="text-xs font-mono text-primary animate-pulse tracking-widest">
-                      X-RAY SCANNING...
+                      {t.auditXrayScanning}
                     </span>
                   </div>
                 </div>
               </div>
             )}
             <div className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm border border-primary/30 px-2.5 py-1 rounded-full text-[10px] font-mono text-primary">
-              {images.length} IMAGE{images.length > 1 ? "S" : ""} LOADED
+              {t.auditImagesLoaded(images.length)}
             </div>
             {analysisReady && !analyzing && (
               <div className="absolute bottom-0 inset-x-0 bg-background/70 backdrop-blur-sm py-2 px-3 flex items-center gap-2 rounded-b-[10px] animate-fade-in">
                 <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 <span className="text-[10px] font-mono text-success tracking-widest">
-                  PIXEL ANALYSIS READY — AWAITING AUDIT
+                  {t.auditPixelReady}
                 </span>
               </div>
             )}
@@ -192,14 +170,14 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
               <Upload className="w-7 h-7 text-primary/30 group-hover:text-primary/60 transition-colors" />
             </div>
             <p className="text-sm font-semibold text-card-foreground/80">
-              Drag & Drop Meal Image
+              {t.auditDragDrop}
             </p>
             <p className="text-[11px] text-muted-foreground">
-              Click to Upload for GDAS X-Ray Audit
+              {t.auditClickUpload}
             </p>
             <div className="flex items-center gap-2 text-primary/30 mt-1">
               <Camera className="w-3.5 h-3.5" />
-              <span className="text-[9px] font-mono tracking-widest">X-RAY / CAPTURE</span>
+              <span className="text-[9px] font-mono tracking-widest">{t.auditXrayCapture}</span>
             </div>
           </>
         )}
@@ -218,7 +196,7 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
         <div className="glass rounded-lg p-3 space-y-2 animate-fade-in">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-mono text-primary animate-pulse">
-              X-Ray Analysis in progress...
+              {t.auditXrayProgress}
             </span>
             <span className="text-[10px] font-mono text-muted-foreground">
               {Math.round(analyzeProgress)}%

@@ -258,4 +258,41 @@ export interface Dictionary {
   riskLow: string;
   riskMedium: string;
   riskHigh: string;
+
+  // Audit page UI
+  auditScanNewMeal: string;
+  auditDropZoneHint: string;
+  auditDropZoneCapture: string;
+  auditImagesLoaded: (n: number) => string;
+  auditAuditing: string;
+  auditAwaitingSample: string;
+  auditUploadHint: string;
+  auditComputing: string;
+  auditFindings: string;
+  auditDetectedCompounds: string;
+  auditGlycemicLoad: string;
+  auditHighPressure: string;
+  auditModerate: string;
+  auditLowPressure: string;
+  auditNutritionalTransparency: string;
+  auditProteinAsset: string;
+  auditFatLiability: string;
+  auditFiberBuffer: string;
+  auditSpatialLogs: string;
+  auditDIS: string;
+  auditDISComputing: string;
+  auditDISDesc: string;
+  auditNoData: string;
+  auditTimestamp: string;
+  auditXrayZone: string;
+  auditDragDrop: string;
+  auditClickUpload: string;
+  auditXrayCapture: string;
+  auditXrayScanning: string;
+  auditPixelReady: string;
+  auditXrayProgress: string;
+  auditEngineOffline: string;
+  auditVerified: string;
+  auditPixelPhases: string[];
+  auditMolecularTags: string[];
 }

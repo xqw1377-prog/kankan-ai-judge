@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { FlaskConical, ShieldCheck } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import { useNumberRoll } from "@/hooks/useNumberRoll";
 
 interface SpatialAuditLogsProps {
@@ -9,10 +10,10 @@ interface SpatialAuditLogsProps {
 }
 
 const SpatialAuditLogs = ({ integrityScore, hasData, auditing }: SpatialAuditLogsProps) => {
+  const { t } = useI18n();
   const displayScore = useNumberRoll(integrityScore, hasData, 1400);
   const [jumpScore, setJumpScore] = useState(0);
 
-  // Random jumping during audit
   useEffect(() => {
     if (!auditing) return;
     const interval = setInterval(() => {
@@ -31,7 +32,7 @@ const SpatialAuditLogs = ({ integrityScore, hasData, auditing }: SpatialAuditLog
         <div className="flex items-center gap-2">
           <ShieldCheck className="w-4 h-4 text-primary/70" />
           <span className="text-[10px] font-mono text-muted-foreground tracking-widest">
-            SPATIAL AUDIT LOGS
+            {t.auditSpatialLogs}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -43,9 +44,9 @@ const SpatialAuditLogs = ({ integrityScore, hasData, auditing }: SpatialAuditLog
       {(hasData || auditing) ? (
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <span className="text-xs text-card-foreground">Data Integrity Score (DIS)</span>
+            <span className="text-xs text-card-foreground">{t.auditDIS}</span>
             <p className="text-[10px] text-muted-foreground">
-              {auditing ? "Computing confidence level..." : "Confidence level of this meal's spatial audit"}
+              {auditing ? t.auditDISComputing : t.auditDISDesc}
             </p>
           </div>
           <div className="flex flex-col items-end">
@@ -57,7 +58,7 @@ const SpatialAuditLogs = ({ integrityScore, hasData, auditing }: SpatialAuditLog
         </div>
       ) : (
         <p className="text-xs text-muted-foreground text-center py-2">
-          No audit data available. Upload an image to begin.
+          {t.auditNoData}
         </p>
       )}
 
@@ -66,7 +67,7 @@ const SpatialAuditLogs = ({ integrityScore, hasData, auditing }: SpatialAuditLog
           <div className="flex-1 flex items-center gap-1.5">
             <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
             <span className="text-[9px] font-mono text-muted-foreground">
-              Audit timestamp: {new Date().toISOString().slice(0, 19)}
+              {t.auditTimestamp}: {new Date().toISOString().slice(0, 19)}
             </span>
           </div>
         </div>
