@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { Upload, Camera, ScanLine } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +16,7 @@ interface UploadDialogProps {
 }
 
 const UploadDialog = ({ open, onOpenChange, onFilesSelected, imageCount }: UploadDialogProps) => {
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleDrop = (e: React.DragEvent) => {
@@ -44,7 +46,7 @@ const UploadDialog = ({ open, onOpenChange, onFilesSelected, imageCount }: Uploa
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-sm font-mono tracking-widest text-primary">
             <ScanLine className="w-4 h-4" />
-            MULTI-MODAL UPLOAD
+            {t.auditMultiModalUpload}
           </DialogTitle>
         </DialogHeader>
 
@@ -58,18 +60,18 @@ const UploadDialog = ({ open, onOpenChange, onFilesSelected, imageCount }: Uploa
             <Upload className="w-6 h-6 text-primary/40 group-hover:text-primary/70 transition-colors" />
           </div>
           <p className="text-sm font-semibold text-card-foreground/80">
-            Drag & Drop or Click to Upload
+            {t.auditDragDropOrClick}
           </p>
           <p className="text-[10px] text-muted-foreground font-mono">
-            GDAS X-RAY AUDIT • MULTI-IMAGE SUPPORT
+            {t.auditGdasXrayMulti}
           </p>
           <div className="flex items-center gap-2 text-primary/30 mt-1">
             <Camera className="w-3.5 h-3.5" />
-            <span className="text-[9px] font-mono tracking-widest">X-RAY / CAPTURE</span>
+            <span className="text-[9px] font-mono tracking-widest">{t.auditXrayCapture}</span>
           </div>
           {imageCount > 0 && (
             <span className="absolute top-3 right-3 text-[9px] font-mono text-primary/60 bg-primary/10 px-2 py-0.5 rounded-full">
-              {imageCount} LOADED
+              {t.auditLoaded(imageCount)}
             </span>
           )}
         </div>

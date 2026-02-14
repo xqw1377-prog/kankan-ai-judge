@@ -295,4 +295,8 @@ export interface Dictionary {
   auditVerified: string;
   auditPixelPhases: string[];
   auditMolecularTags: string[];
+  auditMultiModalUpload: string;
+  auditDragDropOrClick: string;
+  auditGdasXrayMulti: string;
+  auditLoaded: (n: number) => string;
 }

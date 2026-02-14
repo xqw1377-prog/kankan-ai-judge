@@ -298,4 +298,8 @@ export const enUS: Dictionary = {
     "Tracing Carb Polymers...",
     "Measuring Oil Penetration...",
   ],
+  auditMultiModalUpload: "MULTI-MODAL UPLOAD",
+  auditDragDropOrClick: "Drag & Drop or Click to Upload",
+  auditGdasXrayMulti: "GDAS X-RAY AUDIT • MULTI-IMAGE SUPPORT",
+  auditLoaded: (n) => `${n} LOADED`,
 };
