@@ -17,14 +17,6 @@ const MOCK_INGREDIENTS: DetectedIngredient[] = [
 
 const AUDIT_API = "http://192.168.3.101:8080/api/v1/audit/standalone";
 
-const AUDIT_PHASES = [
-  "Initializing GDAS engine...",
-  "Analyzing pixel density matrix...",
-  "Detecting hidden oil signatures...",
-  "Computing glycemic load vectors...",
-  "Generating audit report...",
-];
-
 const Audit = () => {
   const { t } = useI18n();
   const quickInputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +35,14 @@ const Audit = () => {
   const displayIngredients = auditComplete ? ingredients : [];
   const totalGl = displayIngredients.reduce((s, i) => s + i.gl, 0);
   const integrityScore = auditComplete ? Math.max(0, Math.round(92 - totalGl * 0.3)) : 0;
+
+  const AUDIT_PHASES = [
+    t.auditPixelPhases[0] || "Initializing GDAS engine...",
+    t.auditPixelPhases[1] || "Analyzing pixel density matrix...",
+    t.auditPixelPhases[2] || "Detecting hidden oil signatures...",
+    t.auditPixelPhases[3] || "Computing glycemic load vectors...",
+    t.auditPixelPhases[4] || "Generating audit report...",
+  ];
 
   const dataUrlToBlob = (dataUrl: string): Blob => {
     const [meta, b64] = dataUrl.split(",");
@@ -144,12 +144,11 @@ const Audit = () => {
     } else {
       setEngineOffline(true);
       setIngredients(MOCK_INGREDIENTS);
-      toast({ title: "Engine Offline", description: "Using local mock data", variant: "destructive" });
+      toast({ title: t.auditEngineOffline, variant: "destructive" });
     }
 
     setAuditComplete(true);
     setAuditing(false);
-    // Show verified badge with delay
     setTimeout(() => setShowVerified(true), 400);
   }, [hasImage, images, t]);
 
@@ -204,13 +203,13 @@ const Audit = () => {
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 hover:border-primary/60 bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-bold tracking-wider transition-all active:scale-95"
         >
           <ScanLine className="w-3.5 h-3.5" />
-          Scan New Meal
+          {t.auditScanNewMeal}
         </button>
 
         {engineOffline && (
           <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-destructive/10 border border-destructive/30 animate-fade-in">
             <WifiOff className="w-3 h-3 text-destructive" />
-            <span className="text-[9px] font-mono text-destructive tracking-wider">Engine Offline — Check 8080</span>
+            <span className="text-[9px] font-mono text-destructive tracking-wider">{t.auditEngineOffline}</span>
           </div>
         )}
 
@@ -224,7 +223,7 @@ const Audit = () => {
           }`}
         >
           <Zap className="w-3.5 h-3.5" />
-          {auditing ? "AUDITING..." : t.generateAudit}
+          {auditing ? t.auditAuditing : t.generateAudit}
         </button>
       </header>
 
@@ -243,7 +242,6 @@ const Audit = () => {
         {hasImage ? (
           <div className="relative w-full h-full min-h-[180px]">
             <img src={images[images.length - 1]} alt="meal" className="w-full h-full object-cover rounded-[10px] opacity-80" />
-            {/* Laser scan overlay during audit */}
             {auditing && (
               <div className="absolute inset-0 rounded-[10px]" style={{ background: "hsl(220 20% 5% / 0.5)" }}>
                 <div className="absolute left-0 w-full h-[2px] animate-scan-line" style={{
@@ -256,17 +254,17 @@ const Audit = () => {
               </div>
             )}
             <div className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm border border-primary/30 px-2.5 py-1 rounded-full text-[10px] font-mono text-primary">
-              {images.length} IMAGE{images.length > 1 ? "S" : ""} LOADED
+              {t.auditImagesLoaded(images.length)}
             </div>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-2 py-8">
             <ScanLine className="w-8 h-8 text-primary/40" />
             <p className="text-sm font-semibold text-card-foreground/70 tracking-wide">
-              Input Meal Image for GDAS Audit
+              {t.auditDropZoneHint}
             </p>
             <p className="text-[10px] font-mono text-muted-foreground/50 tracking-widest">
-              DRAG & DROP · CLICK TO BROWSE · CAPTURE
+              {t.auditDropZoneCapture}
             </p>
           </div>
         )}
@@ -289,7 +287,7 @@ const Audit = () => {
         <div className="shrink-0 mx-4 mt-3 flex justify-center animate-verified-pop">
           <div className="flex items-center gap-2 px-5 py-2 rounded-xl border-2 border-primary bg-background/80 backdrop-blur-sm shadow-[0_0_20px_hsl(var(--primary)/0.3)]">
             <ShieldCheck className="w-5 h-5 text-primary" />
-            <span className="text-sm font-bold text-primary tracking-widest font-mono">AUDIT VERIFIED</span>
+            <span className="text-sm font-bold text-primary tracking-widest font-mono">{t.auditVerified}</span>
           </div>
         </div>
       )}
