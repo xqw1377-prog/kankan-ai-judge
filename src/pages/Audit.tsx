@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { FlaskConical, Zap, ImagePlus, WifiOff, ScanLine, ShieldCheck } from "lucide-react";
+import { FlaskConical, Zap, ImagePlus, WifiOff, ScanLine, ShieldCheck, ClipboardList } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "@/hooks/use-toast";
 import InputPanel from "@/components/audit/InputPanel";
@@ -30,6 +30,7 @@ const Audit = () => {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [engineOffline, setEngineOffline] = useState(false);
   const [showVerified, setShowVerified] = useState(false);
+  const [recommendations, setRecommendations] = useState<string[]>([]);
 
   const hasImage = images.length > 0;
   const displayIngredients = auditComplete ? ingredients : [];
@@ -140,10 +141,27 @@ const Audit = () => {
       } else {
         setIngredients(MOCK_INGREDIENTS);
       }
+      // Parse recommendations from backend
+      if (data?.recommendations && Array.isArray(data.recommendations)) {
+        setRecommendations(data.recommendations);
+      } else if (data?.suggestion) {
+        setRecommendations([data.suggestion]);
+      } else {
+        setRecommendations([
+          "检测到炎症风险中等，建议减少精制碳水摄入",
+          "蛋白质摄入充足，继续保持当前水平",
+          "建议增加深色蔬菜比例以提升膳食纤维缓冲",
+        ]);
+      }
       toast({ title: t.auditComplete });
     } else {
       setEngineOffline(true);
       setIngredients(MOCK_INGREDIENTS);
+      setRecommendations([
+        "检测到炎症风险中等，建议减少精制碳水摄入",
+        "蛋白质摄入充足，继续保持当前水平",
+        "建议增加深色蔬菜比例以提升膳食纤维缓冲",
+      ]);
       toast({ title: t.auditEngineOffline, variant: "destructive" });
     }
 
@@ -301,6 +319,28 @@ const Audit = () => {
           <AuditFindings ingredients={displayIngredients} hasImage={auditComplete} auditing={auditing} />
         </section>
       </div>
+
+      {/* Recommendations Card */}
+      {auditComplete && recommendations.length > 0 && (
+        <div className="shrink-0 px-4 pb-3 animate-fade-in">
+          <div className="glass rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-4 h-4 text-primary" />
+              <span className="text-[10px] font-mono text-muted-foreground tracking-widest">
+                {t.rebalanceSuggestion}
+              </span>
+            </div>
+            <div className="space-y-2">
+              {recommendations.map((rec, i) => (
+                <div key={i} className="flex items-start gap-2 py-1.5 border-b border-border/20 last:border-0">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                  <span className="text-xs text-card-foreground leading-relaxed">{rec}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom: Spatial Audit Logs */}
       <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
