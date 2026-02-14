@@ -1,10 +1,11 @@
 import { useState, useCallback, useRef } from "react";
-import { FlaskConical, Zap, ImagePlus } from "lucide-react";
+import { FlaskConical, Zap, ImagePlus, WifiOff } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "@/hooks/use-toast";
 import InputPanel from "@/components/audit/InputPanel";
 import AuditFindings, { type DetectedIngredient } from "@/components/audit/AuditFindings";
 import SpatialAuditLogs from "@/components/audit/SpatialAuditLogs";
+import UploadDialog from "@/components/audit/UploadDialog";
 import { Progress } from "@/components/ui/progress";
 
 const MOCK_INGREDIENTS: DetectedIngredient[] = [
@@ -33,6 +34,8 @@ const Audit = () => {
   const [auditProgress, setAuditProgress] = useState(0);
   const [auditPhase, setAuditPhase] = useState(0);
   const [auditComplete, setAuditComplete] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [engineOffline, setEngineOffline] = useState(false);
 
   const hasImage = images.length > 0;
   const displayIngredients = auditComplete ? ingredients : [];
@@ -104,7 +107,7 @@ const Audit = () => {
     if (apiResult.status === "fulfilled") {
       const data = apiResult.value;
       console.log("[GDAS] Audit response:", data);
-      // Parse backend response into ingredients
+      setEngineOffline(false);
       if (data?.ingredients && Array.isArray(data.ingredients)) {
         setIngredients(
           data.ingredients.map((item: any) => ({
@@ -124,16 +127,45 @@ const Audit = () => {
       toast({ title: t.auditComplete });
     } else {
       console.error("[GDAS] Audit request failed:", apiResult.reason);
+      setEngineOffline(true);
       setIngredients(MOCK_INGREDIENTS);
-      toast({ title: "Audit endpoint unreachable", description: "Using local mock data", variant: "destructive" });
+      toast({ title: "Engine Offline", description: "Using local mock data", variant: "destructive" });
     }
 
     setAuditComplete(true);
     setAuditing(false);
   }, [hasImage, images, t]);
 
+  const handleDialogFiles = useCallback((files: FileList) => {
+    Array.from(files).forEach((file) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = ev.target?.result as string;
+        setImages((prev) => [...prev.slice(-4), result]);
+        setAuditComplete(false);
+        setEngineOffline(false);
+      };
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  const handleBackgroundClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    // Only open dialog when clicking on background/empty areas, not on buttons/inputs/interactive elements
+    if (target.closest("button, input, a, [role='button'], .glass, .glass-strong, img")) return;
+    setUploadDialogOpen(true);
+  }, []);
+
   return (
-    <div className="h-full flex flex-col bg-background overflow-y-auto">
+    <div className="h-full flex flex-col bg-background overflow-y-auto" onClick={handleBackgroundClick}>
+      {/* Upload Dialog */}
+      <UploadDialog
+        open={uploadDialogOpen}
+        onOpenChange={setUploadDialogOpen}
+        onFilesSelected={handleDialogFiles}
+        imageCount={images.length}
+      />
+
       {/* Header */}
       <header className="shrink-0 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-3 flex items-center gap-3 border-b border-border">
         {/* Quick file picker */}
@@ -160,6 +192,17 @@ const Audit = () => {
         <h1 className="text-base font-bold text-card-foreground tracking-wide">
           {t.auditWorkspace}
         </h1>
+
+        {/* Engine offline indicator */}
+        {engineOffline && (
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-destructive/10 border border-destructive/30 animate-fade-in">
+            <WifiOff className="w-3 h-3 text-destructive" />
+            <span className="text-[9px] font-mono text-destructive tracking-wider">
+              Engine Offline — Check 8080
+            </span>
+          </div>
+        )}
+
         <button
           onClick={handleGenerateAudit}
           disabled={!hasImage || auditing}

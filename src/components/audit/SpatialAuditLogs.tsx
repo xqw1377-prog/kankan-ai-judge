@@ -1,11 +1,12 @@
 import { FlaskConical, ShieldCheck } from "lucide-react";
-
+import { useNumberRoll } from "@/hooks/useNumberRoll";
 interface SpatialAuditLogsProps {
   integrityScore: number; // 0-100
   hasData: boolean;
 }
 
 const SpatialAuditLogs = ({ integrityScore, hasData }: SpatialAuditLogsProps) => {
+  const displayScore = useNumberRoll(integrityScore, hasData, 1400);
   const scoreColor =
     integrityScore >= 80 ? "text-success" : integrityScore >= 50 ? "text-primary" : "text-destructive";
 
@@ -34,7 +35,7 @@ const SpatialAuditLogs = ({ integrityScore, hasData }: SpatialAuditLogsProps) =>
           </div>
           <div className="flex flex-col items-end">
             <span className={`text-2xl font-mono font-bold ${scoreColor}`}>
-              {integrityScore}
+              {displayScore}
             </span>
             <span className="text-[9px] font-mono text-muted-foreground">/100</span>
           </div>
