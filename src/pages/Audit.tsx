@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { FlaskConical, Zap, ImagePlus, WifiOff } from "lucide-react";
+import { FlaskConical, Zap, ImagePlus, WifiOff, ScanLine } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "@/hooks/use-toast";
 import InputPanel from "@/components/audit/InputPanel";
@@ -192,6 +192,15 @@ const Audit = () => {
         <h1 className="text-base font-bold text-card-foreground tracking-wide">
           {t.auditWorkspace}
         </h1>
+
+        {/* Scan New Meal button */}
+        <button
+          onClick={() => setUploadDialogOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-primary/30 hover:border-primary/60 bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-bold tracking-wider transition-all active:scale-95"
+        >
+          <ScanLine className="w-3.5 h-3.5" />
+          Scan New Meal
+        </button>
 
         {/* Engine offline indicator */}
         {engineOffline && (
