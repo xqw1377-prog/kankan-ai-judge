@@ -13,8 +13,6 @@ const dictionaries: Record<Locale, Dictionary> = {
 function detectLocale(): Locale {
   const saved = localStorage.getItem("kankan-locale");
   if (saved === "en-US" || saved === "zh-CN") return saved;
-  const nav = navigator.language;
-  if (nav.startsWith("en")) return "en-US";
   return "zh-CN";
 }
 
