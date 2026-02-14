@@ -233,7 +233,7 @@ export const zhCN: Dictionary = {
   spatialClaimRatio: "空间认领比例",
   cookingCorrection: "烹饪方式修正",
   computeProgress: "实时算力反馈",
-  generateAudit: "执行资产审计",
+  generateAudit: "执行生理审计",
   gdasPenetration: "GDAS 审计透视",
   estimatedOilIntake: "预估油脂摄入",
   inflammationRisk: "炎症风险评估",
