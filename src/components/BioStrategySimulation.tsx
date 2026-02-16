@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useI18n } from "@/lib/i18n";
+import { AreaChart, Area, XAxis, YAxis, ReferenceLine, ReferenceArea, ResponsiveContainer, Tooltip } from "recharts";
 
 interface Ingredient {
   name: string;
@@ -70,28 +71,62 @@ function evaluateSequence(balls: SimBall[]): SequenceQuality {
   return "moderate";
 }
 
-function generateFocusCurve(quality: SequenceQuality, topType?: BallType): number[] {
-  const pts: number[] = [];
-  for (let i = 0; i <= 24; i++) {
-    const t = i / 24;
+interface PulsePoint {
+  time: string;
+  minutes: number;
+  focus: number;
+}
+
+function generateFocusCurve(quality: SequenceQuality, topType?: BallType): PulsePoint[] {
+  const pts: PulsePoint[] = [];
+  for (let i = 0; i <= 48; i++) {
+    const t = i / 48; // 0 to 1 over 4 hours
+    const minutes = Math.round(t * 240);
+    const hr = Math.floor(minutes / 60);
+    const min = minutes % 60;
+    const time = `${hr}:${min.toString().padStart(2, "0")}`;
+    let focus: number;
+
     if (quality === "poor" || topType === "core") {
-      // Dramatic: huge spike then deep crash
-      const spike = Math.exp(-((t - 0.15) ** 2) / 0.012) * 55;
-      const crash = t > 0.25 ? -50 * (t - 0.25) : 0;
-      const floor = t > 0.5 ? -5 * Math.sin((t - 0.5) * Math.PI * 3) : 0;
-      pts.push(Math.max(15, 50 + spike + crash + floor));
+      const spike = Math.exp(-((t - 0.12) ** 2) / 0.008) * 55;
+      const crash = t > 0.2 ? -55 * (t - 0.2) : 0;
+      const floor = t > 0.5 ? -4 * Math.sin((t - 0.5) * Math.PI * 3) : 0;
+      focus = Math.max(12, 48 + spike + crash + floor);
     } else if (quality === "optimal" && topType === "pioneer") {
-      // Smooth high plateau
-      pts.push(80 + 15 * Math.sin(t * Math.PI * 0.7) * (1 - t * 0.15));
+      focus = 82 + 14 * Math.sin(t * Math.PI * 0.7) * (1 - t * 0.12);
     } else if (quality === "optimal") {
-      pts.push(75 + 20 * Math.sin(t * Math.PI * 0.8) * (1 - t * 0.2));
+      focus = 78 + 18 * Math.sin(t * Math.PI * 0.8) * (1 - t * 0.18);
     } else {
-      const spike = Math.exp(-((t - 0.3) ** 2) / 0.04) * 25;
-      const dip = t > 0.5 ? -12 * (t - 0.5) : 0;
-      pts.push(65 + spike + dip);
+      const spike = Math.exp(-((t - 0.25) ** 2) / 0.03) * 22;
+      const dip = t > 0.45 ? -15 * (t - 0.45) : 0;
+      focus = 62 + spike + dip;
     }
+    pts.push({ time, minutes, focus: Math.round(focus) });
   }
   return pts;
+}
+
+function findDrowsinessZone(curve: PulsePoint[]): { startMin: number; endMin: number; lowestMin: number; lowestVal: number } | null {
+  // Find steepest drop region
+  let maxDrop = 0, dropStart = 0, dropEnd = 0;
+  for (let i = 1; i < curve.length; i++) {
+    const drop = curve[i - 1].focus - curve[i].focus;
+    if (drop > maxDrop) {
+      maxDrop = drop;
+      dropStart = curve[i - 1].minutes;
+      dropEnd = curve[i].minutes;
+    }
+  }
+  if (maxDrop < 5) return null;
+
+  // Expand zone around the drop
+  let lowestIdx = 0, lowestVal = 100;
+  for (let i = 0; i < curve.length; i++) {
+    if (curve[i].focus < lowestVal) { lowestVal = curve[i].focus; lowestIdx = i; }
+  }
+  const zoneStart = Math.max(0, dropStart - 15);
+  const zoneEnd = Math.min(240, curve[lowestIdx].minutes + 30);
+  return { startMin: zoneStart, endMin: zoneEnd, lowestMin: curve[lowestIdx].minutes, lowestVal };
 }
 
 function getTacticalAdvice(quality: SequenceQuality, balls: SimBall[], t: any): string {
@@ -139,7 +174,7 @@ export default function BioStrategySimulation({ ingredients, visible, onSequence
 
   const [balls, setBalls] = useState<SimBall[]>(initialBalls);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [animProgress, setAnimProgress] = useState(0);
+  
   const [entered, setEntered] = useState(false);
   const touchStartY = useRef(0);
   const touchStartIdx = useRef<number | null>(null);
@@ -167,18 +202,6 @@ export default function BioStrategySimulation({ ingredients, visible, onSequence
     onSequenceQualityChange?.(quality);
   }, [quality, onSequenceQualityChange]);
 
-  // Animate curve on quality change
-  useEffect(() => {
-    setAnimProgress(0);
-    let start: number | null = null;
-    const step = (ts: number) => {
-      if (!start) start = ts;
-      const p = Math.min(1, (ts - start) / 900);
-      setAnimProgress(1 - Math.pow(1 - p, 3));
-      if (p < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  }, [quality]);
 
   // Drag handlers (touch)
   const handleTouchStart = useCallback((idx: number, e: React.TouchEvent) => {
@@ -249,27 +272,22 @@ export default function BioStrategySimulation({ ingredients, visible, onSequence
     window.addEventListener("mouseup", handleMouseUp);
   }, []);
 
+  // Drowsiness zone detection
+  const drowsinessZone = useMemo(() => findDrowsinessZone(curve), [curve]);
+
   if (!visible || ingredients.length === 0) return null;
 
   const isPoor = quality === "poor" || isCoreTop;
   const isOptimal = quality === "optimal";
 
   const statusColor = isCoreTop ? "hsl(0, 72%, 55%)" : isOptimal ? "hsl(160, 60%, 45%)" : isPoor ? "hsl(0, 72%, 55%)" : "hsl(43, 72%, 52%)";
-
-  // Focus curve SVG
-  const cW = 130, cH = 80, cPad = 6;
-  const drawCount = Math.ceil(animProgress * curve.length);
-  const minE = Math.min(...curve) - 5;
-  const maxE = Math.max(...curve) + 5;
-  const curvePts = curve.slice(0, drawCount).map((v, i) => ({
-    x: cPad + (i / (curve.length - 1)) * (cW - cPad * 2),
-    y: cPad + (1 - (v - minE) / (maxE - minE)) * (cH - cPad * 2),
-  }));
-  const curveLine = curvePts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const curveArea = curvePts.length > 1
-    ? `${curveLine} L ${curvePts[curvePts.length - 1].x} ${cH - cPad} L ${curvePts[0].x} ${cH - cPad} Z`
+  const drowsinessTimeLabel = drowsinessZone
+    ? `${Math.floor(drowsinessZone.lowestMin / 60)}:${(drowsinessZone.lowestMin % 60).toString().padStart(2, "0")}`
     : "";
-  const fatigueX = cPad + 0.35 * (cW - cPad * 2);
+  const nowHour = new Date().getHours();
+  const riskTimeStr = drowsinessZone
+    ? `${nowHour + Math.floor(drowsinessZone.lowestMin / 60)}:${(drowsinessZone.lowestMin % 60).toString().padStart(2, "0")}`
+    : "";
 
   return (
     <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.08s" }}>
@@ -288,10 +306,10 @@ export default function BioStrategySimulation({ ingredients, visible, onSequence
           />
         )}
 
-        {/* Main layout: Funnel (left) + Focus Curve (right) */}
-        <div className="flex gap-3">
-          {/* LEFT: Vertical Funnel */}
-          <div className="flex-1 min-w-0">
+        {/* Funnel */}
+        <div>
+          {/* Vertical Funnel */}
+          <div className="max-w-[200px] mx-auto">
             {/* Top label */}
             <div className="text-center mb-2">
               <span className="text-[8px] font-mono text-muted-foreground/50 tracking-widest uppercase">
@@ -428,67 +446,6 @@ export default function BioStrategySimulation({ ingredients, visible, onSequence
             </div>
           </div>
 
-          {/* RIGHT: Focus Prediction Curve */}
-          <div className="w-[140px] shrink-0 flex flex-col">
-            <div className="text-[8px] font-mono font-bold tracking-wider uppercase text-muted-foreground mb-1.5 text-center">
-              {t.focusPredictionTitle}
-            </div>
-
-            {/* Status badge */}
-            <div className="flex justify-center mb-2">
-              <div
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[7px] font-mono font-bold"
-                style={{ background: `${statusColor}20`, color: statusColor }}
-              >
-                <div
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{
-                    background: statusColor,
-                    animation: isPoor ? "pulse 1.5s ease-in-out infinite" : undefined,
-                  }}
-                />
-                {isOptimal ? t.energyOptimal : isPoor ? t.energyFatigueWarning : t.energyModerate}
-              </div>
-            </div>
-
-            {/* SVG Curve */}
-            <div className="flex-1 relative">
-              <svg viewBox={`0 0 ${cW} ${cH}`} className="w-full h-full" style={{ minHeight: 70 }} preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="focus-fill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={statusColor} stopOpacity="0.2" />
-                    <stop offset="100%" stopColor={statusColor} stopOpacity="0" />
-                  </linearGradient>
-                </defs>
-                {/* Fatigue zone */}
-                {isPoor && (
-                  <rect x={fatigueX} y={cPad} width={cW - cPad - fatigueX} height={cH - cPad * 2}
-                    fill="hsl(0, 72%, 55%)" opacity="0.06" rx="2"
-                  />
-                )}
-                {curveArea && <path d={curveArea} fill="url(#focus-fill)" />}
-                {curveLine && (
-                  <path d={curveLine} fill="none" stroke={statusColor}
-                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  />
-                )}
-                {/* Time labels */}
-                {[0, 1, 2, 3, 4].map(hr => (
-                  <text key={hr} x={cPad + (hr / 4) * (cW - cPad * 2)} y={cH - 1}
-                    fill="currentColor" className="text-muted-foreground/25"
-                    fontSize="5" fontFamily="monospace" textAnchor="middle"
-                  >
-                    {hr}h
-                  </text>
-                ))}
-              </svg>
-            </div>
-
-            {/* Tip */}
-            <p className="text-[8px] mt-1.5 leading-relaxed text-center" style={{ color: statusColor }}>
-              {isOptimal ? t.energyOptimalTip : isPoor ? t.energyFatigueTip : t.energyModerateTip}
-            </p>
-          </div>
         </div>
 
         {/* Legend */}

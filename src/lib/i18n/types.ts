@@ -361,4 +361,10 @@ export interface Dictionary {
   confirmSuboptimalDesc: (pct: number) => string;
   confirmSuboptimalCancel: string;
   confirmSuboptimalProceed: string;
+
+  // Performance Pulse
+  performancePulseTitle: string;
+  drowsinessRiskZone: string;
+  drowsinessRiskTip: string;
+  focusUnit: string;
 }

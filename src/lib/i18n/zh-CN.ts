@@ -359,4 +359,8 @@ export const zhCN: Dictionary = {
   confirmSuboptimalDesc: (pct) => `当前序列将消耗 ${pct}% 的身体资产性能，确认以此状态开启消化吗？`,
   confirmSuboptimalCancel: "重新调整序列",
   confirmSuboptimalProceed: "知道了，继续入库",
+  performancePulseTitle: "性能脉冲图 · PERFORMANCE PULSE",
+  drowsinessRiskZone: "困倦风险区",
+  drowsinessRiskTip: "若此时有重要会议，建议先吃蔬菜以对冲此风险",
+  focusUnit: "专注力",
 };
