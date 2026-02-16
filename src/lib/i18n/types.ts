@@ -314,4 +314,6 @@ export interface Dictionary {
   confirmAudit: string;
   auditConfirmed: string;
   ingredientNamePlaceholder: string;
+  finalizeArchive: string;
+  liveRecalcHint: string;
 }

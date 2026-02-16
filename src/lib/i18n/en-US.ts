@@ -317,4 +317,6 @@ export const enUS: Dictionary = {
   confirmAudit: "Confirm Audit",
   auditConfirmed: "Audit Confirmed",
   ingredientNamePlaceholder: "Ingredient name",
+  finalizeArchive: "Finalize & Archive",
+  liveRecalcHint: "Values recalculated live",
 };
