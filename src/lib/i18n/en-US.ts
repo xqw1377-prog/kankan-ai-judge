@@ -359,4 +359,8 @@ export const enUS: Dictionary = {
   confirmSuboptimalDesc: (pct) => `This sequence will consume ${pct}% of your body asset performance. Proceed with this digestion state?`,
   confirmSuboptimalCancel: "Reorder sequence",
   confirmSuboptimalProceed: "Got it, proceed",
+  performancePulseTitle: "PERFORMANCE PULSE",
+  drowsinessRiskZone: "Drowsiness Risk",
+  drowsinessRiskTip: "If you have an important meeting at this time, eat veggies first to offset this risk",
+  focusUnit: "Focus",
 };
