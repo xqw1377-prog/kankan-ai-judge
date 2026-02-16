@@ -1,11 +1,13 @@
-import { useState, useCallback, useRef } from "react";
-import { FlaskConical, Zap, ImagePlus, WifiOff, ScanLine, ShieldCheck, ClipboardList } from "lucide-react";
+import { useState, useCallback, useRef, useMemo } from "react";
+import { FlaskConical, Zap, ImagePlus, WifiOff, ScanLine, ShieldCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "@/hooks/use-toast";
 import InputPanel from "@/components/audit/InputPanel";
 import AuditFindings, { type DetectedIngredient } from "@/components/audit/AuditFindings";
 import SpatialAuditLogs from "@/components/audit/SpatialAuditLogs";
 import AuditHistoryLog from "@/components/audit/AuditHistoryLog";
+import ManagementAdvice from "@/components/audit/ManagementAdvice";
+import MiniTrendChart from "@/components/audit/MiniTrendChart";
 import UploadDialog from "@/components/audit/UploadDialog";
 import HealthAlertBanner from "@/components/audit/HealthAlertBanner";
 import { useProfile } from "@/hooks/useProfile";
@@ -40,6 +42,16 @@ const Audit = () => {
   const hasImage = images.length > 0;
   const displayIngredients = auditComplete ? ingredients : [];
   const healthConditions = (profile as any)?.health_conditions ?? [];
+
+  // Detect severe deviation for yellow warning border
+  const isDeviationWarning = useMemo(() => {
+    if (!auditComplete || ingredients.length === 0) return false;
+    const totalFat = ingredients.reduce((s, i) => s + i.fat, 0);
+    const totalGl = ingredients.reduce((s, i) => s + i.gl, 0);
+    const targetFat = (profile as any)?.target_fat_g || 60;
+    // Warning if fat > 2x target or GL > 40 or BPI < 35
+    return totalFat > targetFat * 2 || totalGl > 40 || bpiScore < 35;
+  }, [auditComplete, ingredients, profile, bpiScore]);
 
   const AUDIT_PHASES = [
     t.auditPixelPhases[0] || "Initializing GDAS engine...",
@@ -205,7 +217,7 @@ const Audit = () => {
   }, []);
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-y-auto" onClick={handleBackgroundClick}>
+    <div className={`h-full flex flex-col bg-background overflow-y-auto ${isDeviationWarning ? "animate-warning-border rounded-xl" : ""}`} onClick={handleBackgroundClick}>
       <UploadDialog
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
@@ -324,10 +336,15 @@ const Audit = () => {
         </div>
       )}
 
+      {/* Management Advice - below scan animation */}
+      <ManagementAdvice recommendations={recommendations} visible={auditComplete} />
+
       {/* Dual-wing body */}
       <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 pb-4 overflow-y-auto">
-        <section className="lg:w-1/2 flex flex-col">
+        <section className="lg:w-1/2 flex flex-col gap-4">
           <InputPanel images={images} onImagesChange={(imgs) => { setImages(imgs); setAuditComplete(false); setShowVerified(false); }} />
+          {/* Mini 7-day trend chart */}
+          <MiniTrendChart />
         </section>
         <section className="lg:w-1/2 flex flex-col">
           <AuditFindings ingredients={displayIngredients} hasImage={auditComplete} auditing={auditing} />
@@ -341,30 +358,7 @@ const Audit = () => {
         visible={auditComplete}
       />
 
-      {/* Recommendations Card */}
-      {auditComplete && recommendations.length > 0 && (
-        <div className="shrink-0 px-4 pb-3 animate-fade-in">
-          <div className="glass rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2">
-              <ClipboardList className="w-4 h-4 text-primary" />
-              <span className="text-[10px] font-mono text-muted-foreground tracking-widest">
-                {t.rebalanceSuggestion}
-              </span>
-            </div>
-            <div className="space-y-2">
-              {recommendations.map((rec, i) => {
-                const isRisk = rec.includes("风险") || rec.includes("警告") || rec.includes("偏高") || rec.includes("⚠");
-                return (
-                  <div key={i} className={`flex items-start gap-2 py-1.5 border-b border-border/20 last:border-0 ${isRisk ? "bg-destructive/5 rounded-lg px-2 -mx-2" : ""}`}>
-                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${isRisk ? "bg-destructive" : "bg-primary"}`} />
-                    <span className={`text-xs leading-relaxed ${isRisk ? "text-destructive font-medium" : "text-card-foreground"}`}>{rec}</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Audit History Log */}
       <AuditHistoryLog />
