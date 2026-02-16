@@ -374,4 +374,17 @@ export const enUS: Dictionary = {
   hedgeOptionSkipEffect: "Accept afternoon crash risk",
   hedgePatchApplied: "Rescue patch activated ✓",
   hedgePatchLabel: "Post-Meal Rescue Patch",
+
+  historyBadgePerfect: "Perfect Sequence",
+  historyBadgeSuboptimal: "Suboptimal",
+  historyBadgeAssetLoss: "Asset Loss",
+  historyEnergyForecast: "Energy Forecast Oscilloscope",
+  historyActualFeeling: "Actual Feeling",
+  historyFeelingGreat: "😊 Energized",
+  historyFeelingOk: "😐 Normal",
+  historyFeelingBad: "😩 Drowsy / Low",
+  historyFeedbackSaved: "Reconciliation saved, decay coefficient adjusted ✓",
+  historyCalibrationNote: "Your feedback helps calibrate prediction accuracy",
+  historyFocusForecast: "Post-Meal Focus Trend",
+  historyCompareBtn: "Reconcile",
 };

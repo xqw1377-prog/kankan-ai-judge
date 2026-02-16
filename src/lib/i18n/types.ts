@@ -379,4 +379,18 @@ export interface Dictionary {
   hedgeOptionSkipEffect: string;
   hedgePatchApplied: string;
   hedgePatchLabel: string;
+
+  // History Tactical
+  historyBadgePerfect: string;
+  historyBadgeSuboptimal: string;
+  historyBadgeAssetLoss: string;
+  historyEnergyForecast: string;
+  historyActualFeeling: string;
+  historyFeelingGreat: string;
+  historyFeelingOk: string;
+  historyFeelingBad: string;
+  historyFeedbackSaved: string;
+  historyCalibrationNote: string;
+  historyFocusForecast: string;
+  historyCompareBtn: string;
 }
