@@ -6,6 +6,8 @@ import InputPanel from "@/components/audit/InputPanel";
 import AuditFindings, { type DetectedIngredient } from "@/components/audit/AuditFindings";
 import SpatialAuditLogs from "@/components/audit/SpatialAuditLogs";
 import UploadDialog from "@/components/audit/UploadDialog";
+import HealthAlertBanner from "@/components/audit/HealthAlertBanner";
+import { useProfile } from "@/hooks/useProfile";
 import { Progress } from "@/components/ui/progress";
 
 const MOCK_INGREDIENTS: DetectedIngredient[] = [
@@ -19,6 +21,7 @@ const AUDIT_API = "http://192.168.3.101:8080/api/v1/audit/standalone";
 
 const Audit = () => {
   const { t } = useI18n();
+  const { profile } = useProfile();
   const quickInputRef = useRef<HTMLInputElement>(null);
   const dropZoneInputRef = useRef<HTMLInputElement>(null);
   const [images, setImages] = useState<string[]>([]);
@@ -31,11 +34,11 @@ const Audit = () => {
   const [engineOffline, setEngineOffline] = useState(false);
   const [showVerified, setShowVerified] = useState(false);
   const [recommendations, setRecommendations] = useState<string[]>([]);
+  const [bpiScore, setBpiScore] = useState(0);
 
   const hasImage = images.length > 0;
   const displayIngredients = auditComplete ? ingredients : [];
-  const totalGl = displayIngredients.reduce((s, i) => s + i.gl, 0);
-  const integrityScore = auditComplete ? Math.max(0, Math.round(92 - totalGl * 0.3)) : 0;
+  const healthConditions = (profile as any)?.health_conditions ?? [];
 
   const AUDIT_PHASES = [
     t.auditPixelPhases[0] || "Initializing GDAS engine...",
@@ -125,22 +128,31 @@ const Audit = () => {
     if (apiResult.status === "fulfilled") {
       const data = apiResult.value;
       setEngineOffline(false);
+      let parsedIngredients: DetectedIngredient[] = MOCK_INGREDIENTS;
       if (data?.ingredients && Array.isArray(data.ingredients)) {
-        setIngredients(
-          data.ingredients.map((item: any) => ({
-            name: item.name || "Unknown",
-            grams: item.grams ?? item.weight ?? 0,
-            gi: item.gi ?? 0,
-            gl: item.gl ?? 0,
-            oilG: item.oil_g ?? item.oilG ?? 0,
-            protein: item.protein ?? 0,
-            fat: item.fat ?? 0,
-            fiber: item.fiber ?? 0,
-          }))
-        );
-      } else {
-        setIngredients(MOCK_INGREDIENTS);
+        parsedIngredients = data.ingredients.map((item: any) => ({
+          name: item.name || "Unknown",
+          grams: item.grams ?? item.weight ?? 0,
+          gi: item.gi ?? 0,
+          gl: item.gl ?? 0,
+          oilG: item.oil_g ?? item.oilG ?? 0,
+          protein: item.protein ?? 0,
+          fat: item.fat ?? 0,
+          fiber: item.fiber ?? 0,
+        }));
       }
+      setIngredients(parsedIngredients);
+
+      // Compute BPI from real nutritional data
+      const totalProtein = parsedIngredients.reduce((s, i) => s + i.protein, 0);
+      const totalFiber = parsedIngredients.reduce((s, i) => s + i.fiber, 0);
+      const totalGl = parsedIngredients.reduce((s, i) => s + i.gl, 0);
+      const totalFat = parsedIngredients.reduce((s, i) => s + i.fat, 0);
+      // BPI: protein & fiber boost score, GL & excess fat penalize
+      const rawBpi = 50 + (totalProtein * 0.6) + (totalFiber * 1.2) - (totalGl * 0.4) - (totalFat * 0.15);
+      const computedBpi = data?.bpi_score ?? Math.max(0, Math.min(100, Math.round(rawBpi)));
+      setBpiScore(computedBpi);
+
       // Parse recommendations from backend
       if (data?.recommendations && Array.isArray(data.recommendations)) {
         setRecommendations(data.recommendations);
@@ -157,6 +169,7 @@ const Audit = () => {
     } else {
       setEngineOffline(true);
       setIngredients(MOCK_INGREDIENTS);
+      setBpiScore(65);
       setRecommendations([
         "检测到炎症风险中等，建议减少精制碳水摄入",
         "蛋白质摄入充足，继续保持当前水平",
@@ -320,6 +333,13 @@ const Audit = () => {
         </section>
       </div>
 
+      {/* Health Alert Banner */}
+      <HealthAlertBanner
+        healthConditions={healthConditions}
+        ingredientNames={displayIngredients.map((i) => i.name)}
+        visible={auditComplete}
+      />
+
       {/* Recommendations Card */}
       {auditComplete && recommendations.length > 0 && (
         <div className="shrink-0 px-4 pb-3 animate-fade-in">
@@ -331,12 +351,15 @@ const Audit = () => {
               </span>
             </div>
             <div className="space-y-2">
-              {recommendations.map((rec, i) => (
-                <div key={i} className="flex items-start gap-2 py-1.5 border-b border-border/20 last:border-0">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
-                  <span className="text-xs text-card-foreground leading-relaxed">{rec}</span>
-                </div>
-              ))}
+              {recommendations.map((rec, i) => {
+                const isRisk = rec.includes("风险") || rec.includes("警告") || rec.includes("偏高") || rec.includes("⚠");
+                return (
+                  <div key={i} className={`flex items-start gap-2 py-1.5 border-b border-border/20 last:border-0 ${isRisk ? "bg-destructive/5 rounded-lg px-2 -mx-2" : ""}`}>
+                    <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${isRisk ? "bg-destructive" : "bg-primary"}`} />
+                    <span className={`text-xs leading-relaxed ${isRisk ? "text-destructive font-medium" : "text-card-foreground"}`}>{rec}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -344,7 +367,7 @@ const Audit = () => {
 
       {/* Bottom: Spatial Audit Logs */}
       <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <SpatialAuditLogs integrityScore={integrityScore} hasData={auditComplete} auditing={auditing} />
+        <SpatialAuditLogs integrityScore={bpiScore} hasData={auditComplete} auditing={auditing} />
       </div>
     </div>
   );
