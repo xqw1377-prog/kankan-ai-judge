@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { Battery, BatteryLow, BatteryMedium, BatteryFull, Droplets, Footprints, Coffee, X } from "lucide-react";
+import { Droplets, Footprints, Coffee, X, AlertTriangle } from "lucide-react";
 
 interface Props {
   todayTotals: { calories: number; protein_g: number; fat_g: number; carbs_g: number };
@@ -13,8 +13,6 @@ function computePerf(totals: Props["todayTotals"], targets: Props["targets"]) {
   const calRatio = targets.calories > 0 ? totals.calories / targets.calories : 0;
   const proteinRatio = targets.protein_g > 0 ? totals.protein_g / targets.protein_g : 0;
   const fatRatio = targets.fat_g > 0 ? totals.fat_g / targets.fat_g : 0;
-
-  // Good: moderate calories, high protein ratio, low fat ratio
   const score = Math.round(
     50 + (proteinRatio * 30) - (Math.max(0, calRatio - 0.8) * 40) - (Math.max(0, fatRatio - 0.6) * 20)
   );
@@ -29,11 +27,14 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
   const battery = useMemo(() => computePerf(todayTotals, targets), [todayTotals, targets]);
   const state: PerfState = battery >= 65 ? "surplus" : battery <= 40 ? "deficit" : "neutral";
 
-  const [animLevel, setAnimLevel] = useState(5);
+  // Gauge: 0-100 maps to -50..+50 from center
+  // surplus → bar grows right (green), deficit → bar grows left (red)
+  const gaugeOffset = battery - 50; // -45..+50
+  const [animOffset, setAnimOffset] = useState(0);
   useEffect(() => {
-    const timer = setTimeout(() => setAnimLevel(battery), 500);
+    const timer = setTimeout(() => setAnimOffset(gaugeOffset), 400);
     return () => clearTimeout(timer);
-  }, [battery]);
+  }, [gaugeOffset]);
 
   const nowHour = new Date().getHours();
   const focusHours = state === "surplus" ? ((battery - 50) / 20 * 2.5).toFixed(1) : "0";
@@ -46,19 +47,22 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
       color: "hsl(160, 70%, 45%)",
       bg: "hsl(160, 70%, 45%, 0.06)",
       border: "hsl(160, 70%, 45%, 0.25)",
-      fill: "hsl(160, 70%, 45%, 0.35)",
+      fill: "hsl(160, 70%, 45%, 0.5)",
+      glow: "hsl(160, 70%, 45%, 0.2)",
     },
     deficit: {
       color: "hsl(0, 72%, 55%)",
       bg: "hsl(0, 72%, 55%, 0.06)",
       border: "hsl(0, 72%, 55%, 0.25)",
-      fill: "hsl(0, 72%, 55%, 0.4)",
+      fill: "hsl(0, 72%, 55%, 0.55)",
+      glow: "hsl(0, 72%, 55%, 0.2)",
     },
     neutral: {
       color: "hsl(43, 80%, 52%)",
       bg: "hsl(43, 80%, 52%, 0.06)",
       border: "hsl(43, 80%, 52%, 0.2)",
-      fill: "hsl(43, 80%, 52%, 0.25)",
+      fill: "hsl(43, 80%, 52%, 0.4)",
+      glow: "hsl(43, 80%, 52%, 0.15)",
     },
   }[state];
 
@@ -68,17 +72,20 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
     { key: "rest", icon: Coffee, label: t.perfHedgeRest, effect: t.perfHedgeRestEffect },
   ];
 
-  const BatteryIcon = battery >= 70 ? BatteryFull : battery >= 40 ? BatteryMedium : BatteryLow;
+  // Gauge bar math: center is 50%, bar extends left or right
+  const barLeft = animOffset < 0 ? `${50 + animOffset}%` : "50%";
+  const barWidth = `${Math.abs(animOffset)}%`;
 
   return (
     <div
-      className="glass rounded-2xl overflow-hidden border transition-all duration-700"
+      className="rounded-2xl overflow-hidden border transition-all duration-700 relative"
       style={{ borderColor: cfg.border, background: cfg.bg }}
     >
+      {/* Deficit pulsing glow */}
       {state === "deficit" && (
         <div
           className="absolute inset-0 pointer-events-none animate-pulse rounded-2xl"
-          style={{ background: `radial-gradient(ellipse at center, hsl(0 72% 55% / 0.06) 0%, transparent 70%)` }}
+          style={{ background: `radial-gradient(ellipse at 30% 50%, hsl(0 72% 55% / 0.08) 0%, transparent 60%)` }}
         />
       )}
 
@@ -103,62 +110,81 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
           </div>
         </div>
 
-        {/* Main content: battery + status text */}
-        <div className="flex items-center gap-4">
-          {/* Battery SVG */}
-          <div className="shrink-0 relative">
-            <div
-              className="w-14 h-8 rounded-md border-2 relative overflow-hidden"
-              style={{ borderColor: cfg.border, background: "hsl(var(--background))" }}
-            >
-              {/* Battery tip */}
-              <div
-                className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-3 rounded-r-sm"
-                style={{ background: cfg.border }}
-              />
-              {/* Fill bar */}
-              <div
-                className="absolute inset-y-0.5 left-0.5 rounded-sm transition-all duration-[1.5s] ease-out"
-                style={{
-                  width: `${animLevel}%`,
-                  background: cfg.fill,
-                  boxShadow: `0 0 8px ${cfg.fill}`,
-                }}
-              />
+        {/* Center-out Gauge Bar */}
+        <div className="mb-3">
+          <div className="relative h-5 rounded-full overflow-hidden" style={{ background: "hsl(var(--secondary))" }}>
+            {/* Scale marks */}
+            <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
+              {[-40, -20, 0, 20, 40].map(mark => (
+                <div key={mark} className="flex flex-col items-center">
+                  <div className="w-px h-2" style={{ background: mark === 0 ? cfg.color : "hsl(var(--muted-foreground) / 0.15)" }} />
+                </div>
+              ))}
             </div>
-            <span
-              className="block text-center text-[8px] font-mono font-bold mt-1"
-              style={{ color: cfg.color }}
-            >
-              {battery}%
-            </span>
+            {/* Center line */}
+            <div
+              className="absolute top-0 bottom-0 w-0.5"
+              style={{ left: "50%", transform: "translateX(-50%)", background: "hsl(var(--muted-foreground) / 0.3)" }}
+            />
+            {/* Animated fill bar from center */}
+            <div
+              className="absolute top-0.5 bottom-0.5 rounded-full transition-all duration-[1.5s] ease-out"
+              style={{
+                left: barLeft,
+                width: barWidth,
+                background: cfg.fill,
+                boxShadow: `0 0 12px ${cfg.glow}`,
+              }}
+            />
+            {/* Value label on the bar */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span
+                className="text-[9px] font-mono font-black tracking-wider"
+                style={{ color: cfg.color, textShadow: `0 0 6px ${cfg.glow}` }}
+              >
+                {animOffset > 0 ? "+" : ""}{Math.round(animOffset)}
+              </span>
+            </div>
           </div>
-
-          {/* Status description */}
-          <div className="flex-1 min-w-0">
-            <p
-              className={`text-sm font-mono font-bold leading-snug ${state === "deficit" ? "animate-pulse" : ""}`}
-              style={{ color: cfg.color }}
-            >
-              {state === "surplus"
-                ? `🔋 ${t.perfSurplusDesc(focusHours, sustainTime)}`
-                : state === "deficit"
-                  ? `🧠💥 ${t.perfDeficitDesc(crashTime, perfLoss)}`
-                  : `⚡ ${t.perfNeutralDesc}`}
-            </p>
+          {/* Scale labels */}
+          <div className="flex justify-between mt-0.5 px-1">
+            <span className="text-[6px] font-mono text-destructive/40">−50</span>
+            <span className="text-[6px] font-mono text-muted-foreground/30">0</span>
+            <span className="text-[6px] font-mono" style={{ color: "hsl(160, 70%, 45%, 0.4)" }}>+50</span>
           </div>
         </div>
+
+        {/* Status description */}
+        <p
+          className={`text-sm font-mono font-bold leading-snug ${state === "deficit" ? "animate-pulse" : ""}`}
+          style={{ color: cfg.color }}
+        >
+          {state === "surplus"
+            ? `🔋 ${t.perfSurplusDesc(focusHours, sustainTime)}`
+            : state === "deficit"
+              ? `🧠💥 ${t.perfDeficitDesc(crashTime, perfLoss)}`
+              : `⚡ ${t.perfNeutralDesc}`}
+        </p>
+
+        {/* Deficit flash warning */}
+        {state === "deficit" && (
+          <div
+            className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg animate-pulse"
+            style={{ background: "hsl(0, 72%, 55%, 0.08)", border: "1px solid hsl(0, 72%, 55%, 0.2)" }}
+          >
+            <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-destructive" />
+            <span className="text-[10px] font-mono font-bold text-destructive">
+              {t.perfDeficitWarning(crashTime, perfLoss)}
+            </span>
+          </div>
+        )}
 
         {/* Hedge button for deficit */}
         {state === "deficit" && !hedgeApplied && (
           <button
             onClick={() => setShowHedge(true)}
             className="mt-3 w-full py-2 rounded-xl text-[11px] font-mono font-bold tracking-wider border transition-all active:scale-[0.98]"
-            style={{
-              color: cfg.color,
-              borderColor: cfg.border,
-              background: cfg.bg,
-            }}
+            style={{ color: cfg.color, borderColor: cfg.border, background: cfg.bg }}
           >
             🛡 {t.perfHedgeBtn}
           </button>
@@ -211,10 +237,10 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
       {/* Nutrition mini-bars */}
       <div className="px-4 pb-3 flex items-center gap-3">
         {[
-          { label: t.energy, val: todayTotals.calories, tgt: targets.calories, unit: "kcal" },
-          { label: t.protein, val: todayTotals.protein_g, tgt: targets.protein_g, unit: "g" },
-          { label: t.fat, val: todayTotals.fat_g, tgt: targets.fat_g, unit: "g" },
-          { label: t.carbs, val: todayTotals.carbs_g, tgt: targets.carbs_g, unit: "g" },
+          { label: t.energy, val: todayTotals.calories, tgt: targets.calories },
+          { label: t.protein, val: todayTotals.protein_g, tgt: targets.protein_g },
+          { label: t.fat, val: todayTotals.fat_g, tgt: targets.fat_g },
+          { label: t.carbs, val: todayTotals.carbs_g, tgt: targets.carbs_g },
         ].map(item => {
           const pct = item.tgt > 0 ? Math.min(item.val / item.tgt, 1) : 0;
           const over = item.val > item.tgt;
@@ -229,10 +255,7 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
               <div className="h-1 rounded-full bg-secondary overflow-hidden">
                 <div
                   className={`h-full rounded-full transition-all duration-1000 ${over ? "bg-destructive" : ""}`}
-                  style={{
-                    width: `${pct * 100}%`,
-                    background: over ? undefined : cfg.fill,
-                  }}
+                  style={{ width: `${pct * 100}%`, background: over ? undefined : cfg.fill }}
                 />
               </div>
             </div>

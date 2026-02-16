@@ -420,4 +420,13 @@ export const zhCN: Dictionary = {
   perfHedgeRest: "5 分钟深呼吸拉伸",
   perfHedgeRestEffect: "激活副交感神经，降低皮质醇水平，修复决策效率",
   perfHedgeApplied: "对冲补丁已激活",
+  perfDeficitWarning: (time, pct) => `⚠️ 警告：检测到生理赤字，预计${time}决策性能将下降 ${pct}%`,
+
+  postMealTitle: "餐后体感对账 · POST-MEAL AUDIT",
+  postMealQuestion: (food) => `老板，「${food}」吃完 2 小时了，现在的 CPU 频率如何？`,
+  postMealGreat: "满血复活",
+  postMealOk: "平稳运行",
+  postMealCrash: "陷入宕机",
+  postMealNegativeFlag: "该食材组合对用户资产有负面影响，已标记规避",
+  postMealCalibrationNote: "您的反馈将用于校准生理模拟器，让 AI 更懂您的体质",
 };

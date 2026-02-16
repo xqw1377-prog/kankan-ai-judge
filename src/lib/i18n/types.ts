@@ -429,4 +429,14 @@ export interface Dictionary {
   perfHedgeRest: string;
   perfHedgeRestEffect: string;
   perfHedgeApplied: string;
+  perfDeficitWarning: (time: string, pct: number) => string;
+
+  // Post-Meal Audit
+  postMealTitle: string;
+  postMealQuestion: (food: string) => string;
+  postMealGreat: string;
+  postMealOk: string;
+  postMealCrash: string;
+  postMealNegativeFlag: string;
+  postMealCalibrationNote: string;
 }
