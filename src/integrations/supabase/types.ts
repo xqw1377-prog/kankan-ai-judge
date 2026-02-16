@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      habit_patterns: {
+        Row: {
+          auto_apply: boolean
+          corrected_grams: number | null
+          corrected_name: string | null
+          created_at: string
+          device_id: string
+          id: string
+          occurrence_count: number
+          original_name: string
+          preferred_cook_method: string | null
+          updated_at: string
+        }
+        Insert: {
+          auto_apply?: boolean
+          corrected_grams?: number | null
+          corrected_name?: string | null
+          created_at?: string
+          device_id: string
+          id?: string
+          occurrence_count?: number
+          original_name: string
+          preferred_cook_method?: string | null
+          updated_at?: string
+        }
+        Update: {
+          auto_apply?: boolean
+          corrected_grams?: number | null
+          corrected_name?: string | null
+          created_at?: string
+          device_id?: string
+          id?: string
+          occurrence_count?: number
+          original_name?: string
+          preferred_cook_method?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      meal_feedbacks: {
+        Row: {
+          actual_feeling: string
+          created_at: string
+          damage_adjustment: number | null
+          device_id: string
+          food_name: string
+          id: string
+          ingredients: Json | null
+          meal_id: string
+          predicted_feeling: string | null
+          prediction_correct: boolean | null
+        }
+        Insert: {
+          actual_feeling: string
+          created_at?: string
+          damage_adjustment?: number | null
+          device_id: string
+          food_name: string
+          id?: string
+          ingredients?: Json | null
+          meal_id: string
+          predicted_feeling?: string | null
+          prediction_correct?: boolean | null
+        }
+        Update: {
+          actual_feeling?: string
+          created_at?: string
+          damage_adjustment?: number | null
+          device_id?: string
+          food_name?: string
+          id?: string
+          ingredients?: Json | null
+          meal_id?: string
+          predicted_feeling?: string | null
+          prediction_correct?: boolean | null
+        }
+        Relationships: []
+      }
       meal_records: {
         Row: {
           calories: number
