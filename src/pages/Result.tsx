@@ -148,11 +148,20 @@ const Result = () => {
     cooking_scene = "takeout", roast = "", gi_value,
   } = result || {};
 
-  const [editableIngredients, setEditableIngredients] = useState<Array<{ name: string; grams: number; protein: number; fat: number; carbs: number; calories: number }>>(
+  type CookMethod = "steam" | "stirfry" | "deepfry" | "braised";
+  const COOK_METHODS: { key: CookMethod; icon: string; label: string; calMul: number; fatMul: number }[] = [
+    { key: "steam",   icon: "💧", label: t.cookSteamed + "/" + t.cookBoiled, calMul: 1.0, fatMul: 1.0 },
+    { key: "stirfry", icon: "🔥", label: t.cookStirFried,                   calMul: 1.2, fatMul: 1.3 },
+    { key: "deepfry", icon: "🍳", label: t.cookFried,                       calMul: 1.8, fatMul: 2.2 },
+    { key: "braised", icon: "🫕", label: t.cookPanFried,                    calMul: 1.5, fatMul: 1.6 },
+  ];
+
+  const [editableIngredients, setEditableIngredients] = useState<Array<{ name: string; grams: number; protein: number; fat: number; carbs: number; calories: number; cookMethod: CookMethod }>>(
     () => (ingredients || []).map((item: any) => ({
       name: item.name || "", grams: item.grams || 0,
       protein: item.protein || 0, fat: item.fat || 0, carbs: item.carbs || 0,
       calories: item.calories || Math.round((item.protein || 0) * 4 + (item.fat || 0) * 9 + (item.carbs || 0) * 4),
+      cookMethod: "steam" as CookMethod,
     }))
   );
   const [confirmed, setConfirmed] = useState(false);
@@ -160,14 +169,17 @@ const Result = () => {
   const [sequenceQuality, setSequenceQuality] = useState<SequenceQuality>("optimal");
   const [showSuboptimalDialog, setShowSuboptimalDialog] = useState(false);
 
-  // Live recalculated totals from editable ingredients
+  // Live recalculated totals from editable ingredients (with cooking multipliers)
   const liveTotals = useMemo(() => {
-    const totals = editableIngredients.reduce((acc, ing) => ({
-      calories: acc.calories + ing.calories,
-      protein_g: acc.protein_g + ing.protein,
-      fat_g: acc.fat_g + ing.fat,
-      carbs_g: acc.carbs_g + ing.carbs,
-    }), { calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0 });
+    const totals = editableIngredients.reduce((acc, ing) => {
+      const method = COOK_METHODS.find(m => m.key === ing.cookMethod) || COOK_METHODS[0];
+      return {
+        calories: acc.calories + Math.round(ing.calories * method.calMul),
+        protein_g: acc.protein_g + ing.protein,
+        fat_g: acc.fat_g + Math.round(ing.fat * method.fatMul * 10) / 10,
+        carbs_g: acc.carbs_g + ing.carbs,
+      };
+    }, { calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0 });
     const hasBreakdown = editableIngredients.some(i => i.protein > 0 || i.fat > 0 || i.carbs > 0);
     return hasBreakdown ? totals : { calories, protein_g, fat_g, carbs_g };
   }, [editableIngredients, calories, protein_g, fat_g, carbs_g]);
@@ -264,7 +276,7 @@ const Result = () => {
   }, []);
 
   const handleAddIngredient = useCallback(() => {
-    setEditableIngredients(prev => [...prev, { name: "", grams: 50, protein: 0, fat: 0, carbs: 0, calories: 0 }]);
+    setEditableIngredients(prev => [...prev, { name: "", grams: 50, protein: 0, fat: 0, carbs: 0, calories: 0, cookMethod: "steam" as CookMethod }]);
   }, []);
 
   const handleDeleteIngredient = useCallback((index: number) => {
@@ -508,38 +520,79 @@ const Result = () => {
                 const isMeat = /鸡|鸭|猪|牛|羊|肉|鱼|虾|蛋|豆腐|chicken|pork|beef|meat|fish|egg|tofu|protein/.test(lower);
                 const ballColor = isVeg ? "hsl(200, 80%, 55%)" : isCarb ? "hsl(0, 72%, 55%)" : isMeat ? "hsl(43, 80%, 52%)" : undefined;
                 const ballLabel = isVeg ? "🛡" : isCarb ? "⚡" : isMeat ? "💪" : undefined;
+                const method = COOK_METHODS.find(m => m.key === item.cookMethod) || COOK_METHODS[0];
+                const methodIdx = COOK_METHODS.findIndex(m => m.key === item.cookMethod);
+                const isModified = item.cookMethod !== "steam";
+                const adjustedCal = Math.round(item.calories * method.calMul);
+                const adjustedFat = Math.round(item.fat * method.fatMul * 10) / 10;
+
+                const handleCycleCook = () => {
+                  const nextIdx = (methodIdx + 1) % COOK_METHODS.length;
+                  setEditableIngredients(prev => prev.map((it, j) =>
+                    j === i ? { ...it, cookMethod: COOK_METHODS[nextIdx].key } : it
+                  ));
+                };
+
                 return (
-                  <div key={i} className="flex items-center gap-2">
-                    {/* Funnel type indicator */}
-                    <div className="w-5 flex items-center justify-center shrink-0">
-                      {ballColor ? (
-                        <div
-                          className="w-4 h-4 rounded-full flex items-center justify-center text-[7px]"
-                          style={{
-                            background: `radial-gradient(circle at 35% 35%, ${ballColor}dd, ${ballColor}88)`,
-                            boxShadow: `0 1px 4px ${ballColor}40`,
-                          }}
-                        >
-                          {ballLabel}
-                        </div>
-                      ) : (
-                        <span className="text-[9px] font-mono text-muted-foreground/30">●</span>
-                      )}
+                  <div key={i} className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      {/* Funnel type indicator */}
+                      <div className="w-5 flex items-center justify-center shrink-0">
+                        {ballColor ? (
+                          <div
+                            className="w-4 h-4 rounded-full flex items-center justify-center text-[7px]"
+                            style={{
+                              background: `radial-gradient(circle at 35% 35%, ${ballColor}dd, ${ballColor}88)`,
+                              boxShadow: `0 1px 4px ${ballColor}40`,
+                            }}
+                          >
+                            {ballLabel}
+                          </div>
+                        ) : (
+                          <span className="text-[9px] font-mono text-muted-foreground/30">●</span>
+                        )}
+                      </div>
+                      {allergenWarnings.includes(item.name) && <span className="text-destructive text-xs">⚠️</span>}
+                      <input
+                        type="text"
+                        value={item.name}
+                        onChange={e => handleUpdateIngredient(i, "name", e.target.value)}
+                        placeholder={t.ingredientNamePlaceholder}
+                        className="flex-1 min-w-0 text-xs bg-secondary/50 border border-border/50 rounded-lg px-2 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
+                      />
+                      <input type="number" value={item.grams} onChange={e => handleUpdateIngredient(i, "grams", e.target.value)}
+                        className="w-16 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                      {/* Cooking method toggle */}
+                      <button
+                        onClick={handleCycleCook}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all duration-300 border shrink-0 ${
+                          isModified
+                            ? "border-warning/40 bg-warning/10 shadow-sm scale-105"
+                            : "border-border/30 hover:border-border/50"
+                        }`}
+                        title={`${method.label} ×${method.calMul}`}
+                      >
+                        <span className={isModified ? "animate-pulse" : ""}>{method.icon}</span>
+                      </button>
+                      <button onClick={() => handleDeleteIngredient(i)}
+                        className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
-                    {allergenWarnings.includes(item.name) && <span className="text-destructive text-xs">⚠️</span>}
-                    <input
-                      type="text"
-                      value={item.name}
-                      onChange={e => handleUpdateIngredient(i, "name", e.target.value)}
-                      placeholder={t.ingredientNamePlaceholder}
-                      className="flex-1 min-w-0 text-xs bg-secondary/50 border border-border/50 rounded-lg px-2 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
-                    />
-                    <input type="number" value={item.grams} onChange={e => handleUpdateIngredient(i, "grams", e.target.value)}
-                      className="w-16 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
-                    <button onClick={() => handleDeleteIngredient(i)}
-                      className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {/* Cooking method label + adjusted values */}
+                    {isModified && (
+                      <div className="flex items-center gap-2 ml-7 animate-fade-in">
+                        <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/20">
+                          {method.icon} {method.label} ×{method.calMul}
+                        </span>
+                        <span className="text-[8px] font-mono font-bold text-warning animate-pulse">
+                          {adjustedCal}kcal
+                        </span>
+                        <span className="text-[8px] font-mono font-bold text-warning animate-pulse">
+                          fat {adjustedFat}g
+                        </span>
+                      </div>
+                    )}
                   </div>
                 );
               })}
