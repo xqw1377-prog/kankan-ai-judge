@@ -319,7 +319,8 @@ export interface Dictionary {
   signAndArchive: string;
   archivedToHistory: string;
 
-  // Digestion Funnel
+  // Bio-Strategy Simulation
+  bioStrategyTitle: string;
   digestEngineTitle: string;
   digestLaneFast: string;
   digestLaneMedium: string;
@@ -336,6 +337,14 @@ export interface Dictionary {
   funnelWrongOrderTip: string;
   funnelPerfectTip: string;
   funnelProcessingTip: string;
+  funnelIntake: string;
+  funnelEnergyOutput: string;
+  focusPredictionTitle: string;
+  dragToReorder: string;
+  tacticOptimalWithFiber: (n: number) => string;
+  tacticOptimalGeneral: string;
+  tacticModerate: string;
+  tacticPoor: string;
 
   // Energy Prediction
   energyPredictionTitle: string;
