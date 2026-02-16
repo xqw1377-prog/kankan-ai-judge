@@ -417,8 +417,13 @@ const Result = () => {
                 const method = COOK_METHODS.find(m => m.key === item.cookMethod) || COOK_METHODS[0];
                 const methodIdx = COOK_METHODS.findIndex(m => m.key === item.cookMethod);
                 const isModified = item.cookMethod !== "steam";
+                const isDeepFry = item.cookMethod === "deepfry";
+                const isBraised = item.cookMethod === "braised";
+                const isHighHeat = isDeepFry || isBraised;
                 const adjustedCal = Math.round(item.calories * method.calMul);
                 const adjustedFat = Math.round(item.fat * method.fatMul * 10) / 10;
+                const calDelta = adjustedCal - item.calories;
+                const perfLoss = isDeepFry ? 18 : isBraised ? 10 : item.cookMethod === "stirfry" ? 5 : 0;
 
                 const handleCycleCook = () => {
                   const nextIdx = (methodIdx + 1) % COOK_METHODS.length;
@@ -428,7 +433,15 @@ const Result = () => {
                 };
 
                 return (
-                  <div key={i} className="space-y-1">
+                  <div
+                    key={i}
+                    className={`space-y-1 rounded-lg px-1 py-1 -mx-1 transition-all duration-500 ${
+                      isDeepFry ? "bg-destructive/8 ring-1 ring-destructive/20" : ""
+                    }`}
+                    style={isDeepFry ? {
+                      animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+                    } : undefined}
+                  >
                     <div className="flex items-center gap-2">
                       {/* Funnel type indicator */}
                       <div className="w-5 flex items-center justify-center shrink-0">
@@ -460,31 +473,46 @@ const Result = () => {
                       <button
                         onClick={handleCycleCook}
                         className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-all duration-300 border shrink-0 ${
-                          isModified
-                            ? "border-warning/40 bg-warning/10 shadow-sm scale-105"
-                            : "border-border/30 hover:border-border/50"
+                          isDeepFry
+                            ? "border-destructive/50 bg-destructive/15 shadow-sm scale-110"
+                            : isModified
+                              ? "border-warning/40 bg-warning/10 shadow-sm scale-105"
+                              : "border-border/30 hover:border-border/50"
                         }`}
                         title={`${method.label} ×${method.calMul}`}
                       >
-                        <span className={isModified ? "animate-pulse" : ""}>{method.icon}</span>
+                        <span className={isDeepFry ? "animate-bounce" : isModified ? "animate-pulse" : ""}>{method.icon}</span>
                       </button>
                       <button onClick={() => handleDeleteIngredient(i)}
                         className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-                    {/* Cooking method label + adjusted values */}
+                    {/* Cooking method label + adjusted values + performance loss */}
                     {isModified && (
-                      <div className="flex items-center gap-2 ml-7 animate-fade-in">
-                        <span className="text-[8px] font-mono px-1.5 py-0.5 rounded bg-warning/10 text-warning border border-warning/20">
+                      <div className="flex items-center gap-2 ml-7 animate-fade-in flex-wrap">
+                        <span className={`text-[8px] font-mono px-1.5 py-0.5 rounded border ${
+                          isDeepFry
+                            ? "bg-destructive/10 text-destructive border-destructive/20"
+                            : "bg-warning/10 text-warning border-warning/20"
+                        }`}>
                           {method.icon} {method.label} ×{method.calMul}
                         </span>
-                        <span className="text-[8px] font-mono font-bold text-warning animate-pulse">
-                          {adjustedCal}kcal
+                        <span className={`text-[8px] font-mono font-bold ${isDeepFry ? "text-destructive" : "text-warning"} animate-pulse`}>
+                          {adjustedCal}kcal {calDelta > 0 ? `(+${calDelta})` : ""}
                         </span>
-                        <span className="text-[8px] font-mono font-bold text-warning animate-pulse">
+                        <span className={`text-[8px] font-mono font-bold ${isDeepFry ? "text-destructive" : "text-warning"} animate-pulse`}>
                           fat {adjustedFat}g
                         </span>
+                        {perfLoss > 0 && (
+                          <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                            isDeepFry
+                              ? "bg-destructive/15 text-destructive animate-pulse"
+                              : "bg-warning/10 text-warning"
+                          }`}>
+                            ⚡ -{perfLoss}% {t.pnlDeficit}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
