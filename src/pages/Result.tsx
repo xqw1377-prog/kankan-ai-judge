@@ -195,18 +195,43 @@ const Result = () => {
   const verdictIcon = isGreen ? "✅" : isWarning ? "⚠️" : "📋";
   const modeLabel = isGreen ? t.modeGreen : isWarning ? t.modeWarning : t.modeNeutral;
 
+  const CONFIRM_API = "http://192.168.3.101:8080/api/v1/audit/confirm";
+
   const handleSave = useCallback(async () => {
     if (confirmed) return;
-    await saveMeal({
-      food_name: food, meal_type: getMealTypeByTime(),
-      calories: liveTotals.calories, protein_g: liveTotals.protein_g,
-      fat_g: liveTotals.fat_g, carbs_g: liveTotals.carbs_g,
-      ingredients: editableIngredients, verdict, suggestion,
-    });
+
+    const finalPayload = {
+      food_name: food,
+      meal_type: getMealTypeByTime(),
+      calories: liveTotals.calories,
+      protein_g: liveTotals.protein_g,
+      fat_g: liveTotals.fat_g,
+      carbs_g: liveTotals.carbs_g,
+      ingredients: editableIngredients,
+      verdict,
+      suggestion,
+    };
+
+    // 1. Send to 8080 confirm endpoint
+    try {
+      const res = await fetch(CONFIRM_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(finalPayload),
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+    } catch {
+      // If 8080 is unreachable, still persist locally
+      console.warn("Audit confirm API unreachable, saving locally only");
+    }
+
+    // 2. Persist to database
+    await saveMeal(finalPayload);
+
+    // 3. Success feedback
     setConfirmed(true);
     setArchiveAnim(true);
     toast({ title: t.archivedToHistory });
-    // Delay navigation to show success animation
     setTimeout(() => navigate("/", { replace: true }), 1800);
   }, [confirmed, saveMeal, food, liveTotals, editableIngredients, verdict, suggestion, toast, navigate, t]);
 
