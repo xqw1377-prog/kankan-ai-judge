@@ -304,4 +304,6 @@ export const enUS: Dictionary = {
   auditLoaded: (n) => `${n} LOADED`,
   auditHistoryLog: "AUDIT HISTORY · LAST 7 DAYS",
   auditViewAll: "VIEW ALL",
+  auditManagementAdvice: "MANAGEMENT ADVICE",
+  auditTrendTitle: "GOAL ACHIEVEMENT TREND",
 };

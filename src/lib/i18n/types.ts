@@ -301,4 +301,6 @@ export interface Dictionary {
   auditLoaded: (n: number) => string;
   auditHistoryLog: string;
   auditViewAll: string;
+  auditManagementAdvice: string;
+  auditTrendTitle: string;
 }

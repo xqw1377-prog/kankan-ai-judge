@@ -304,4 +304,6 @@ export const zhCN: Dictionary = {
   auditLoaded: (n) => `${n} 张已加载`,
   auditHistoryLog: "审计历史流 · 近7日",
   auditViewAll: "查看全部",
+  auditManagementAdvice: "管理建议 · MANAGEMENT ADVICE",
+  auditTrendTitle: "目标达成率趋势",
 };
