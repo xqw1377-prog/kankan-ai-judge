@@ -354,4 +354,9 @@ export const zhCN: Dictionary = {
   energyOptimalTip: "恭喜！按照此顺序进食，您的专注力将持续高位。下午不用再靠咖啡续命了 ☕️→❌",
   energyModerateTip: "进食顺序尚可，建议优先食用蔬菜类。温馨提示：先吃草，后吃肉，血糖稳得像老狗 🐕",
   energyFatigueTip: "检测到「先吃米饭」的错误姿势！下午 2 点可能触发「自动睡眠模式」💤，建议立即纠正进食顺序！",
+  bufferFilterActive: "缓冲过滤器已激活 · 吸收速率已平滑化，专注力延长 45%",
+  confirmSuboptimalTitle: "⚠️ 非最优消化序列",
+  confirmSuboptimalDesc: (pct) => `当前序列将消耗 ${pct}% 的身体资产性能，确认以此状态开启消化吗？`,
+  confirmSuboptimalCancel: "重新调整序列",
+  confirmSuboptimalProceed: "知道了，继续入库",
 };

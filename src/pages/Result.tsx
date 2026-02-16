@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator } from "lucide-react";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
@@ -9,7 +10,7 @@ import ShareCard from "@/components/ShareCard";
 import VirtualTable from "@/components/VirtualTable";
 import InviteButton from "@/components/InviteCard";
 import PerformanceTracker from "@/components/PerformanceTracker";
-import BioStrategySimulation from "@/components/BioStrategySimulation";
+import BioStrategySimulation, { type SequenceQuality } from "@/components/BioStrategySimulation";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -155,6 +156,8 @@ const Result = () => {
   );
   const [confirmed, setConfirmed] = useState(false);
   const [archiveAnim, setArchiveAnim] = useState(false);
+  const [sequenceQuality, setSequenceQuality] = useState<SequenceQuality>("optimal");
+  const [showSuboptimalDialog, setShowSuboptimalDialog] = useState(false);
 
   // Live recalculated totals from editable ingredients
   const liveTotals = useMemo(() => {
@@ -197,6 +200,15 @@ const Result = () => {
   const modeLabel = isGreen ? t.modeGreen : isWarning ? t.modeWarning : t.modeNeutral;
 
   const CONFIRM_API = "http://192.168.3.101:8080/api/v1/audit/confirm";
+
+  const handleSaveAttempt = useCallback(() => {
+    if (confirmed) return;
+    if (sequenceQuality !== "optimal" && editableIngredients.length > 1) {
+      setShowSuboptimalDialog(true);
+      return;
+    }
+    handleSave();
+  }, [confirmed, sequenceQuality, editableIngredients.length]);
 
   const handleSave = useCallback(async () => {
     if (confirmed) return;
@@ -463,7 +475,7 @@ const Result = () => {
         )}
 
         {/* Bio-Strategy Simulation */}
-        <BioStrategySimulation ingredients={editableIngredients} visible={editableIngredients.length > 0} />
+        <BioStrategySimulation ingredients={editableIngredients} visible={editableIngredients.length > 0} onSequenceQualityChange={setSequenceQuality} />
 
         {editableIngredients.length >= 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
@@ -639,7 +651,7 @@ const Result = () => {
           {generating ? t.generating : t.share}
         </button>
         <button
-          onClick={handleSave}
+          onClick={handleSaveAttempt}
           disabled={confirmed}
           className={`flex-1 py-4 rounded-2xl font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate ${
             confirmed
@@ -652,7 +664,26 @@ const Result = () => {
         </button>
       </div>
 
-      {/* Archive success overlay */}
+      {/* Suboptimal sequence confirmation dialog */}
+      <AlertDialog open={showSuboptimalDialog} onOpenChange={setShowSuboptimalDialog}>
+        <AlertDialogContent className="glass border-destructive/30 max-w-sm mx-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-center text-base">
+              {t.confirmSuboptimalTitle}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-sm leading-relaxed">
+              {t.confirmSuboptimalDesc(sequenceQuality === "poor" ? 15 : 8)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+            <AlertDialogCancel className="w-full">{t.confirmSuboptimalCancel}</AlertDialogCancel>
+            <AlertDialogAction className="w-full" onClick={() => { setShowSuboptimalDialog(false); handleSave(); }}>
+              {t.confirmSuboptimalProceed}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {archiveAnim && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none animate-fade-in">
           <div className="flex flex-col items-center gap-4 animate-slide-up">
