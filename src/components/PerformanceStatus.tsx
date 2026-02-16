@@ -67,9 +67,9 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
   }[state];
 
   const hedgeOptions = [
-    { key: "water", icon: Droplets, label: t.perfHedgeWater, effect: t.perfHedgeWaterEffect },
-    { key: "walk", icon: Footprints, label: t.perfHedgeWalk, effect: t.perfHedgeWalkEffect },
-    { key: "rest", icon: Coffee, label: t.perfHedgeRest, effect: t.perfHedgeRestEffect },
+    { key: "water", icon: Droplets, label: "补充500ml电解质水", effect: "稀释血糖峰值，挽回约15%性能损耗" },
+    { key: "walk", icon: Footprints, label: "餐后15分钟快走", effect: "加速葡萄糖利用，挽回约30%损耗" },
+    { key: "rest", icon: Coffee, label: "5分钟深呼吸冥想", effect: "降低皮质醇，恢复专注力基线" },
   ];
 
   // Gauge bar math: center is 50%, bar extends left or right
@@ -155,16 +155,14 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
         </div>
 
         {/* Status description */}
-        <p
-          className={`text-sm font-mono font-bold leading-snug ${state === "deficit" ? "animate-pulse" : ""}`}
-          style={{ color: cfg.color }}
-        >
+        <div className={`text-sm font-bold leading-relaxed ${state === "deficit" ? "animate-pulse" : ""}`}
+          style={{ color: cfg.color }}>
           {state === "surplus"
-            ? `🔋 ${t.perfSurplusDesc(focusHours, sustainTime)}`
+            ? `🟢 今日生理性能处于牛市，专注力预计增值 ${Math.round(parseFloat(focusHours) * 60)}min。`
             : state === "deficit"
-              ? `🧠💥 ${t.perfDeficitDesc(crashTime, perfLoss)}`
+              ? `🔴 当前处于生理空头，下午 ${crashTime} 存在宕机风险，建议立即补救。`
               : `⚡ ${t.perfNeutralDesc}`}
-        </p>
+        </div>
 
         {/* Deficit flash warning */}
         {state === "deficit" && (
@@ -183,10 +181,10 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
         {state === "deficit" && !hedgeApplied && (
           <button
             onClick={() => setShowHedge(true)}
-            className="mt-3 w-full py-2 rounded-xl text-[11px] font-mono font-bold tracking-wider border transition-all active:scale-[0.98]"
+            className="mt-3 w-full py-2.5 rounded-xl text-xs font-bold tracking-wider border transition-all active:scale-[0.98]"
             style={{ color: cfg.color, borderColor: cfg.border, background: cfg.bg }}
           >
-            🛡 {t.perfHedgeBtn}
+            🛡 资产救市 · 对冲包 (Hedge)
           </button>
         )}
 
