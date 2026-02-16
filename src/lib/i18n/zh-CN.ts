@@ -363,4 +363,15 @@ export const zhCN: Dictionary = {
   drowsinessRiskZone: "困倦风险区",
   drowsinessRiskTip: "若此时有重要会议，建议先吃蔬菜以对冲此风险",
   focusUnit: "专注力",
+
+  hedgeAlertTitle: "🚨 检测到高风险进食顺序！",
+  hedgeAlertDesc: "是否开启「餐后补救补丁」？",
+  hedgeOptionWalk: "🚶 餐后 10 分钟快走",
+  hedgeOptionWalkEffect: "曲线跌幅收窄 20%",
+  hedgeOptionWater: "💧 补充 500ml 纯净水",
+  hedgeOptionWaterEffect: "代谢加速 10%",
+  hedgeOptionSkip: "😴 不补救",
+  hedgeOptionSkipEffect: "接受下午的「宕机」风险",
+  hedgePatchApplied: "补救补丁已激活 ✓",
+  hedgePatchLabel: "餐后补救补丁",
 };

@@ -363,4 +363,15 @@ export const enUS: Dictionary = {
   drowsinessRiskZone: "Drowsiness Risk",
   drowsinessRiskTip: "If you have an important meeting at this time, eat veggies first to offset this risk",
   focusUnit: "Focus",
+
+  hedgeAlertTitle: "🚨 High-risk eating order detected!",
+  hedgeAlertDesc: "Activate 'Post-Meal Rescue Patch'?",
+  hedgeOptionWalk: "🚶 10-min brisk walk after meal",
+  hedgeOptionWalkEffect: "Curve dip reduced by 20%",
+  hedgeOptionWater: "💧 Drink 500ml water",
+  hedgeOptionWaterEffect: "Metabolism +10%",
+  hedgeOptionSkip: "😴 No rescue",
+  hedgeOptionSkipEffect: "Accept afternoon crash risk",
+  hedgePatchApplied: "Rescue patch activated ✓",
+  hedgePatchLabel: "Post-Meal Rescue Patch",
 };
