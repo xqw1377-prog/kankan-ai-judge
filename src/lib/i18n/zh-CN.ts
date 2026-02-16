@@ -311,4 +311,5 @@ export const zhCN: Dictionary = {
   auditSearchingKnowledge: "正在检索知识库...",
   actuarialAdvice: "精算建议 · ACTUARIAL ADVICE",
   actuarialAssetUp: "资产增值",
+  bvaManagement: "生理资产管理动态 · BVA MGMT",
 };

@@ -311,4 +311,5 @@ export const enUS: Dictionary = {
   auditSearchingKnowledge: "Searching knowledge base...",
   actuarialAdvice: "ACTUARIAL ADVICE",
   actuarialAssetUp: "ASSET UP",
+  bvaManagement: "BVA MANAGEMENT",
 };
