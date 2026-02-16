@@ -374,4 +374,17 @@ export const zhCN: Dictionary = {
   hedgeOptionSkipEffect: "接受下午的「宕机」风险",
   hedgePatchApplied: "补救补丁已激活 ✓",
   hedgePatchLabel: "餐后补救补丁",
+
+  historyBadgePerfect: "完美时序",
+  historyBadgeSuboptimal: "次优顺序",
+  historyBadgeAssetLoss: "资产损耗",
+  historyEnergyForecast: "精力预测示波图",
+  historyActualFeeling: "实际感受",
+  historyFeelingGreat: "😊 精力充沛",
+  historyFeelingOk: "😐 一般",
+  historyFeelingBad: "😩 犯困/低迷",
+  historyFeedbackSaved: "对账已保存，衰减系数已微调 ✓",
+  historyCalibrationNote: "您的反馈将帮助系统校准预测精度",
+  historyFocusForecast: "餐后专注力走势",
+  historyCompareBtn: "对账分析",
 };
