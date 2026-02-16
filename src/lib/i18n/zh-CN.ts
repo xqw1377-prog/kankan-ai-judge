@@ -302,4 +302,6 @@ export const zhCN: Dictionary = {
   auditDragDropOrClick: "拖拽或点击上传",
   auditGdasXrayMulti: "GDAS X射线审计 · 多图支持",
   auditLoaded: (n) => `${n} 张已加载`,
+  auditHistoryLog: "审计历史流 · 近7日",
+  auditViewAll: "查看全部",
 };

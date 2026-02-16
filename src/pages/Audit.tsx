@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import InputPanel from "@/components/audit/InputPanel";
 import AuditFindings, { type DetectedIngredient } from "@/components/audit/AuditFindings";
 import SpatialAuditLogs from "@/components/audit/SpatialAuditLogs";
+import AuditHistoryLog from "@/components/audit/AuditHistoryLog";
 import UploadDialog from "@/components/audit/UploadDialog";
 import HealthAlertBanner from "@/components/audit/HealthAlertBanner";
 import { useProfile } from "@/hooks/useProfile";
@@ -364,6 +365,9 @@ const Audit = () => {
           </div>
         </div>
       )}
+
+      {/* Audit History Log */}
+      <AuditHistoryLog />
 
       {/* Bottom: Spatial Audit Logs */}
       <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">

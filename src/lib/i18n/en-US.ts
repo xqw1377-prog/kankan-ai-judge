@@ -302,4 +302,6 @@ export const enUS: Dictionary = {
   auditDragDropOrClick: "Drag & Drop or Click to Upload",
   auditGdasXrayMulti: "GDAS X-RAY AUDIT • MULTI-IMAGE SUPPORT",
   auditLoaded: (n) => `${n} LOADED`,
+  auditHistoryLog: "AUDIT HISTORY · LAST 7 DAYS",
+  auditViewAll: "VIEW ALL",
 };
