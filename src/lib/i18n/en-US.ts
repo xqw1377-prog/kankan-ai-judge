@@ -354,4 +354,9 @@ export const enUS: Dictionary = {
   energyOptimalTip: "Great! Following this order keeps your focus at peak. No more coffee life-support needed ☕️→❌",
   energyModerateTip: "Eating order is OK. Pro tip: Greens first, meat second, blood sugar steady like a pro 🐕",
   energyFatigueTip: "Detected 'rice-first' pattern! Auto-sleep mode may activate at 2 PM 💤. Reorder ASAP!",
+  bufferFilterActive: "BUFFER FILTER ACTIVE · Absorption smoothed, focus extended +45%",
+  confirmSuboptimalTitle: "⚠️ Suboptimal Digestion Sequence",
+  confirmSuboptimalDesc: (pct) => `This sequence will consume ${pct}% of your body asset performance. Proceed with this digestion state?`,
+  confirmSuboptimalCancel: "Reorder sequence",
+  confirmSuboptimalProceed: "Got it, proceed",
 };

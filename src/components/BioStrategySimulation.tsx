@@ -70,20 +70,25 @@ function evaluateSequence(balls: SimBall[]): SequenceQuality {
   return "moderate";
 }
 
-function generateFocusCurve(quality: SequenceQuality): number[] {
+function generateFocusCurve(quality: SequenceQuality, topType?: BallType): number[] {
   const pts: number[] = [];
   for (let i = 0; i <= 24; i++) {
     const t = i / 24;
-    if (quality === "optimal") {
+    if (quality === "poor" || topType === "core") {
+      // Dramatic: huge spike then deep crash
+      const spike = Math.exp(-((t - 0.15) ** 2) / 0.012) * 55;
+      const crash = t > 0.25 ? -50 * (t - 0.25) : 0;
+      const floor = t > 0.5 ? -5 * Math.sin((t - 0.5) * Math.PI * 3) : 0;
+      pts.push(Math.max(15, 50 + spike + crash + floor));
+    } else if (quality === "optimal" && topType === "pioneer") {
+      // Smooth high plateau
+      pts.push(80 + 15 * Math.sin(t * Math.PI * 0.7) * (1 - t * 0.15));
+    } else if (quality === "optimal") {
       pts.push(75 + 20 * Math.sin(t * Math.PI * 0.8) * (1 - t * 0.2));
-    } else if (quality === "moderate") {
+    } else {
       const spike = Math.exp(-((t - 0.3) ** 2) / 0.04) * 25;
       const dip = t > 0.5 ? -12 * (t - 0.5) : 0;
       pts.push(65 + spike + dip);
-    } else {
-      const spike = Math.exp(-((t - 0.2) ** 2) / 0.02) * 40;
-      const crash = t > 0.35 ? -35 * (t - 0.35) : 0;
-      pts.push(55 + spike + crash);
     }
   }
   return pts;
@@ -108,9 +113,12 @@ function getTacticalAdvice(quality: SequenceQuality, balls: SimBall[], t: any): 
 interface Props {
   ingredients: Ingredient[];
   visible: boolean;
+  onSequenceQualityChange?: (quality: SequenceQuality) => void;
 }
 
-export default function BioStrategySimulation({ ingredients, visible }: Props) {
+export type { SequenceQuality };
+
+export default function BioStrategySimulation({ ingredients, visible, onSequenceQualityChange }: Props) {
   const { t } = useI18n();
 
   // Initialize balls sorted by optimal order: pioneer → supply → core
@@ -148,8 +156,16 @@ export default function BioStrategySimulation({ ingredients, visible }: Props) {
 
   // Evaluate current sequence
   const quality = useMemo(() => evaluateSequence(balls), [balls]);
-  const curve = useMemo(() => generateFocusCurve(quality), [quality]);
+  const topType = balls.length > 0 ? balls[0].type : undefined;
+  const isPioneerTop = topType === "pioneer";
+  const isCoreTop = topType === "core";
+  const curve = useMemo(() => generateFocusCurve(quality, topType), [quality, topType]);
   const advice = useMemo(() => getTacticalAdvice(quality, balls, t), [quality, balls, t]);
+
+  // Notify parent of sequence quality changes
+  useEffect(() => {
+    onSequenceQualityChange?.(quality);
+  }, [quality, onSequenceQualityChange]);
 
   // Animate curve on quality change
   useEffect(() => {
@@ -235,10 +251,10 @@ export default function BioStrategySimulation({ ingredients, visible }: Props) {
 
   if (!visible || ingredients.length === 0) return null;
 
-  const isPoor = quality === "poor";
+  const isPoor = quality === "poor" || isCoreTop;
   const isOptimal = quality === "optimal";
 
-  const statusColor = isOptimal ? "hsl(160, 60%, 45%)" : isPoor ? "hsl(0, 72%, 55%)" : "hsl(43, 72%, 52%)";
+  const statusColor = isCoreTop ? "hsl(0, 72%, 55%)" : isOptimal ? "hsl(160, 60%, 45%)" : isPoor ? "hsl(0, 72%, 55%)" : "hsl(43, 72%, 52%)";
 
   // Focus curve SVG
   const cW = 130, cH = 80, cPad = 6;
@@ -312,10 +328,25 @@ export default function BioStrategySimulation({ ingredients, visible }: Props) {
                 })}
                 {/* Exit spout */}
                 <rect x="75" y="250" width="30" height="6" rx="2"
-                  fill={isPoor ? "hsl(0, 72%, 55%, 0.15)" : "hsl(var(--primary) / 0.08)"}
-                  stroke={isPoor ? "hsl(0, 72%, 55%)" : "hsl(var(--border))"}
-                  strokeWidth="0.6" opacity="0.4"
+                  fill={isPoor ? "hsl(0, 72%, 55%, 0.15)" : isPioneerTop ? "hsl(160, 70%, 45%, 0.2)" : "hsl(var(--primary) / 0.08)"}
+                  stroke={isPoor ? "hsl(0, 72%, 55%)" : isPioneerTop ? "hsl(160, 70%, 45%)" : "hsl(var(--border))"}
+                  strokeWidth="0.6" opacity={isPioneerTop ? 0.7 : 0.4}
                 />
+                {/* Buffer filter glow when pioneer is on top */}
+                {isPioneerTop && (
+                  <>
+                    <rect x="65" y="244" width="50" height="4" rx="2"
+                      fill="hsl(160, 70%, 45%)" opacity="0.15"
+                    >
+                      <animate attributeName="opacity" values="0.08;0.2;0.08" dur="2s" repeatCount="indefinite" />
+                    </rect>
+                    <line x1="70" y1="246" x2="110" y2="246"
+                      stroke="hsl(160, 70%, 45%)" strokeWidth="1" strokeDasharray="3 2" opacity="0.4"
+                    >
+                      <animate attributeName="strokeDashoffset" values="0;-10" dur="1.5s" repeatCount="indefinite" />
+                    </line>
+                  </>
+                )}
               </svg>
 
               {/* Ball slots (draggable) */}
@@ -383,11 +414,17 @@ export default function BioStrategySimulation({ ingredients, visible }: Props) {
               </div>
             </div>
 
-            {/* Bottom label */}
+            {/* Bottom label + buffer filter status */}
             <div className="text-center mt-1">
-              <span className="text-[8px] font-mono text-muted-foreground/50 tracking-widest uppercase">
-                ⚡ {t.funnelEnergyOutput}
-              </span>
+              {isPioneerTop ? (
+                <span className="text-[8px] font-mono tracking-widest uppercase font-bold" style={{ color: "hsl(160, 70%, 45%)" }}>
+                  🛡 {t.bufferFilterActive}
+                </span>
+              ) : (
+                <span className="text-[8px] font-mono text-muted-foreground/50 tracking-widest uppercase">
+                  ⚡ {t.funnelEnergyOutput}
+                </span>
+              )}
             </div>
           </div>
 

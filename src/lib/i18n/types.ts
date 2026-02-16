@@ -354,4 +354,11 @@ export interface Dictionary {
   energyOptimalTip: string;
   energyModerateTip: string;
   energyFatigueTip: string;
+
+  // Buffer filter & confirm
+  bufferFilterActive: string;
+  confirmSuboptimalTitle: string;
+  confirmSuboptimalDesc: (pct: number) => string;
+  confirmSuboptimalCancel: string;
+  confirmSuboptimalProceed: string;
 }
