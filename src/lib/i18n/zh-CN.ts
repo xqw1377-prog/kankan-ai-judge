@@ -317,4 +317,6 @@ export const zhCN: Dictionary = {
   confirmAudit: "确认入库",
   auditConfirmed: "已确认入库",
   ingredientNamePlaceholder: "食材名称",
+  finalizeArchive: "确认并存入资产库",
+  liveRecalcHint: "数值已实时重算",
 };

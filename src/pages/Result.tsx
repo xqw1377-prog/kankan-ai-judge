@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Pencil, Share2, Download, X, UtensilsCrossed, Package, Images, Stethoscope, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck } from "lucide-react";
+import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
@@ -139,16 +139,32 @@ const Result = () => {
   const [shareImage, setShareImage] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [claimedPortions, setClaimedPortions] = useState<Record<string, number>>({});
-  const [editableIngredients, setEditableIngredients] = useState<Array<{ name: string; grams: number }>>(
-    () => (ingredients || []).map((item: any) => ({ name: item.name || "", grams: item.grams || 0 }))
-  );
-  const [confirmed, setConfirmed] = useState(false);
-
   const {
     food = "", calories = 0, protein_g = 0, fat_g = 0, carbs_g = 0,
     ingredients = [], verdict = "", suggestion = "",
     cooking_scene = "takeout", roast = "", gi_value,
   } = result || {};
+
+  const [editableIngredients, setEditableIngredients] = useState<Array<{ name: string; grams: number; protein: number; fat: number; carbs: number; calories: number }>>(
+    () => (ingredients || []).map((item: any) => ({
+      name: item.name || "", grams: item.grams || 0,
+      protein: item.protein || 0, fat: item.fat || 0, carbs: item.carbs || 0,
+      calories: item.calories || Math.round((item.protein || 0) * 4 + (item.fat || 0) * 9 + (item.carbs || 0) * 4),
+    }))
+  );
+  const [confirmed, setConfirmed] = useState(false);
+
+  // Live recalculated totals from editable ingredients
+  const liveTotals = useMemo(() => {
+    const totals = editableIngredients.reduce((acc, ing) => ({
+      calories: acc.calories + ing.calories,
+      protein_g: acc.protein_g + ing.protein,
+      fat_g: acc.fat_g + ing.fat,
+      carbs_g: acc.carbs_g + ing.carbs,
+    }), { calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0 });
+    const hasBreakdown = editableIngredients.some(i => i.protein > 0 || i.fat > 0 || i.carbs > 0);
+    return hasBreakdown ? totals : { calories, protein_g, fat_g, carbs_g };
+  }, [editableIngredients, calories, protein_g, fat_g, carbs_g]);
 
   const userAllergies = profile?.allergies?.split(/[,，、\s]+/).filter(Boolean) || [];
   const allergenWarnings = ingredients
@@ -160,17 +176,17 @@ const Result = () => {
     const tgt = profile.targets;
     const idealRatio = 0.33;
     const ratios = [
-      tgt.calories > 0 ? calories / tgt.calories : idealRatio,
-      tgt.protein_g > 0 ? protein_g / tgt.protein_g : idealRatio,
-      tgt.fat_g > 0 ? fat_g / tgt.fat_g : idealRatio,
-      tgt.carbs_g > 0 ? carbs_g / tgt.carbs_g : idealRatio,
+      tgt.calories > 0 ? liveTotals.calories / tgt.calories : idealRatio,
+      tgt.protein_g > 0 ? liveTotals.protein_g / tgt.protein_g : idealRatio,
+      tgt.fat_g > 0 ? liveTotals.fat_g / tgt.fat_g : idealRatio,
+      tgt.carbs_g > 0 ? liveTotals.carbs_g / tgt.carbs_g : idealRatio,
     ];
     const scores = ratios.map(r => {
       const diff = Math.abs(r - idealRatio);
       return Math.max(0, 1 - diff * 2.5);
     });
     return Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 100);
-  }, [calories, protein_g, fat_g, carbs_g, profile?.targets]);
+  }, [liveTotals, profile?.targets]);
 
   const isWarning = matchScore < 50 || verdict.includes("超标") || verdict.includes("过量") || verdict.includes("偏高") || verdict.includes("禁忌") || verdict.includes("高糖");
   const isGreen = matchScore >= 80 && !isWarning;
@@ -181,19 +197,31 @@ const Result = () => {
   const handleSave = useCallback(async () => {
     await saveMeal({
       food_name: food, meal_type: getMealTypeByTime(),
-      calories, protein_g, fat_g, carbs_g, ingredients: editableIngredients, verdict, suggestion,
+      calories: liveTotals.calories, protein_g: liveTotals.protein_g,
+      fat_g: liveTotals.fat_g, carbs_g: liveTotals.carbs_g,
+      ingredients: editableIngredients, verdict, suggestion,
     });
     setConfirmed(true);
     toast({ title: "✓", description: `${food}` });
     navigate("/", { replace: true });
-  }, [saveMeal, food, calories, protein_g, fat_g, carbs_g, editableIngredients, verdict, suggestion, toast, navigate]);
+  }, [saveMeal, food, liveTotals, editableIngredients, verdict, suggestion, toast, navigate]);
 
-  const handleUpdateIngredient = useCallback((index: number, field: "name" | "grams", value: string) => {
-    setEditableIngredients(prev => prev.map((item, i) => i === index ? { ...item, [field]: field === "grams" ? Number(value) || 0 : value } : item));
+  const handleUpdateIngredient = useCallback((index: number, field: string, value: string) => {
+    setEditableIngredients(prev => prev.map((item, i) => {
+      if (i !== index) return item;
+      const numVal = Number(value) || 0;
+      if (field === "name") return { ...item, name: value };
+      const updated = { ...item, [field]: numVal };
+      // Auto-recalc calories from macros when protein/fat/carbs change
+      if (["protein", "fat", "carbs"].includes(field)) {
+        updated.calories = Math.round(updated.protein * 4 + updated.fat * 9 + updated.carbs * 4);
+      }
+      return updated;
+    }));
   }, []);
 
   const handleAddIngredient = useCallback(() => {
-    setEditableIngredients(prev => [...prev, { name: "", grams: 50 }]);
+    setEditableIngredients(prev => [...prev, { name: "", grams: 50, protein: 0, fat: 0, carbs: 0, calories: 0 }]);
   }, []);
 
   const handleDeleteIngredient = useCallback((index: number) => {
@@ -405,45 +433,59 @@ const Result = () => {
           </section>
         )}
 
-        {editableIngredients.length > 0 && (
+        {editableIngredients.length >= 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
               <span className="w-8 h-px bg-border" /> {t.ingredientList} <span className="flex-1 h-px bg-border" />
             </h3>
-            <div className="glass rounded-xl p-4 shadow-card space-y-2">
+            <div className="glass rounded-xl p-4 shadow-card space-y-3">
+              {/* Column headers */}
+              {editableIngredients.length > 0 && (
+                <div className="flex items-center gap-1.5 text-[9px] font-mono text-muted-foreground/50 tracking-wider uppercase px-0.5">
+                  <span className="flex-1 min-w-0">{t.ingredientNamePlaceholder}</span>
+                  <span className="w-14 text-center">g</span>
+                  <span className="w-12 text-center">{t.protein}</span>
+                  <span className="w-12 text-center">{t.fat}</span>
+                  <span className="w-12 text-center">{t.carbs}</span>
+                  <span className="w-7" />
+                </div>
+              )}
               {editableIngredients.map((item, i) => (
-                <div key={i} className="flex items-center gap-2 py-1">
-                  {allergenWarnings.includes(item.name) && <span className="text-destructive text-sm">⚠️</span>}
+                <div key={i} className="flex items-center gap-1.5">
+                  {allergenWarnings.includes(item.name) && <span className="text-destructive text-xs">⚠️</span>}
                   <input
                     type="text"
                     value={item.name}
                     onChange={e => handleUpdateIngredient(i, "name", e.target.value)}
                     placeholder={t.ingredientNamePlaceholder}
-                    className="flex-1 min-w-0 text-sm bg-secondary/50 border border-border/50 rounded-lg px-2.5 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
+                    className="flex-1 min-w-0 text-xs bg-secondary/50 border border-border/50 rounded-lg px-2 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
                   />
-                  <div className="flex items-center gap-1 shrink-0">
-                    <input
-                      type="number"
-                      value={item.grams}
-                      onChange={e => handleUpdateIngredient(i, "grams", e.target.value)}
-                      className="w-16 text-sm text-right bg-secondary/50 border border-border/50 rounded-lg px-2 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
-                    />
-                    <span className="text-xs text-muted-foreground">g</span>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteIngredient(i)}
-                    className="p-1.5 text-muted-foreground/50 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10"
-                  >
+                  <input type="number" value={item.grams} onChange={e => handleUpdateIngredient(i, "grams", e.target.value)}
+                    className="w-14 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                  <input type="number" value={item.protein} onChange={e => handleUpdateIngredient(i, "protein", e.target.value)}
+                    className="w-12 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                  <input type="number" value={item.fat} onChange={e => handleUpdateIngredient(i, "fat", e.target.value)}
+                    className="w-12 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                  <input type="number" value={item.carbs} onChange={e => handleUpdateIngredient(i, "carbs", e.target.value)}
+                    className="w-12 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                  <button onClick={() => handleDeleteIngredient(i)}
+                    className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10">
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               ))}
-              <button
-                onClick={handleAddIngredient}
-                className="flex items-center gap-1.5 text-primary text-xs font-semibold mt-2 ml-1 hover:opacity-80 transition-opacity"
-              >
-                <Plus className="w-3.5 h-3.5" /> {t.addIngredient}
-              </button>
+              <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                <button onClick={handleAddIngredient}
+                  className="flex items-center gap-1.5 text-primary text-xs font-semibold hover:opacity-80 transition-opacity">
+                  <Plus className="w-3.5 h-3.5" /> {t.addIngredient}
+                </button>
+                {editableIngredients.length > 0 && (
+                  <div className="flex items-center gap-1 text-[8px] font-mono text-muted-foreground/40">
+                    <Calculator className="w-3 h-3" />
+                    <span>{liveTotals.calories} kcal · {t.liveRecalcHint}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         )}
@@ -465,24 +507,24 @@ const Result = () => {
             <span className="w-8 h-px bg-border" /> {t.nutritionAnalysis} <span className="flex-1 h-px bg-border" />
           </h3>
           <div className="glass rounded-xl p-4 shadow-card space-y-3">
-            <NutritionBar label={t.energy} current={calories} target={profile?.targets?.calories || 2100} unit="kcal" />
-            <NutritionBar label={t.protein} current={protein_g} target={profile?.targets?.protein_g || 120} unit="g" />
-            <NutritionBar label={t.fat} current={fat_g} target={profile?.targets?.fat_g || 58} unit="g" />
-            <NutritionBar label={t.carbs} current={carbs_g} target={profile?.targets?.carbs_g || 263} unit="g" />
+            <NutritionBar label={t.energy} current={liveTotals.calories} target={profile?.targets?.calories || 2100} unit="kcal" />
+            <NutritionBar label={t.protein} current={liveTotals.protein_g} target={profile?.targets?.protein_g || 120} unit="g" />
+            <NutritionBar label={t.fat} current={liveTotals.fat_g} target={profile?.targets?.fat_g || 58} unit="g" />
+            <NutritionBar label={t.carbs} current={liveTotals.carbs_g} target={profile?.targets?.carbs_g || 263} unit="g" />
           </div>
         </section>
 
         <PerformanceTracker
-          calories={calories}
-          protein_g={protein_g}
-          fat_g={fat_g}
-          carbs_g={carbs_g}
+          calories={liveTotals.calories}
+          protein_g={liveTotals.protein_g}
+          fat_g={liveTotals.fat_g}
+          carbs_g={liveTotals.carbs_g}
           targetCalories={profile?.targets?.calories || 2100}
           weight={profile?.weight_kg || 70}
           gi_value={gi_value}
           todayMeals={[
             ...(todayMeals || []).map(m => ({ name: m.food_name, carbs_g: m.carbs_g })),
-            { name: food, carbs_g },
+            { name: food, carbs_g: liveTotals.carbs_g },
           ]}
         />
 
@@ -542,7 +584,7 @@ const Result = () => {
           }`}
         >
           <ShieldCheck className="w-4 h-4 shrink-0" />
-          {confirmed ? t.auditConfirmed : t.confirmAudit}
+          {confirmed ? t.auditConfirmed : t.finalizeArchive}
         </button>
       </div>
 
