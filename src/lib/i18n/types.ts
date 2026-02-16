@@ -308,4 +308,5 @@ export interface Dictionary {
   auditSearchingKnowledge: string;
   actuarialAdvice: string;
   actuarialAssetUp: string;
+  bvaManagement: string;
 }
