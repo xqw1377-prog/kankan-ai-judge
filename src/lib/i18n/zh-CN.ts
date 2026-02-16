@@ -397,4 +397,13 @@ export const zhCN: Dictionary = {
   bpiNeutralDesc: "生理能量处于基准水位，建议增加优质蛋白摄入",
   bpiWaterLevel: "资产水位",
   bpiPerformanceIndex: "BPI",
+
+  pnlTitle: "资产损益表 · P&L STATEMENT",
+  pnlBrainBattery: "大脑电池",
+  pnlSurplus: "盈余",
+  pnlDeficit: "赤字",
+  pnlNeutral: "持平",
+  pnlSurplusDesc: (minutes) => `+${minutes}min 高效专注时长已存入大脑资产账户`,
+  pnlDeficitDesc: (time, pct) => `-${pct}% 下午决策性能损耗预警，预计${time}触发大脑宕机`,
+  pnlNeutralDesc: "大脑电池处于中性水位，建议补充优质蛋白提升充能效率",
 };

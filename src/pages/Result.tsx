@@ -12,6 +12,7 @@ import InviteButton from "@/components/InviteCard";
 import PerformanceTracker from "@/components/PerformanceTracker";
 import BioStrategySimulation, { type SequenceQuality } from "@/components/BioStrategySimulation";
 import BpiGauge from "@/components/BpiGauge";
+import AssetPnLStatement from "@/components/AssetPnLStatement";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -52,71 +53,6 @@ function BreathingWave() {
         className="absolute inset-0 animate-breathe"
         style={{ background: "radial-gradient(ellipse at center, hsl(30 100% 50% / 0.06) 0%, transparent 70%)" }}
       />
-    </div>
-  );
-}
-
-function BvaTrendSparkline({ meals, profile }: { meals: any[]; profile: any }) {
-  const { t } = useI18n();
-  const dailyData = useMemo(() => {
-    const now = new Date();
-    const days: { label: string; score: number }[] = [];
-    for (let d = 6; d >= 0; d--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - d);
-      const dateStr = date.toDateString();
-      const dayLabel = `${date.getMonth() + 1}/${date.getDate()}`;
-      const dayMeals = meals.filter((m: any) => new Date(m.recorded_at).toDateString() === dateStr);
-      if (dayMeals.length === 0) { days.push({ label: dayLabel, score: 0 }); continue; }
-      const totalCal = dayMeals.reduce((s: number, m: any) => s + m.calories, 0);
-      const targetCal = profile?.target_calories || 2000;
-      const ratio = totalCal / targetCal;
-      const score = Math.max(0, Math.min(100, Math.round(ratio <= 1 ? ratio * 100 : Math.max(0, 200 - ratio * 100))));
-      days.push({ label: dayLabel, score });
-    }
-    return days;
-  }, [meals, profile]);
-
-  const hasData = dailyData.some(d => d.score > 0);
-  if (!hasData) return null;
-
-  const w = 200, h = 40, pad = 4;
-  const maxS = Math.max(...dailyData.map(d => d.score), 1);
-  const pts = dailyData.map((d, i) => ({
-    x: pad + (i / 6) * (w - pad * 2),
-    y: h - pad - ((d.score / maxS) * (h - pad * 2)),
-  }));
-  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const area = `${line} L ${pts[pts.length - 1].x} ${h - pad} L ${pts[0].x} ${h - pad} Z`;
-
-  return (
-    <div className="px-5 pb-3">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <TrendingUp className="w-3 h-3 text-primary/60" />
-        <span className="text-[8px] font-mono text-muted-foreground/50 tracking-widest uppercase">
-          {t.auditTrendTitle} · 7D
-        </span>
-      </div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-10" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="bva-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={area} fill="url(#bva-fill)" />
-        <path d={line} fill="none" stroke="hsl(var(--primary))" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-        {pts.map((p, i) =>
-          dailyData[i].score > 0 ? (
-            <circle key={i} cx={p.x} cy={p.y} r="2" fill="hsl(var(--background))" stroke="hsl(var(--primary))" strokeWidth="1.5" />
-          ) : null
-        )}
-      </svg>
-      <div className="flex justify-between px-0.5">
-        {dailyData.map((d, i) => (
-          <span key={i} className="text-[7px] font-mono text-muted-foreground/30">{d.label}</span>
-        ))}
-      </div>
     </div>
   );
 }
@@ -430,61 +366,19 @@ const Result = () => {
           </section>
         )}
 
-        {/* BVA Management Panel */}
+        {/* Asset P&L Statement */}
         {suggestion && (
-          <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.07s" }}>
-            <div className={`rounded-2xl relative overflow-hidden border ${
-              isWarning
-                ? "bg-destructive/6 border-destructive/20"
-                : isGreen
-                  ? "bg-[hsl(160_60%_45%/0.06)] border-[hsl(160_60%_45%/0.2)]"
-                  : "glass border-border"
-            }`}>
-              {/* Header */}
-              <div className="px-5 pt-4 pb-3 flex items-center gap-2">
-                <Activity className={`w-4 h-4 ${isWarning ? "text-destructive" : isGreen ? "text-[hsl(160_60%_55%)]" : "text-primary"}`} />
-                <span className="text-[10px] font-mono tracking-[0.2em] uppercase text-muted-foreground">
-                  {t.bvaManagement}
-                </span>
-                <div className={`ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-mono font-bold tracking-wider ${
-                  isWarning
-                    ? "bg-destructive/10 text-destructive"
-                    : isGreen
-                      ? "bg-[hsl(160_60%_45%/0.1)] text-[hsl(160_60%_55%)]"
-                      : "bg-secondary text-muted-foreground"
-                }`}>
-                  <div className={`w-1.5 h-1.5 rounded-full ${
-                    isWarning ? "bg-destructive animate-pulse" : isGreen ? "bg-[hsl(160_60%_45%)]" : "bg-primary"
-                  }`} />
-                  {isWarning ? t.riskHigh : isGreen ? t.actuarialAssetUp : t.riskLow}
-                </div>
-              </div>
-
-              {/* Core Advice */}
-              <div className="px-5 pb-4">
-                <p className={`text-base font-bold leading-relaxed font-mono ${
-                  isWarning ? "text-destructive" : isGreen ? "text-[hsl(160_60%_55%)]" : "text-card-foreground"
-                }`}>
-                  💡 {renderSuggestionWithBold(suggestion)}
-                </p>
-              </div>
-
-              {/* 7-Day BVA Trend Sparkline */}
-              <BvaTrendSparkline meals={meals} profile={profile} />
-              {/* Storage Footer */}
-              <div className="px-5 py-2.5 border-t border-border/10 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Archive className="w-3 h-3 text-muted-foreground/30" />
-                  <span className="text-[8px] font-mono text-muted-foreground/30 tracking-wider">
-                    {t.auditDataCompressed}
-                  </span>
-                </div>
-                <span className="text-[8px] font-mono text-muted-foreground/20">
-                  {new Date().toLocaleDateString()}
-                </span>
-              </div>
-            </div>
-          </section>
+          <AssetPnLStatement
+            calories={liveTotals.calories}
+            protein_g={liveTotals.protein_g}
+            fat_g={liveTotals.fat_g}
+            carbs_g={liveTotals.carbs_g}
+            suggestion={suggestion}
+            isWarning={isWarning}
+            isGreen={isGreen}
+            meals={meals}
+            profile={profile}
+          />
         )}
 
         {/* BPI Gauge */}

@@ -404,4 +404,14 @@ export interface Dictionary {
   bpiNeutralDesc: string;
   bpiWaterLevel: string;
   bpiPerformanceIndex: string;
+
+  // Asset P&L Statement
+  pnlTitle: string;
+  pnlBrainBattery: string;
+  pnlSurplus: string;
+  pnlDeficit: string;
+  pnlNeutral: string;
+  pnlSurplusDesc: (minutes: number) => string;
+  pnlDeficitDesc: (time: string, pct: number) => string;
+  pnlNeutralDesc: string;
 }

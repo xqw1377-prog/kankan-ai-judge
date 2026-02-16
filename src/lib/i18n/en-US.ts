@@ -397,4 +397,13 @@ export const enUS: Dictionary = {
   bpiNeutralDesc: "Physiological energy at baseline — consider adding quality protein",
   bpiWaterLevel: "Asset Level",
   bpiPerformanceIndex: "BPI",
+
+  pnlTitle: "ASSET P&L STATEMENT",
+  pnlBrainBattery: "BRAIN CELL",
+  pnlSurplus: "SURPLUS",
+  pnlDeficit: "DEFICIT",
+  pnlNeutral: "NEUTRAL",
+  pnlSurplusDesc: (minutes) => `+${minutes}min high-focus time deposited into brain asset account`,
+  pnlDeficitDesc: (time, pct) => `-${pct}% afternoon decision performance loss — brain shutdown at ${time}`,
+  pnlNeutralDesc: "Brain battery at neutral — add quality protein to boost charge efficiency",
 };
