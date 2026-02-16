@@ -318,4 +318,20 @@ export interface Dictionary {
   liveRecalcHint: string;
   signAndArchive: string;
   archivedToHistory: string;
+
+  // Digestion Engine
+  digestEngineTitle: string;
+  digestLaneFast: string;
+  digestLaneMedium: string;
+  digestLaneSlow: string;
+  digestRouteTip: string;
+  digestOrderAccel: string;
+  digestOrderBrake: string;
+  energyPredictionTitle: string;
+  energyOptimal: string;
+  energyModerate: string;
+  energyFatigueWarning: string;
+  energyOptimalTip: string;
+  energyModerateTip: string;
+  energyFatigueTip: string;
 }
