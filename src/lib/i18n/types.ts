@@ -414,4 +414,19 @@ export interface Dictionary {
   pnlSurplusDesc: (minutes: number) => string;
   pnlDeficitDesc: (time: string, pct: number) => string;
   pnlNeutralDesc: string;
+
+  // Performance Status (Index)
+  perfStatusTitle: string;
+  perfSurplusDesc: (hours: string, until: string) => string;
+  perfDeficitDesc: (time: string, pct: number) => string;
+  perfNeutralDesc: string;
+  perfHedgeBtn: string;
+  perfHedgeTitle: string;
+  perfHedgeWater: string;
+  perfHedgeWaterEffect: string;
+  perfHedgeWalk: string;
+  perfHedgeWalkEffect: string;
+  perfHedgeRest: string;
+  perfHedgeRestEffect: string;
+  perfHedgeApplied: string;
 }

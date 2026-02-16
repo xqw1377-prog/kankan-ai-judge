@@ -406,4 +406,18 @@ export const zhCN: Dictionary = {
   pnlSurplusDesc: (minutes) => `+${minutes}min 高效专注时长已存入大脑资产账户`,
   pnlDeficitDesc: (time, pct) => `-${pct}% 下午决策性能损耗预警，预计${time}触发大脑宕机`,
   pnlNeutralDesc: "大脑电池处于中性水位，建议补充优质蛋白提升充能效率",
+
+  perfStatusTitle: "今日性能状态 · PERFORMANCE STATUS",
+  perfSurplusDesc: (hours, until) => `专注力资产 +${hours}h（预计持续至 ${until}）`,
+  perfDeficitDesc: (time, pct) => `检测到生理赤字：${time} 性能将下降 ${pct}%`,
+  perfNeutralDesc: "生理性能处于基准线，继续摄入优质资产可激活增值模式",
+  perfHedgeBtn: "启动对冲方案",
+  perfHedgeTitle: "赤字对冲方案 · HEDGE OPTIONS",
+  perfHedgeWater: "立即补充 500ml 水",
+  perfHedgeWaterEffect: "稀释血糖峰值，延缓性能衰减约 15%",
+  perfHedgeWalk: "餐后快走 10 分钟",
+  perfHedgeWalkEffect: "加速葡萄糖利用，减少脂肪堆积，提升午后专注力",
+  perfHedgeRest: "5 分钟深呼吸拉伸",
+  perfHedgeRestEffect: "激活副交感神经，降低皮质醇水平，修复决策效率",
+  perfHedgeApplied: "对冲补丁已激活",
 };
