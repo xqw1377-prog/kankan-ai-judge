@@ -194,6 +194,10 @@ const Audit = () => {
     setAuditComplete(true);
     setAuditing(false);
     setTimeout(() => setShowVerified(true), 400);
+    // Post-audit data storage feedback
+    setTimeout(() => {
+      toast({ title: "📦 " + t.auditDataCompressed, duration: 4000 });
+    }, 1200);
   }, [hasImage, images, t]);
 
   const handleDialogFiles = useCallback((files: FileList) => {
@@ -295,6 +299,12 @@ const Audit = () => {
                 <div className="absolute inset-0 opacity-[0.06]" style={{
                   backgroundImage: "repeating-linear-gradient(0deg, hsl(var(--info)) 0px, transparent 1px, transparent 30px)",
                 }} />
+                {/* Knowledge base search text */}
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                  <span className="text-[10px] font-mono text-[hsl(var(--info))] tracking-widest animate-pulse px-3 py-1 rounded-full bg-background/60 backdrop-blur-sm">
+                    {t.auditSearchingKnowledge}
+                  </span>
+                </div>
               </div>
             )}
             <div className="absolute top-3 right-3 bg-background/80 backdrop-blur-sm border border-primary/30 px-2.5 py-1 rounded-full text-[10px] font-mono text-primary">
@@ -337,7 +347,7 @@ const Audit = () => {
       )}
 
       {/* Management Advice - below scan animation */}
-      <ManagementAdvice recommendations={recommendations} visible={auditComplete} />
+      <ManagementAdvice recommendations={recommendations} visible={auditComplete} bpiScore={bpiScore} />
 
       {/* Dual-wing body */}
       <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 pb-4 overflow-y-auto">

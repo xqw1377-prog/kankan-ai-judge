@@ -303,4 +303,7 @@ export interface Dictionary {
   auditViewAll: string;
   auditManagementAdvice: string;
   auditTrendTitle: string;
+  auditGoalAchievement: string;
+  auditDataCompressed: string;
+  auditSearchingKnowledge: string;
 }

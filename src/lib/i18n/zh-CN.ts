@@ -306,4 +306,7 @@ export const zhCN: Dictionary = {
   auditViewAll: "查看全部",
   auditManagementAdvice: "管理建议 · MANAGEMENT ADVICE",
   auditTrendTitle: "目标达成率趋势",
+  auditGoalAchievement: "今日目标达成",
+  auditDataCompressed: "图片已压缩存储，结构化审计资产已存入本地历史记录",
+  auditSearchingKnowledge: "正在检索知识库...",
 };
