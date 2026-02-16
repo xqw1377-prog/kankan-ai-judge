@@ -14,6 +14,7 @@ import BioStrategySimulation, { type SequenceQuality } from "@/components/BioStr
 import BpiGauge from "@/components/BpiGauge";
 import AssetPnLStatement from "@/components/AssetPnLStatement";
 import PostMealAudit from "@/components/PostMealAudit";
+import BrainBattery from "@/components/BrainBattery";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -299,6 +300,15 @@ const Result = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-4 relative z-10">
+        {/* Brain Battery Dashboard */}
+        <BrainBattery
+          calories={liveTotals.calories}
+          fat_g={liveTotals.fat_g}
+          carbs_g={liveTotals.carbs_g}
+          protein_g={liveTotals.protein_g}
+          gi_value={gi_value}
+        />
+
         <div className="text-center mb-5 animate-slide-up">
           <span className="text-4xl">🍜</span>
           <h1 className="text-2xl font-bold mt-2 text-card-foreground">{food}</h1>
