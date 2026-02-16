@@ -299,4 +299,6 @@ export interface Dictionary {
   auditDragDropOrClick: string;
   auditGdasXrayMulti: string;
   auditLoaded: (n: number) => string;
+  auditHistoryLog: string;
+  auditViewAll: string;
 }
