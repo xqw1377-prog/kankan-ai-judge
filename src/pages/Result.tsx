@@ -153,6 +153,7 @@ const Result = () => {
     }))
   );
   const [confirmed, setConfirmed] = useState(false);
+  const [archiveAnim, setArchiveAnim] = useState(false);
 
   // Live recalculated totals from editable ingredients
   const liveTotals = useMemo(() => {
@@ -195,6 +196,7 @@ const Result = () => {
   const modeLabel = isGreen ? t.modeGreen : isWarning ? t.modeWarning : t.modeNeutral;
 
   const handleSave = useCallback(async () => {
+    if (confirmed) return;
     await saveMeal({
       food_name: food, meal_type: getMealTypeByTime(),
       calories: liveTotals.calories, protein_g: liveTotals.protein_g,
@@ -202,9 +204,11 @@ const Result = () => {
       ingredients: editableIngredients, verdict, suggestion,
     });
     setConfirmed(true);
-    toast({ title: "✓", description: `${food}` });
-    navigate("/", { replace: true });
-  }, [saveMeal, food, liveTotals, editableIngredients, verdict, suggestion, toast, navigate]);
+    setArchiveAnim(true);
+    toast({ title: t.archivedToHistory });
+    // Delay navigation to show success animation
+    setTimeout(() => navigate("/", { replace: true }), 1800);
+  }, [confirmed, saveMeal, food, liveTotals, editableIngredients, verdict, suggestion, toast, navigate, t]);
 
   const handleUpdateIngredient = useCallback((index: number, field: string, value: string) => {
     setEditableIngredients(prev => prev.map((item, i) => {
@@ -584,9 +588,25 @@ const Result = () => {
           }`}
         >
           <ShieldCheck className="w-4 h-4 shrink-0" />
-          {confirmed ? t.auditConfirmed : t.finalizeArchive}
+          {confirmed ? t.auditConfirmed : t.signAndArchive}
         </button>
       </div>
+
+      {/* Archive success overlay */}
+      {archiveAnim && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none animate-fade-in">
+          <div className="flex flex-col items-center gap-4 animate-slide-up">
+            <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center border-2 border-success/40">
+              <ShieldCheck className="w-10 h-10 text-success animate-pulse" />
+            </div>
+            <p className="text-sm font-mono font-bold text-success tracking-wider">{t.archivedToHistory}</p>
+            <div className="flex items-center gap-1.5 text-[9px] font-mono text-muted-foreground/50">
+              <Archive className="w-3 h-3" />
+              <span>{t.auditDataCompressed}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ position: "fixed", left: -9999, top: 0 }}>
         <ShareCard

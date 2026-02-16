@@ -319,4 +319,6 @@ export const zhCN: Dictionary = {
   ingredientNamePlaceholder: "食材名称",
   finalizeArchive: "确认并存入资产库",
   liveRecalcHint: "数值已实时重算",
+  signAndArchive: "签字确认入库",
+  archivedToHistory: "数据已存入历史资产 ✓",
 };

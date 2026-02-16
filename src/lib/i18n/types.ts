@@ -316,4 +316,6 @@ export interface Dictionary {
   ingredientNamePlaceholder: string;
   finalizeArchive: string;
   liveRecalcHint: string;
+  signAndArchive: string;
+  archivedToHistory: string;
 }

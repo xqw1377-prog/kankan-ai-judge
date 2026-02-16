@@ -319,4 +319,6 @@ export const enUS: Dictionary = {
   ingredientNamePlaceholder: "Ingredient name",
   finalizeArchive: "Finalize & Archive",
   liveRecalcHint: "Values recalculated live",
+  signAndArchive: "Sign & Archive",
+  archivedToHistory: "Data archived to history assets ✓",
 };
