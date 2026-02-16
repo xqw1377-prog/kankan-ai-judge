@@ -387,4 +387,14 @@ export const enUS: Dictionary = {
   historyCalibrationNote: "Your feedback helps calibrate prediction accuracy",
   historyFocusForecast: "Post-Meal Focus Trend",
   historyCompareBtn: "Reconcile",
+
+  bpiTitle: "BIOLOGICAL PERFORMANCE INDEX · BPI",
+  bpiSurplus: "Performance Surplus",
+  bpiDeficit: "Performance Deficit",
+  bpiSurplusDesc: (hours) => `Focus asset expected to appreciate by ${hours} hours today`,
+  bpiDeficitDesc: (time, pct) => `In performance debt — brain shutdown predicted at ${time}, ${pct}% decision efficiency loss`,
+  bpiNeutral: "Baseline",
+  bpiNeutralDesc: "Physiological energy at baseline — consider adding quality protein",
+  bpiWaterLevel: "Asset Level",
+  bpiPerformanceIndex: "BPI",
 };

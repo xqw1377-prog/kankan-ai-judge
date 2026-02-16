@@ -393,4 +393,15 @@ export interface Dictionary {
   historyCalibrationNote: string;
   historyFocusForecast: string;
   historyCompareBtn: string;
+
+  // BPI Gauge
+  bpiTitle: string;
+  bpiSurplus: string;
+  bpiDeficit: string;
+  bpiSurplusDesc: (hours: string) => string;
+  bpiDeficitDesc: (time: string, pct: number) => string;
+  bpiNeutral: string;
+  bpiNeutralDesc: string;
+  bpiWaterLevel: string;
+  bpiPerformanceIndex: string;
 }

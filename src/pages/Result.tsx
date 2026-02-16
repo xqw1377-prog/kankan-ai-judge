@@ -11,6 +11,7 @@ import VirtualTable from "@/components/VirtualTable";
 import InviteButton from "@/components/InviteCard";
 import PerformanceTracker from "@/components/PerformanceTracker";
 import BioStrategySimulation, { type SequenceQuality } from "@/components/BioStrategySimulation";
+import BpiGauge from "@/components/BpiGauge";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -473,6 +474,15 @@ const Result = () => {
             </div>
           </section>
         )}
+
+        {/* BPI Gauge */}
+        <BpiGauge
+          calories={liveTotals.calories}
+          protein_g={liveTotals.protein_g}
+          fat_g={liveTotals.fat_g}
+          carbs_g={liveTotals.carbs_g}
+          gi_value={gi_value}
+        />
 
         {/* Bio-Strategy Simulation */}
         <BioStrategySimulation ingredients={editableIngredients} visible={editableIngredients.length > 0} onSequenceQualityChange={setSequenceQuality} />

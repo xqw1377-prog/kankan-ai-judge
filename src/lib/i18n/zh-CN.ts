@@ -387,4 +387,14 @@ export const zhCN: Dictionary = {
   historyCalibrationNote: "您的反馈将帮助系统校准预测精度",
   historyFocusForecast: "餐后专注力走势",
   historyCompareBtn: "对账分析",
+
+  bpiTitle: "生理性能指数 · BPI",
+  bpiSurplus: "性能盈余",
+  bpiDeficit: "性能负债",
+  bpiSurplusDesc: (hours) => `今日专注力资产预计增值 ${hours} 小时`,
+  bpiDeficitDesc: (time, pct) => `当前处于性能负债状态，预计${time}发生大脑宕机，损耗 ${pct}% 的决策效率`,
+  bpiNeutral: "性能持平",
+  bpiNeutralDesc: "生理能量处于基准水位，建议增加优质蛋白摄入",
+  bpiWaterLevel: "资产水位",
+  bpiPerformanceIndex: "BPI",
 };
