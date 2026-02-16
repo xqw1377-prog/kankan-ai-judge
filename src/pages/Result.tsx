@@ -470,17 +470,14 @@ const Result = () => {
             <div className="glass rounded-xl p-4 shadow-card space-y-3">
               {/* Column headers */}
               {editableIngredients.length > 0 && (
-                <div className="flex items-center gap-1.5 text-[9px] font-mono text-muted-foreground/50 tracking-wider uppercase px-0.5">
+                <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground/50 tracking-wider uppercase px-0.5">
                   <span className="flex-1 min-w-0">{t.ingredientNamePlaceholder}</span>
-                  <span className="w-14 text-center">g</span>
-                  <span className="w-12 text-center">{t.protein}</span>
-                  <span className="w-12 text-center">{t.fat}</span>
-                  <span className="w-12 text-center">{t.carbs}</span>
+                  <span className="w-16 text-center">g</span>
                   <span className="w-7" />
                 </div>
               )}
               {editableIngredients.map((item, i) => (
-                <div key={i} className="flex items-center gap-1.5">
+                <div key={i} className="flex items-center gap-2">
                   {allergenWarnings.includes(item.name) && <span className="text-destructive text-xs">⚠️</span>}
                   <input
                     type="text"
@@ -490,13 +487,7 @@ const Result = () => {
                     className="flex-1 min-w-0 text-xs bg-secondary/50 border border-border/50 rounded-lg px-2 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
                   />
                   <input type="number" value={item.grams} onChange={e => handleUpdateIngredient(i, "grams", e.target.value)}
-                    className="w-14 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
-                  <input type="number" value={item.protein} onChange={e => handleUpdateIngredient(i, "protein", e.target.value)}
-                    className="w-12 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
-                  <input type="number" value={item.fat} onChange={e => handleUpdateIngredient(i, "fat", e.target.value)}
-                    className="w-12 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
-                  <input type="number" value={item.carbs} onChange={e => handleUpdateIngredient(i, "carbs", e.target.value)}
-                    className="w-12 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                    className="w-16 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
                   <button onClick={() => handleDeleteIngredient(i)}
                     className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10">
                     <Trash2 className="w-3.5 h-3.5" />
