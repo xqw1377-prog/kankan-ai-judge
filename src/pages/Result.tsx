@@ -128,6 +128,11 @@ const Result = () => {
   const result = location.state?.result;
   const imageData = location.state?.imageData;
   const allImages: string[] = location.state?.images || (imageData ? [imageData] : []);
+  // Pick the most visually impactful image (largest base64 = most detail/color)
+  const heroImage = useMemo(() => {
+    if (allImages.length <= 1) return imageData;
+    return allImages.reduce((best, img) => (img.length > best.length ? img : best), allImages[0]);
+  }, [allImages, imageData]);
   const inputRef = useRef<HTMLInputElement>(null);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const [shareOpen, setShareOpen] = useState(false);
@@ -498,7 +503,7 @@ const Result = () => {
         <ShareCard
           ref={shareCardRef}
           food={food} calories={calories} protein_g={protein_g} fat_g={fat_g} carbs_g={carbs_g}
-          verdict={verdict} roast={roast} ingredients={ingredients} imageData={imageData}
+          verdict={verdict} roast={roast} ingredients={ingredients} imageData={heroImage}
           score={matchScore} locale={locale}
         />
       </div>
