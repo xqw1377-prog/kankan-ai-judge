@@ -306,4 +306,7 @@ export const enUS: Dictionary = {
   auditViewAll: "VIEW ALL",
   auditManagementAdvice: "MANAGEMENT ADVICE",
   auditTrendTitle: "GOAL ACHIEVEMENT TREND",
+  auditGoalAchievement: "TODAY'S GOAL PROGRESS",
+  auditDataCompressed: "Image compressed. Structured audit assets saved to local history.",
+  auditSearchingKnowledge: "Searching knowledge base...",
 };
