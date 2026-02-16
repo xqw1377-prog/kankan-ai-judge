@@ -9,8 +9,7 @@ import ShareCard from "@/components/ShareCard";
 import VirtualTable from "@/components/VirtualTable";
 import InviteButton from "@/components/InviteCard";
 import PerformanceTracker from "@/components/PerformanceTracker";
-import DigestFunnel from "@/components/DigestFunnel";
-import EnergyPrediction from "@/components/EnergyPrediction";
+import BioStrategySimulation from "@/components/BioStrategySimulation";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -447,12 +446,6 @@ const Result = () => {
 
               {/* 7-Day BVA Trend Sparkline */}
               <BvaTrendSparkline meals={meals} profile={profile} />
-
-              {/* Energy Prediction Meter */}
-              <div className="px-5 pb-3">
-                <EnergyPrediction ingredients={editableIngredients} />
-              </div>
-
               {/* Storage Footer */}
               <div className="px-5 py-2.5 border-t border-border/10 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
@@ -469,8 +462,8 @@ const Result = () => {
           </section>
         )}
 
-        {/* Digestion Funnel */}
-        <DigestFunnel ingredients={editableIngredients} visible={editableIngredients.length > 0} />
+        {/* Bio-Strategy Simulation */}
+        <BioStrategySimulation ingredients={editableIngredients} visible={editableIngredients.length > 0} />
 
         {editableIngredients.length >= 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
