@@ -406,4 +406,18 @@ export const enUS: Dictionary = {
   pnlSurplusDesc: (minutes) => `+${minutes}min high-focus time deposited into brain asset account`,
   pnlDeficitDesc: (time, pct) => `-${pct}% afternoon decision performance loss — brain shutdown at ${time}`,
   pnlNeutralDesc: "Brain battery at neutral — add quality protein to boost charge efficiency",
+
+  perfStatusTitle: "TODAY'S PERFORMANCE STATUS",
+  perfSurplusDesc: (hours, until) => `Focus asset +${hours}h (sustained until ${until})`,
+  perfDeficitDesc: (time, pct) => `Physiological deficit detected: performance drops ${pct}% at ${time}`,
+  perfNeutralDesc: "Performance at baseline — continue quality intake to activate surplus mode",
+  perfHedgeBtn: "Activate Hedge Protocol",
+  perfHedgeTitle: "DEFICIT HEDGE OPTIONS",
+  perfHedgeWater: "Drink 500ml water now",
+  perfHedgeWaterEffect: "Dilutes blood sugar peak, delays performance decay ~15%",
+  perfHedgeWalk: "10-min post-meal walk",
+  perfHedgeWalkEffect: "Accelerates glucose utilization, boosts afternoon focus",
+  perfHedgeRest: "5-min deep breathing stretch",
+  perfHedgeRestEffect: "Activates parasympathetic system, restores decision efficiency",
+  perfHedgeApplied: "Hedge patch activated",
 };

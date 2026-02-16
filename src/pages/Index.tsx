@@ -4,6 +4,7 @@ import { Camera, X, ImagePlus, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import NutritionBar from "@/components/NutritionBar";
+import PerformanceStatus from "@/components/PerformanceStatus";
 import { getMealTypeLabel } from "@/lib/nutrition";
 import { useI18n } from "@/lib/i18n";
 
@@ -99,15 +100,7 @@ const Index = () => {
       </header>
 
       <section className="px-5 mb-6">
-        <div className="glass rounded-2xl p-5 shadow-card">
-          <h2 className="text-sm font-semibold text-muted-foreground mb-4">{t.todayGoal}</h2>
-          <div className="space-y-3">
-            <NutritionBar label={t.energy} current={todayTotals.calories} target={profile.targets.calories} unit="kcal" />
-            <NutritionBar label={t.protein} current={todayTotals.protein_g} target={profile.targets.protein_g} unit="g" />
-            <NutritionBar label={t.fat} current={todayTotals.fat_g} target={profile.targets.fat_g} unit="g" />
-            <NutritionBar label={t.carbs} current={todayTotals.carbs_g} target={profile.targets.carbs_g} unit="g" />
-          </div>
-        </div>
+        <PerformanceStatus todayTotals={todayTotals} targets={profile.targets} />
       </section>
 
       {photos.length > 0 && (
