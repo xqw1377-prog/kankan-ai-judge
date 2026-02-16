@@ -319,7 +319,7 @@ export interface Dictionary {
   signAndArchive: string;
   archivedToHistory: string;
 
-  // Digestion Engine
+  // Digestion Funnel
   digestEngineTitle: string;
   digestLaneFast: string;
   digestLaneMedium: string;
@@ -327,6 +327,17 @@ export interface Dictionary {
   digestRouteTip: string;
   digestOrderAccel: string;
   digestOrderBrake: string;
+  funnelPioneer: string;
+  funnelSupply: string;
+  funnelCore: string;
+  funnelWaiting: string;
+  funnelEnergyProcessed: string;
+  funnelCongestionTip: string;
+  funnelWrongOrderTip: string;
+  funnelPerfectTip: string;
+  funnelProcessingTip: string;
+
+  // Energy Prediction
   energyPredictionTitle: string;
   energyOptimal: string;
   energyModerate: string;

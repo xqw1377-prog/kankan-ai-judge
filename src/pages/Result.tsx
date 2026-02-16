@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
@@ -9,7 +9,7 @@ import ShareCard from "@/components/ShareCard";
 import VirtualTable from "@/components/VirtualTable";
 import InviteButton from "@/components/InviteCard";
 import PerformanceTracker from "@/components/PerformanceTracker";
-import DigestRaceTrack from "@/components/DigestRaceTrack";
+import DigestFunnel from "@/components/DigestFunnel";
 import EnergyPrediction from "@/components/EnergyPrediction";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
@@ -469,8 +469,8 @@ const Result = () => {
           </section>
         )}
 
-        {/* Digestion Race Track */}
-        <DigestRaceTrack ingredients={editableIngredients} visible={editableIngredients.length > 0} />
+        {/* Digestion Funnel */}
+        <DigestFunnel ingredients={editableIngredients} visible={editableIngredients.length > 0} />
 
         {editableIngredients.length >= 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
@@ -490,18 +490,25 @@ const Result = () => {
                 const lower = item.name.toLowerCase();
                 const isVeg = /菜|蔬|叶|菠|芹|broccoli|spinach|lettuce|vegetable|greens|salad/.test(lower);
                 const isCarb = /米|饭|面|粉|麦|bread|rice|noodle|pasta|糖|sugar/.test(lower);
-                const isAccel = isVeg; // vegetables = accelerate digestion buffer
-                const isBrake = isCarb; // refined carbs = slow down, eat last
+                const isMeat = /鸡|鸭|猪|牛|羊|肉|鱼|虾|蛋|豆腐|chicken|pork|beef|meat|fish|egg|tofu|protein/.test(lower);
+                const ballColor = isVeg ? "hsl(200, 80%, 55%)" : isCarb ? "hsl(0, 72%, 55%)" : isMeat ? "hsl(43, 80%, 52%)" : undefined;
+                const ballLabel = isVeg ? "🛡" : isCarb ? "⚡" : isMeat ? "💪" : undefined;
                 return (
                   <div key={i} className="flex items-center gap-2">
-                    {/* Eating order indicator */}
+                    {/* Funnel type indicator */}
                     <div className="w-5 flex items-center justify-center shrink-0">
-                      {isAccel ? (
-                        <ChevronUp className="w-3.5 h-3.5 text-[hsl(160,60%,45%)]" />
-                      ) : isBrake ? (
-                        <ChevronDown className="w-3.5 h-3.5 text-[hsl(0,72%,55%)]" />
+                      {ballColor ? (
+                        <div
+                          className="w-4 h-4 rounded-full flex items-center justify-center text-[7px]"
+                          style={{
+                            background: `radial-gradient(circle at 35% 35%, ${ballColor}dd, ${ballColor}88)`,
+                            boxShadow: `0 1px 4px ${ballColor}40`,
+                          }}
+                        >
+                          {ballLabel}
+                        </div>
                       ) : (
-                        <span className="text-[9px] font-mono text-muted-foreground/30">—</span>
+                        <span className="text-[9px] font-mono text-muted-foreground/30">●</span>
                       )}
                     </div>
                     {allergenWarnings.includes(item.name) && <span className="text-destructive text-xs">⚠️</span>}
@@ -533,15 +540,19 @@ const Result = () => {
                   </div>
                 )}
               </div>
-              {/* Arrow legend */}
+              {/* Ball legend */}
               {editableIngredients.length > 0 && (
                 <div className="flex items-center gap-3 mt-1.5">
                   <div className="flex items-center gap-1">
-                    <ChevronUp className="w-3 h-3 text-[hsl(160,60%,45%)]" />
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: "hsl(200, 80%, 55%)" }} />
                     <span className="text-[8px] font-mono text-muted-foreground/40">{t.digestOrderAccel}</span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <ChevronDown className="w-3 h-3 text-[hsl(0,72%,55%)]" />
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: "hsl(43, 80%, 52%)" }} />
+                    <span className="text-[8px] font-mono text-muted-foreground/40">💪</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: "hsl(0, 72%, 55%)" }} />
                     <span className="text-[8px] font-mono text-muted-foreground/40">{t.digestOrderBrake}</span>
                   </div>
                 </div>
