@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Pencil, Share2, Download, X, UtensilsCrossed, Package, Images } from "lucide-react";
+import { ChevronLeft, Home, Pencil, Share2, Download, X, UtensilsCrossed, Package, Images, Stethoscope, Archive } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
@@ -256,6 +256,49 @@ const Result = () => {
                   {verdictIcon} {verdict}
                 </p>
               )}
+            </div>
+          </section>
+        )}
+
+        {/* Actuarial Advice Panel */}
+        {suggestion && (
+          <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.07s" }}>
+            <div className={`rounded-2xl p-5 relative overflow-hidden border ${
+              isWarning
+                ? "bg-destructive/6 border-destructive/20"
+                : isGreen
+                  ? "bg-[hsl(160_60%_45%/0.06)] border-[hsl(160_60%_45%/0.2)]"
+                  : "glass border-border"
+            }`}>
+              <div className="flex items-center gap-2 mb-3">
+                <Stethoscope className={`w-4 h-4 ${isWarning ? "text-destructive" : isGreen ? "text-[hsl(160_60%_55%)]" : "text-primary"}`} />
+                <span className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground">
+                  {t.actuarialAdvice}
+                </span>
+                <div className={`ml-auto flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-mono font-bold tracking-wider ${
+                  isWarning
+                    ? "bg-destructive/10 text-destructive"
+                    : isGreen
+                      ? "bg-[hsl(160_60%_45%/0.1)] text-[hsl(160_60%_55%)]"
+                      : "bg-secondary text-muted-foreground"
+                }`}>
+                  <div className={`w-1.5 h-1.5 rounded-full ${
+                    isWarning ? "bg-destructive animate-pulse" : isGreen ? "bg-[hsl(160_60%_45%)]" : "bg-primary"
+                  }`} />
+                  {isWarning ? t.riskHigh : isGreen ? t.actuarialAssetUp : t.riskLow}
+                </div>
+              </div>
+              <p className={`text-sm font-bold leading-relaxed ${
+                isWarning ? "text-destructive" : isGreen ? "text-[hsl(160_60%_55%)]" : "text-card-foreground"
+              }`}>
+                💡 {renderSuggestionWithBold(suggestion)}
+              </p>
+              <div className="mt-3 pt-2 border-t border-border/20 flex items-center gap-1.5">
+                <Archive className="w-3 h-3 text-muted-foreground/40" />
+                <span className="text-[9px] font-mono text-muted-foreground/40 tracking-wider">
+                  {t.auditDataCompressed}
+                </span>
+              </div>
             </div>
           </section>
         )}

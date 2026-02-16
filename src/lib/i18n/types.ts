@@ -306,4 +306,6 @@ export interface Dictionary {
   auditGoalAchievement: string;
   auditDataCompressed: string;
   auditSearchingKnowledge: string;
+  actuarialAdvice: string;
+  actuarialAssetUp: string;
 }

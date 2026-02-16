@@ -309,4 +309,6 @@ export const zhCN: Dictionary = {
   auditGoalAchievement: "今日目标达成",
   auditDataCompressed: "图片已压缩存储，结构化审计资产已存入本地历史记录",
   auditSearchingKnowledge: "正在检索知识库...",
+  actuarialAdvice: "精算建议 · ACTUARIAL ADVICE",
+  actuarialAssetUp: "资产增值",
 };
