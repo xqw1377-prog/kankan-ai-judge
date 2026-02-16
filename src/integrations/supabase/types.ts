@@ -79,6 +79,7 @@ export type Database = {
           diet_preference: string | null
           gender: string | null
           goal: string | null
+          health_conditions: string[] | null
           height_cm: number | null
           id: string
           onboarding_completed: boolean
@@ -100,6 +101,7 @@ export type Database = {
           diet_preference?: string | null
           gender?: string | null
           goal?: string | null
+          health_conditions?: string[] | null
           height_cm?: number | null
           id?: string
           onboarding_completed?: boolean
@@ -121,6 +123,7 @@ export type Database = {
           diet_preference?: string | null
           gender?: string | null
           goal?: string | null
+          health_conditions?: string[] | null
           height_cm?: number | null
           id?: string
           onboarding_completed?: boolean
