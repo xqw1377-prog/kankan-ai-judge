@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator } from "lucide-react";
+import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator, ChevronUp, ChevronDown } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
@@ -9,6 +9,8 @@ import ShareCard from "@/components/ShareCard";
 import VirtualTable from "@/components/VirtualTable";
 import InviteButton from "@/components/InviteCard";
 import PerformanceTracker from "@/components/PerformanceTracker";
+import DigestRaceTrack from "@/components/DigestRaceTrack";
+import EnergyPrediction from "@/components/EnergyPrediction";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -446,6 +448,11 @@ const Result = () => {
               {/* 7-Day BVA Trend Sparkline */}
               <BvaTrendSparkline meals={meals} profile={profile} />
 
+              {/* Energy Prediction Meter */}
+              <div className="px-5 pb-3">
+                <EnergyPrediction ingredients={editableIngredients} />
+              </div>
+
               {/* Storage Footer */}
               <div className="px-5 py-2.5 border-t border-border/10 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
@@ -462,6 +469,9 @@ const Result = () => {
           </section>
         )}
 
+        {/* Digestion Race Track */}
+        <DigestRaceTrack ingredients={editableIngredients} visible={editableIngredients.length > 0} />
+
         {editableIngredients.length >= 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
@@ -476,24 +486,41 @@ const Result = () => {
                   <span className="w-7" />
                 </div>
               )}
-              {editableIngredients.map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  {allergenWarnings.includes(item.name) && <span className="text-destructive text-xs">⚠️</span>}
-                  <input
-                    type="text"
-                    value={item.name}
-                    onChange={e => handleUpdateIngredient(i, "name", e.target.value)}
-                    placeholder={t.ingredientNamePlaceholder}
-                    className="flex-1 min-w-0 text-xs bg-secondary/50 border border-border/50 rounded-lg px-2 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
-                  />
-                  <input type="number" value={item.grams} onChange={e => handleUpdateIngredient(i, "grams", e.target.value)}
-                    className="w-16 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
-                  <button onClick={() => handleDeleteIngredient(i)}
-                    className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10">
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
+              {editableIngredients.map((item, i) => {
+                const lower = item.name.toLowerCase();
+                const isVeg = /菜|蔬|叶|菠|芹|broccoli|spinach|lettuce|vegetable|greens|salad/.test(lower);
+                const isCarb = /米|饭|面|粉|麦|bread|rice|noodle|pasta|糖|sugar/.test(lower);
+                const isAccel = isVeg; // vegetables = accelerate digestion buffer
+                const isBrake = isCarb; // refined carbs = slow down, eat last
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    {/* Eating order indicator */}
+                    <div className="w-5 flex items-center justify-center shrink-0">
+                      {isAccel ? (
+                        <ChevronUp className="w-3.5 h-3.5 text-[hsl(160,60%,45%)]" />
+                      ) : isBrake ? (
+                        <ChevronDown className="w-3.5 h-3.5 text-[hsl(0,72%,55%)]" />
+                      ) : (
+                        <span className="text-[9px] font-mono text-muted-foreground/30">—</span>
+                      )}
+                    </div>
+                    {allergenWarnings.includes(item.name) && <span className="text-destructive text-xs">⚠️</span>}
+                    <input
+                      type="text"
+                      value={item.name}
+                      onChange={e => handleUpdateIngredient(i, "name", e.target.value)}
+                      placeholder={t.ingredientNamePlaceholder}
+                      className="flex-1 min-w-0 text-xs bg-secondary/50 border border-border/50 rounded-lg px-2 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
+                    />
+                    <input type="number" value={item.grams} onChange={e => handleUpdateIngredient(i, "grams", e.target.value)}
+                      className="w-16 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
+                    <button onClick={() => handleDeleteIngredient(i)}
+                      className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                );
+              })}
               <div className="flex items-center justify-between pt-2 border-t border-border/30">
                 <button onClick={handleAddIngredient}
                   className="flex items-center gap-1.5 text-primary text-xs font-semibold hover:opacity-80 transition-opacity">
@@ -506,6 +533,19 @@ const Result = () => {
                   </div>
                 )}
               </div>
+              {/* Arrow legend */}
+              {editableIngredients.length > 0 && (
+                <div className="flex items-center gap-3 mt-1.5">
+                  <div className="flex items-center gap-1">
+                    <ChevronUp className="w-3 h-3 text-[hsl(160,60%,45%)]" />
+                    <span className="text-[8px] font-mono text-muted-foreground/40">{t.digestOrderAccel}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <ChevronDown className="w-3 h-3 text-[hsl(0,72%,55%)]" />
+                    <span className="text-[8px] font-mono text-muted-foreground/40">{t.digestOrderBrake}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </section>
         )}
