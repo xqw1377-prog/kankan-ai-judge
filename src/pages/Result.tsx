@@ -511,17 +511,26 @@ const Result = () => {
                       {COOK_METHODS.map((m) => {
                         const isActive = item.cookMethod === m.key;
                         const isFry = m.key === "deepfry";
+                        const isBraisedMethod = m.key === "braised";
                         return (
                           <button
                             key={m.key}
-                            onClick={() => setEditableIngredients(prev => prev.map((it, j) =>
-                              j === i ? { ...it, cookMethod: m.key } : it
-                            ))}
+                            onClick={() => {
+                              setEditableIngredients(prev => prev.map((it, j) =>
+                                j === i ? { ...it, cookMethod: m.key } : it
+                              ));
+                              // Haptic vibration for high-heat methods
+                              if ((isFry || isBraisedMethod) && navigator.vibrate) {
+                                navigator.vibrate(isFry ? [50, 30, 80] : [40, 20, 40]);
+                              }
+                            }}
                             className={`flex-1 py-1 rounded-md text-center transition-all duration-300 border ${
                               isActive
                                 ? isFry
                                   ? "bg-destructive/15 border-destructive/40 text-destructive shadow-sm"
-                                  : "bg-primary/15 border-primary/40 text-primary shadow-sm"
+                                  : isBraisedMethod
+                                    ? "bg-warning/15 border-warning/40 text-warning shadow-sm"
+                                    : "bg-primary/15 border-primary/40 text-primary shadow-sm"
                                 : "border-border/20 text-muted-foreground/60 hover:border-border/40"
                             }`}
                           >
@@ -536,10 +545,23 @@ const Result = () => {
                     {isModified && (
                       <div className="ml-7 mt-1 space-y-1 animate-fade-in">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-[8px] font-mono font-bold ${isDeepFry ? "text-destructive" : "text-warning"} animate-pulse`}>
+                          <span
+                            key={`cal-${item.cookMethod}`}
+                            className={`font-mono font-black transition-all duration-300 ${
+                              isDeepFry ? "text-[13px] text-destructive animate-pulse" 
+                              : isBraised ? "text-[11px] text-warning animate-pulse"
+                              : "text-[9px] text-warning"
+                            }`}
+                            style={isDeepFry ? { 
+                              textShadow: "0 0 8px hsl(0, 72%, 55%, 0.4)",
+                              animation: "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite, scale-in 0.3s ease-out"
+                            } : isBraised ? {
+                              animation: "scale-in 0.3s ease-out"
+                            } : undefined}
+                          >
                             {adjustedCal}kcal {calDelta > 0 ? `(+${calDelta})` : ""}
                           </span>
-                          <span className={`text-[8px] font-mono font-bold ${isDeepFry ? "text-destructive" : "text-warning"} animate-pulse`}>
+                          <span className={`text-[8px] font-mono font-bold ${isDeepFry ? "text-destructive" : "text-warning"}`}>
                             fat {adjustedFat}g
                           </span>
                           {perfLoss > 0 && (
