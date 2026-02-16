@@ -309,4 +309,6 @@ export const enUS: Dictionary = {
   auditGoalAchievement: "TODAY'S GOAL PROGRESS",
   auditDataCompressed: "Image compressed. Structured audit assets saved to local history.",
   auditSearchingKnowledge: "Searching knowledge base...",
+  actuarialAdvice: "ACTUARIAL ADVICE",
+  actuarialAssetUp: "ASSET UP",
 };
