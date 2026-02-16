@@ -367,4 +367,16 @@ export interface Dictionary {
   drowsinessRiskZone: string;
   drowsinessRiskTip: string;
   focusUnit: string;
+
+  // Asset Hedge Rescue
+  hedgeAlertTitle: string;
+  hedgeAlertDesc: string;
+  hedgeOptionWalk: string;
+  hedgeOptionWalkEffect: string;
+  hedgeOptionWater: string;
+  hedgeOptionWaterEffect: string;
+  hedgeOptionSkip: string;
+  hedgeOptionSkipEffect: string;
+  hedgePatchApplied: string;
+  hedgePatchLabel: string;
 }

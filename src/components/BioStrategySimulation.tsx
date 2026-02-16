@@ -52,6 +52,7 @@ function getBallIcon(name: string): string {
   return "🍽";
 }
 
+type HedgePatch = "walk" | "water" | null;
 type SequenceQuality = "optimal" | "moderate" | "poor";
 
 function evaluateSequence(balls: SimBall[]): SequenceQuality {
@@ -77,7 +78,7 @@ interface PulsePoint {
   focus: number;
 }
 
-function generateFocusCurve(quality: SequenceQuality, topType?: BallType): PulsePoint[] {
+function generateFocusCurve(quality: SequenceQuality, topType?: BallType, hedge?: HedgePatch): PulsePoint[] {
   const pts: PulsePoint[] = [];
   for (let i = 0; i <= 48; i++) {
     const t = i / 48; // 0 to 1 over 4 hours
@@ -92,6 +93,17 @@ function generateFocusCurve(quality: SequenceQuality, topType?: BallType): Pulse
       const crash = t > 0.2 ? -55 * (t - 0.2) : 0;
       const floor = t > 0.5 ? -4 * Math.sin((t - 0.5) * Math.PI * 3) : 0;
       focus = Math.max(12, 48 + spike + crash + floor);
+
+      // Apply hedge patches to soften the crash
+      if (hedge === "walk") {
+        // Walk: reduce dip by 20%
+        const baseline = 48;
+        if (focus < baseline) focus = focus + (baseline - focus) * 0.2;
+      } else if (hedge === "water") {
+        // Water: metabolism boost, raise floor by 10%
+        const baseline = 48;
+        if (focus < baseline) focus = focus + (baseline - focus) * 0.1;
+      }
     } else if (quality === "optimal" && topType === "pioneer") {
       focus = 82 + 14 * Math.sin(t * Math.PI * 0.7) * (1 - t * 0.12);
     } else if (quality === "optimal") {
@@ -151,7 +163,7 @@ interface Props {
   onSequenceQualityChange?: (quality: SequenceQuality) => void;
 }
 
-export type { SequenceQuality };
+export type { SequenceQuality, HedgePatch };
 
 export default function BioStrategySimulation({ ingredients, visible, onSequenceQualityChange }: Props) {
   const { t } = useI18n();
@@ -174,7 +186,8 @@ export default function BioStrategySimulation({ ingredients, visible, onSequence
 
   const [balls, setBalls] = useState<SimBall[]>(initialBalls);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
-  
+  const [hedgePatch, setHedgePatch] = useState<HedgePatch>(null);
+  const [showHedgePanel, setShowHedgePanel] = useState(false);
   const [entered, setEntered] = useState(false);
   const touchStartY = useRef(0);
   const touchStartIdx = useRef<number | null>(null);
@@ -194,8 +207,18 @@ export default function BioStrategySimulation({ ingredients, visible, onSequence
   const topType = balls.length > 0 ? balls[0].type : undefined;
   const isPioneerTop = topType === "pioneer";
   const isCoreTop = topType === "core";
-  const curve = useMemo(() => generateFocusCurve(quality, topType), [quality, topType]);
+  const curve = useMemo(() => generateFocusCurve(quality, topType, hedgePatch), [quality, topType, hedgePatch]);
   const advice = useMemo(() => getTacticalAdvice(quality, balls, t), [quality, balls, t]);
+
+  // Show hedge panel when core is on top
+  useEffect(() => {
+    if (isCoreTop) {
+      setShowHedgePanel(true);
+    } else {
+      setShowHedgePanel(false);
+      setHedgePatch(null);
+    }
+  }, [isCoreTop]);
 
   // Notify parent of sequence quality changes
   useEffect(() => {
@@ -464,6 +487,54 @@ export default function BioStrategySimulation({ ingredients, visible, onSequence
             </div>
           ))}
         </div>
+
+        {/* Asset Hedge Rescue Panel */}
+        {showHedgePanel && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 mb-3 animate-fade-in">
+            <p className="text-[11px] font-bold text-destructive mb-1">{t.hedgeAlertTitle}</p>
+            <p className="text-[9px] text-muted-foreground mb-3">{t.hedgeAlertDesc}</p>
+            <div className="flex flex-col gap-2">
+              {([
+                { key: "walk" as HedgePatch, label: t.hedgeOptionWalk, effect: t.hedgeOptionWalkEffect, icon: "🚶" },
+                { key: "water" as HedgePatch, label: t.hedgeOptionWater, effect: t.hedgeOptionWaterEffect, icon: "💧" },
+                { key: null as HedgePatch, label: t.hedgeOptionSkip, effect: t.hedgeOptionSkipEffect, icon: "😴" },
+              ]).map((opt) => {
+                const isActive = hedgePatch === opt.key;
+                return (
+                  <button
+                    key={opt.label}
+                    onClick={() => setHedgePatch(opt.key)}
+                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-all duration-300 border ${
+                      isActive
+                        ? opt.key ? "border-primary/40 bg-primary/10 ring-1 ring-primary/20" : "border-destructive/40 bg-destructive/10"
+                        : "border-border/20 hover:border-border/40 hover:bg-muted/30"
+                    }`}
+                  >
+                    <span className="text-base shrink-0">{opt.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-[10px] font-semibold ${isActive ? "text-card-foreground" : "text-muted-foreground"}`}>
+                        {opt.label}
+                      </p>
+                      <p className={`text-[8px] font-mono ${
+                        isActive && opt.key ? "text-primary" : isActive ? "text-destructive" : "text-muted-foreground/50"
+                      }`}>
+                        {opt.effect}
+                      </p>
+                    </div>
+                    {isActive && (
+                      <span className="text-[8px] font-mono text-primary shrink-0">●</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {hedgePatch && (
+              <div className="mt-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-1.5 animate-fade-in">
+                <p className="text-[9px] font-mono text-primary font-bold">{t.hedgePatchApplied}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Tactical advice */}
         <div
