@@ -96,6 +96,7 @@ const Result = () => {
     { key: "deepfry", icon: "🍳", label: "油炸", calMul: 2.0, fatMul: 2.5 },
   ];
 
+  const [habitAppliedNames, setHabitAppliedNames] = useState<string[]>([]);
   const [editableIngredients, setEditableIngredients] = useState<Array<{ name: string; grams: number; protein: number; fat: number; carbs: number; calories: number; cookMethod: CookMethod }>>(() => {
     const base = (ingredients || []).map((item: any) => ({
       name: item.name || "", grams: item.grams || 0,
@@ -103,10 +104,12 @@ const Result = () => {
       calories: item.calories || Math.round((item.protein || 0) * 4 + (item.fat || 0) * 9 + (item.carbs || 0) * 4),
       cookMethod: "steam" as CookMethod,
     }));
-    // Apply learned habits
     const { ingredients: corrected, applied } = applyHabits(base);
     if (applied.length > 0) {
-      setTimeout(() => toast({ title: "🧬 习惯记忆已应用", description: `已自动修正 ${applied.length} 项食材偏好` }), 500);
+      setTimeout(() => {
+        setHabitAppliedNames(applied);
+        toast({ title: "🤖 已按习惯校准", description: `自动修正 ${applied.length} 项食材偏好` });
+      }, 500);
     }
     return corrected as typeof base;
   });
@@ -492,6 +495,11 @@ const Result = () => {
                         )}
                       </div>
                       {allergenWarnings.includes(item.name) && <span className="text-destructive text-xs">⚠️</span>}
+                      {habitAppliedNames.includes(item.name) && (
+                        <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0 animate-fade-in">
+                          🤖 已校准
+                        </span>
+                      )}
                       <input
                         type="text"
                         value={item.name}

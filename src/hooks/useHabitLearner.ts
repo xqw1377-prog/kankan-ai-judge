@@ -54,7 +54,7 @@ export function useHabitLearner() {
           corrected_grams: correctedGrams ?? existing.corrected_grams,
           preferred_cook_method: cookMethod || existing.preferred_cook_method,
           occurrence_count: newCount,
-          auto_apply: newCount >= 5,
+          auto_apply: newCount >= 3,
           updated_at: new Date().toISOString(),
         })
         .eq("device_id", deviceId)
