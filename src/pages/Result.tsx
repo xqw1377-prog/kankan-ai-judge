@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator } from "lucide-react";
+import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator, Zap } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
@@ -15,6 +15,7 @@ import BpiGauge from "@/components/BpiGauge";
 import AssetPnLStatement from "@/components/AssetPnLStatement";
 import PostMealAudit from "@/components/PostMealAudit";
 import BrainBattery from "@/components/BrainBattery";
+import { useHabitLearner } from "@/hooks/useHabitLearner";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -66,6 +67,7 @@ const Result = () => {
   const { profile } = useProfile();
   const { toast } = useToast();
   const { t, locale } = useI18n();
+  const { applyHabits, recordEdit, isTrustedMeal } = useHabitLearner();
   const result = location.state?.result;
   const imageData = location.state?.imageData;
   const allImages: string[] = location.state?.images || (imageData ? [imageData] : []);
@@ -94,19 +96,26 @@ const Result = () => {
     { key: "deepfry", icon: "🍳", label: "油炸", calMul: 2.0, fatMul: 2.5 },
   ];
 
-  const [editableIngredients, setEditableIngredients] = useState<Array<{ name: string; grams: number; protein: number; fat: number; carbs: number; calories: number; cookMethod: CookMethod }>>(
-    () => (ingredients || []).map((item: any) => ({
+  const [editableIngredients, setEditableIngredients] = useState<Array<{ name: string; grams: number; protein: number; fat: number; carbs: number; calories: number; cookMethod: CookMethod }>>(() => {
+    const base = (ingredients || []).map((item: any) => ({
       name: item.name || "", grams: item.grams || 0,
       protein: item.protein || 0, fat: item.fat || 0, carbs: item.carbs || 0,
       calories: item.calories || Math.round((item.protein || 0) * 4 + (item.fat || 0) * 9 + (item.carbs || 0) * 4),
       cookMethod: "steam" as CookMethod,
-    }))
-  );
+    }));
+    // Apply learned habits
+    const { ingredients: corrected, applied } = applyHabits(base);
+    if (applied.length > 0) {
+      setTimeout(() => toast({ title: "🧬 习惯记忆已应用", description: `已自动修正 ${applied.length} 项食材偏好` }), 500);
+    }
+    return corrected as typeof base;
+  });
   const [confirmed, setConfirmed] = useState(false);
   const [archiveAnim, setArchiveAnim] = useState(false);
   const [sequenceQuality, setSequenceQuality] = useState<SequenceQuality>("optimal");
   const [showSuboptimalDialog, setShowSuboptimalDialog] = useState(false);
   const [savedMealId, setSavedMealId] = useState<string | null>(null);
+  const isTrusted = isTrustedMeal(editableIngredients);
 
   // Live recalculated totals from editable ingredients (with cooking multipliers)
   const liveTotals = useMemo(() => {
@@ -122,6 +131,13 @@ const Result = () => {
     const hasBreakdown = editableIngredients.some(i => i.protein > 0 || i.fat > 0 || i.carbs > 0);
     return hasBreakdown ? totals : { calories, protein_g, fat_g, carbs_g };
   }, [editableIngredients, calories, protein_g, fat_g, carbs_g]);
+
+  // Predict feeling based on current nutrition profile
+  const predictedFeeling = useMemo(() => {
+    if (liveTotals.calories > 900 || liveTotals.fat_g > 35) return "crash" as const;
+    if (liveTotals.protein_g > 25 && liveTotals.calories < 600) return "great" as const;
+    return "ok" as const;
+  }, [liveTotals]);
 
   const userAllergies = profile?.allergies?.split(/[,，、\s]+/).filter(Boolean) || [];
   const allergenWarnings = ingredients
@@ -194,12 +210,22 @@ const Result = () => {
     const { data: savedData } = await saveMeal(finalPayload);
     if (savedData?.id) setSavedMealId(savedData.id);
 
-    // 3. Success feedback
+    // 3. Record habit patterns for learning
+    for (const ing of editableIngredients) {
+      const original = (ingredients || []).find((o: any) => o.name === ing.name || o.grams === ing.grams);
+      if (original) {
+        const hasChanges = original.name !== ing.name || original.grams !== ing.grams || ing.cookMethod !== "steam";
+        if (hasChanges) {
+          recordEdit(original.name || ing.name, ing.name, ing.grams, ing.cookMethod);
+        }
+      }
+    }
+
+    // 4. Success feedback
     setConfirmed(true);
     setArchiveAnim(true);
     toast({ title: t.archivedToHistory });
     // Don't auto-navigate — let PostMealAudit dialog fire first
-    // setTimeout(() => navigate("/", { replace: true }), 1800);
   }, [confirmed, saveMeal, food, liveTotals, editableIngredients, verdict, suggestion, toast, navigate, t]);
 
   const handleUpdateIngredient = useCallback((index: number, field: string, value: string) => {
@@ -641,30 +667,42 @@ const Result = () => {
         </section>
       </div>
 
-      <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex gap-3 shrink-0 relative z-10">
-        <button onClick={handleRetake} className="py-4 px-4 rounded-2xl border border-border glass font-bold active:scale-[0.98] transition-all truncate text-card-foreground">
-          {t.retake}
-        </button>
-        <button
-          onClick={generateShareImage}
-          disabled={generating}
-          className="py-4 px-4 rounded-2xl border border-primary/30 bg-primary/5 text-primary font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate"
-        >
-          <Share2 className="w-4 h-4 shrink-0" />
-          {generating ? t.generating : t.share}
-        </button>
-        <button
-          onClick={handleSaveAttempt}
-          disabled={confirmed}
-          className={`flex-1 py-4 rounded-2xl font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate ${
-            confirmed
-              ? "bg-success/20 text-success border border-success/30"
-              : "bg-primary text-primary-foreground"
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4 shrink-0" />
-          {confirmed ? t.auditConfirmed : t.signAndArchive}
-        </button>
+      <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] shrink-0 relative z-10 space-y-2">
+        {/* Trust Mode — one-click save for historically trusted meals */}
+        {isTrusted && !confirmed && (
+          <button
+            onClick={handleSave}
+            className="w-full py-3 rounded-2xl font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 bg-success/15 text-success border border-success/30 animate-fade-in"
+          >
+            <Zap className="w-4 h-4" />
+            ⚡ 信任模式 · 一键秒存
+          </button>
+        )}
+        <div className="flex gap-3">
+          <button onClick={handleRetake} className="py-4 px-4 rounded-2xl border border-border glass font-bold active:scale-[0.98] transition-all truncate text-card-foreground">
+            {t.retake}
+          </button>
+          <button
+            onClick={generateShareImage}
+            disabled={generating}
+            className="py-4 px-4 rounded-2xl border border-primary/30 bg-primary/5 text-primary font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate"
+          >
+            <Share2 className="w-4 h-4 shrink-0" />
+            {generating ? t.generating : t.share}
+          </button>
+          <button
+            onClick={handleSaveAttempt}
+            disabled={confirmed}
+            className={`flex-1 py-4 rounded-2xl font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate ${
+              confirmed
+                ? "bg-success/20 text-success border border-success/30"
+                : "bg-primary text-primary-foreground"
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            {confirmed ? t.auditConfirmed : t.signAndArchive}
+          </button>
+        </div>
       </div>
 
       {/* Suboptimal sequence confirmation dialog */}
@@ -738,6 +776,8 @@ const Result = () => {
         mealId={savedMealId}
         foodName={food}
         triggered={confirmed}
+        ingredients={editableIngredients}
+        predictedFeeling={predictedFeeling}
       />
     </div>
   );
