@@ -420,4 +420,13 @@ export const enUS: Dictionary = {
   perfHedgeRest: "5-min deep breathing stretch",
   perfHedgeRestEffect: "Activates parasympathetic system, restores decision efficiency",
   perfHedgeApplied: "Hedge patch activated",
+  perfDeficitWarning: (time, pct) => `⚠️ WARNING: Physiological deficit detected — decision performance drops ${pct}% at ${time}`,
+
+  postMealTitle: "POST-MEAL AUDIT",
+  postMealQuestion: (food) => `Boss, it's been 2 hours since "${food}" — how's your CPU frequency?`,
+  postMealGreat: "Full Power",
+  postMealOk: "Steady State",
+  postMealCrash: "System Crash",
+  postMealNegativeFlag: "This food combo flagged as negative impact on user assets — marked for avoidance",
+  postMealCalibrationNote: "Your feedback calibrates the physiological simulator to better understand your constitution",
 };

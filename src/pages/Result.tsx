@@ -13,6 +13,7 @@ import PerformanceTracker from "@/components/PerformanceTracker";
 import BioStrategySimulation, { type SequenceQuality } from "@/components/BioStrategySimulation";
 import BpiGauge from "@/components/BpiGauge";
 import AssetPnLStatement from "@/components/AssetPnLStatement";
+import PostMealAudit from "@/components/PostMealAudit";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import html2canvas from "html2canvas";
@@ -104,6 +105,7 @@ const Result = () => {
   const [archiveAnim, setArchiveAnim] = useState(false);
   const [sequenceQuality, setSequenceQuality] = useState<SequenceQuality>("optimal");
   const [showSuboptimalDialog, setShowSuboptimalDialog] = useState(false);
+  const [savedMealId, setSavedMealId] = useState<string | null>(null);
 
   // Live recalculated totals from editable ingredients (with cooking multipliers)
   const liveTotals = useMemo(() => {
@@ -188,13 +190,15 @@ const Result = () => {
     }
 
     // 2. Persist to database
-    await saveMeal(finalPayload);
+    const { data: savedData } = await saveMeal(finalPayload);
+    if (savedData?.id) setSavedMealId(savedData.id);
 
     // 3. Success feedback
     setConfirmed(true);
     setArchiveAnim(true);
     toast({ title: t.archivedToHistory });
-    setTimeout(() => navigate("/", { replace: true }), 1800);
+    // Don't auto-navigate — let PostMealAudit dialog fire first
+    // setTimeout(() => navigate("/", { replace: true }), 1800);
   }, [confirmed, saveMeal, food, liveTotals, editableIngredients, verdict, suggestion, toast, navigate, t]);
 
   const handleUpdateIngredient = useCallback((index: number, field: string, value: string) => {
@@ -714,6 +718,13 @@ const Result = () => {
       )}
 
       <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+
+      {/* Post-Meal Audit Dialog — triggers after archive */}
+      <PostMealAudit
+        mealId={savedMealId}
+        foodName={food}
+        triggered={confirmed}
+      />
     </div>
   );
 };
