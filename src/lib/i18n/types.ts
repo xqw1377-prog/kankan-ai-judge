@@ -309,4 +309,9 @@ export interface Dictionary {
   actuarialAdvice: string;
   actuarialAssetUp: string;
   bvaManagement: string;
+  addIngredient: string;
+  deleteIngredient: string;
+  confirmAudit: string;
+  auditConfirmed: string;
+  ingredientNamePlaceholder: string;
 }

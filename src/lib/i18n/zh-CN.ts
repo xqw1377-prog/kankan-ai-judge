@@ -312,4 +312,9 @@ export const zhCN: Dictionary = {
   actuarialAdvice: "精算建议 · ACTUARIAL ADVICE",
   actuarialAssetUp: "资产增值",
   bvaManagement: "生理资产管理动态 · BVA MGMT",
+  addIngredient: "添加食材",
+  deleteIngredient: "删除",
+  confirmAudit: "确认入库",
+  auditConfirmed: "已确认入库",
+  ingredientNamePlaceholder: "食材名称",
 };

@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Pencil, Share2, Download, X, UtensilsCrossed, Package, Images, Stethoscope, Archive, TrendingUp, Activity } from "lucide-react";
+import { ChevronLeft, Home, Pencil, Share2, Download, X, UtensilsCrossed, Package, Images, Stethoscope, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import { getMealTypeByTime } from "@/lib/nutrition";
@@ -139,6 +139,10 @@ const Result = () => {
   const [shareImage, setShareImage] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [claimedPortions, setClaimedPortions] = useState<Record<string, number>>({});
+  const [editableIngredients, setEditableIngredients] = useState<Array<{ name: string; grams: number }>>(
+    () => (ingredients || []).map((item: any) => ({ name: item.name || "", grams: item.grams || 0 }))
+  );
+  const [confirmed, setConfirmed] = useState(false);
 
   const {
     food = "", calories = 0, protein_g = 0, fat_g = 0, carbs_g = 0,
@@ -177,11 +181,24 @@ const Result = () => {
   const handleSave = useCallback(async () => {
     await saveMeal({
       food_name: food, meal_type: getMealTypeByTime(),
-      calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion,
+      calories, protein_g, fat_g, carbs_g, ingredients: editableIngredients, verdict, suggestion,
     });
+    setConfirmed(true);
     toast({ title: "✓", description: `${food}` });
     navigate("/", { replace: true });
-  }, [saveMeal, food, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion, toast, navigate]);
+  }, [saveMeal, food, calories, protein_g, fat_g, carbs_g, editableIngredients, verdict, suggestion, toast, navigate]);
+
+  const handleUpdateIngredient = useCallback((index: number, field: "name" | "grams", value: string) => {
+    setEditableIngredients(prev => prev.map((item, i) => i === index ? { ...item, [field]: field === "grams" ? Number(value) || 0 : value } : item));
+  }, []);
+
+  const handleAddIngredient = useCallback(() => {
+    setEditableIngredients(prev => [...prev, { name: "", grams: 50 }]);
+  }, []);
+
+  const handleDeleteIngredient = useCallback((index: number) => {
+    setEditableIngredients(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
   const handleRetake = useCallback(() => inputRef.current?.click(), []);
 
@@ -388,25 +405,46 @@ const Result = () => {
           </section>
         )}
 
-        {ingredients.length > 0 && (
+        {editableIngredients.length > 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
               <span className="w-8 h-px bg-border" /> {t.ingredientList} <span className="flex-1 h-px bg-border" />
             </h3>
-            <div className="glass rounded-xl p-4 shadow-card">
-              {ingredients.map((item: any, i: number) => (
-                <div key={i} className="flex justify-between py-1.5 border-b border-border last:border-0">
-                  <span className="text-sm flex items-center gap-1 text-card-foreground">
-                    {allergenWarnings.includes(item.name) && <span className="text-destructive">⚠️</span>}
-                    {item.name}
-                  </span>
-                  <span className="text-sm text-muted-foreground">{item.grams}g</span>
+            <div className="glass rounded-xl p-4 shadow-card space-y-2">
+              {editableIngredients.map((item, i) => (
+                <div key={i} className="flex items-center gap-2 py-1">
+                  {allergenWarnings.includes(item.name) && <span className="text-destructive text-sm">⚠️</span>}
+                  <input
+                    type="text"
+                    value={item.name}
+                    onChange={e => handleUpdateIngredient(i, "name", e.target.value)}
+                    placeholder={t.ingredientNamePlaceholder}
+                    className="flex-1 min-w-0 text-sm bg-secondary/50 border border-border/50 rounded-lg px-2.5 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
+                  />
+                  <div className="flex items-center gap-1 shrink-0">
+                    <input
+                      type="number"
+                      value={item.grams}
+                      onChange={e => handleUpdateIngredient(i, "grams", e.target.value)}
+                      className="w-16 text-sm text-right bg-secondary/50 border border-border/50 rounded-lg px-2 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
+                    />
+                    <span className="text-xs text-muted-foreground">g</span>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteIngredient(i)}
+                    className="p-1.5 text-muted-foreground/50 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
+              <button
+                onClick={handleAddIngredient}
+                className="flex items-center gap-1.5 text-primary text-xs font-semibold mt-2 ml-1 hover:opacity-80 transition-opacity"
+              >
+                <Plus className="w-3.5 h-3.5" /> {t.addIngredient}
+              </button>
             </div>
-            <button onClick={handleEditIngredients} className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 ml-1">
-              <Pencil className="w-3 h-3" /> {t.editIngredients}
-            </button>
           </section>
         )}
 
@@ -483,19 +521,28 @@ const Result = () => {
       </div>
 
       <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] flex gap-3 shrink-0 relative z-10">
-        <button onClick={handleRetake} className="flex-1 py-4 rounded-2xl border border-border glass font-bold active:scale-[0.98] transition-all truncate text-card-foreground">
+        <button onClick={handleRetake} className="py-4 px-4 rounded-2xl border border-border glass font-bold active:scale-[0.98] transition-all truncate text-card-foreground">
           {t.retake}
         </button>
         <button
           onClick={generateShareImage}
           disabled={generating}
-          className="flex-1 py-4 rounded-2xl border border-primary/30 bg-primary/5 text-primary font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate"
+          className="py-4 px-4 rounded-2xl border border-primary/30 bg-primary/5 text-primary font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate"
         >
           <Share2 className="w-4 h-4 shrink-0" />
           {generating ? t.generating : t.share}
         </button>
-        <button onClick={handleSave} className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-bold active:scale-[0.98] transition-all truncate">
-          {t.recordMeal}
+        <button
+          onClick={handleSave}
+          disabled={confirmed}
+          className={`flex-1 py-4 rounded-2xl font-bold active:scale-[0.98] transition-all flex items-center justify-center gap-2 truncate ${
+            confirmed
+              ? "bg-success/20 text-success border border-success/30"
+              : "bg-primary text-primary-foreground"
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4 shrink-0" />
+          {confirmed ? t.auditConfirmed : t.confirmAudit}
         </button>
       </div>
 

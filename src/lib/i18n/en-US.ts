@@ -312,4 +312,9 @@ export const enUS: Dictionary = {
   actuarialAdvice: "ACTUARIAL ADVICE",
   actuarialAssetUp: "ASSET UP",
   bvaManagement: "BVA MANAGEMENT",
+  addIngredient: "Add Ingredient",
+  deleteIngredient: "Remove",
+  confirmAudit: "Confirm Audit",
+  auditConfirmed: "Audit Confirmed",
+  ingredientNamePlaceholder: "Ingredient name",
 };
