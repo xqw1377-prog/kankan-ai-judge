@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import type { Locale } from "@/lib/i18n";
+import QRCode from "@/components/QRCode";
 
 interface TableMember {
   name: string;
@@ -37,30 +38,7 @@ const BRAND: Record<Locale, { tagline: string; lab: string; ranking: string; car
   },
 };
 
-function QRPlaceholder() {
-  const grid = [
-    [1,1,1,0,1,0,1,1,1],
-    [1,0,1,0,0,0,1,0,1],
-    [1,1,1,0,1,0,1,1,1],
-    [0,0,0,0,1,0,0,0,0],
-    [1,0,1,1,0,1,1,0,1],
-    [0,0,0,0,1,0,0,0,0],
-    [1,1,1,0,0,0,1,1,1],
-    [1,0,1,0,1,0,1,0,1],
-    [1,1,1,0,1,0,1,1,1],
-  ];
-  return (
-    <div style={{
-      width: 44, height: 44, borderRadius: 6,
-      background: "#D4AF37", padding: 3,
-      display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gridTemplateRows: "repeat(9, 1fr)", gap: 0.5,
-    }}>
-      {grid.flat().map((v, i) => (
-        <div key={i} style={{ background: v ? "#0A0C10" : "#D4AF37", borderRadius: 0.5 }} />
-      ))}
-    </div>
-  );
-}
+const APP_URL = "https://kankan-eye-spy.lovable.app";
 
 const TableReportCard = forwardRef<HTMLDivElement, TableReportCardProps>(
   ({ food, totalWeight, claimedWeight, totalCarbs, members, locale = "zh-CN" }, ref) => {
@@ -186,7 +164,7 @@ const TableReportCard = forwardRef<HTMLDivElement, TableReportCardProps>(
               }}>{brand.tagline}</p>
             </div>
           </div>
-          <QRPlaceholder />
+          <QRCode url={APP_URL} size={44} />
         </div>
       </div>
     );

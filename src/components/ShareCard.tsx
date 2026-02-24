@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import type { Locale } from "@/lib/i18n";
+import QRCode from "@/components/QRCode";
 
 interface ShareCardProps {
   food: string;
@@ -46,30 +47,7 @@ function MacroRing({ value, max, color, label, unit }: { value: number; max: num
   );
 }
 
-function QRPlaceholder() {
-  const grid = [
-    [1,1,1,0,1,0,1,1,1],
-    [1,0,1,0,0,0,1,0,1],
-    [1,1,1,0,1,0,1,1,1],
-    [0,0,0,0,1,0,0,0,0],
-    [1,0,1,1,0,1,1,0,1],
-    [0,0,0,0,1,0,0,0,0],
-    [1,1,1,0,0,0,1,1,1],
-    [1,0,1,0,1,0,1,0,1],
-    [1,1,1,0,1,0,1,1,1],
-  ];
-  return (
-    <div style={{
-      width: 44, height: 44, borderRadius: 6,
-      background: "#D4AF37", padding: 3,
-      display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gridTemplateRows: "repeat(9, 1fr)", gap: 0.5,
-    }}>
-      {grid.flat().map((v, i) => (
-        <div key={i} style={{ background: v ? "#0A0C10" : "#D4AF37", borderRadius: 0.5 }} />
-      ))}
-    </div>
-  );
-}
+const APP_URL = "https://kankan-eye-spy.lovable.app";
 
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
   ({ food, calories, protein_g, fat_g, carbs_g, verdict, roast, ingredients, imageData, score = 60, locale = "zh-CN" }, ref) => {
@@ -181,7 +159,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
               }}>{brand.tagline}</p>
             </div>
           </div>
-          <QRPlaceholder />
+          <QRCode url={APP_URL} size={44} />
         </div>
       </div>
     );

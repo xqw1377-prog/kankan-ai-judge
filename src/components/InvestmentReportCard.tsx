@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import type { Locale } from "@/lib/i18n";
+import QRCode from "@/components/QRCode";
 
 interface InvestmentReportCardProps {
   avgGI: number;
@@ -59,23 +60,7 @@ const CARD_BG = "rgba(212,175,55,0.04)";
 const CARD_BORDER = "1px solid rgba(212,175,55,0.1)";
 const RED = "#EF5350";
 
-function QRPlaceholder() {
-  const grid = [
-    [1,1,1,0,1,0,1,1,1],[1,0,1,0,0,0,1,0,1],[1,1,1,0,1,0,1,1,1],
-    [0,0,0,0,1,0,0,0,0],[1,0,1,1,0,1,1,0,1],[0,0,0,0,1,0,0,0,0],
-    [1,1,1,0,0,0,1,1,1],[1,0,1,0,1,0,1,0,1],[1,1,1,0,1,0,1,1,1],
-  ];
-  return (
-    <div style={{
-      width: 40, height: 40, borderRadius: 5, background: GOLD, padding: 2.5,
-      display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gridTemplateRows: "repeat(9, 1fr)", gap: 0.4,
-    }}>
-      {grid.flat().map((v, i) => (
-        <div key={i} style={{ background: v ? "#0A0C10" : GOLD, borderRadius: 0.4 }} />
-      ))}
-    </div>
-  );
-}
+const APP_URL = "https://kankan-eye-spy.lovable.app";
 
 function MiniSparkline({ data }: { data: number[] }) {
   const w = 300, h = 60;
@@ -288,7 +273,7 @@ const InvestmentReportCard = forwardRef<HTMLDivElement, InvestmentReportCardProp
               }}>{brand.tagline}</p>
             </div>
           </div>
-          <QRPlaceholder />
+          <QRCode url={APP_URL} size={40} />
         </div>
       </div>
     );
