@@ -126,6 +126,10 @@ export interface Dictionary {
   recordDays: string;
   totalMeals: string;
   editProfile: string;
+  nickname: string;
+  avatarSetting: string;
+  changeAvatar: string;
+  nicknamePlaceholder: string;
   goal: string;
   preferences: string;
   allergenManagement: string;

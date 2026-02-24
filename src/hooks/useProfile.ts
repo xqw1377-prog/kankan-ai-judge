@@ -8,6 +8,8 @@ export interface FullProfile extends UserProfile {
   device_id: string;
   onboarding_completed: boolean;
   targets: NutritionTargets;
+  nickname?: string;
+  avatar_url?: string;
 }
 
 export function useProfile() {
