@@ -1,1 +1,10 @@
 project_id = "rordwmxjrozstuiivghu"
+
+[functions.analyze-food]
+verify_jwt = false
+
+[functions.audit-standalone]
+verify_jwt = false
+
+[functions.audit-confirm]
+verify_jwt = false

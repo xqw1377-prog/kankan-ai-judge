@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator, Zap } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
@@ -170,8 +171,6 @@ const Result = () => {
   const verdictIcon = isGreen ? "✅" : isWarning ? "⚠️" : "📋";
   const modeLabel = isGreen ? t.modeGreen : isWarning ? t.modeWarning : t.modeNeutral;
 
-  const CONFIRM_API = "http://192.168.3.101:8080/api/v1/audit/confirm";
-
   const handleSaveAttempt = useCallback(() => {
     if (confirmed) return;
     if (sequenceQuality !== "optimal" && editableIngredients.length > 1) {
@@ -196,17 +195,14 @@ const Result = () => {
       suggestion,
     };
 
-    // 1. Send to 8080 confirm endpoint
+    // 1. Send to Cloud audit-confirm edge function
     try {
-      const res = await fetch(CONFIRM_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(finalPayload),
+      const deviceId = (await import("@/lib/device")).getDeviceId();
+      await supabase.functions.invoke("audit-confirm", {
+        body: { ...finalPayload, device_id: deviceId },
       });
-      if (!res.ok) throw new Error(`${res.status}`);
     } catch {
-      // If 8080 is unreachable, still persist locally
-      console.warn("Audit confirm API unreachable, saving locally only");
+      console.warn("Audit confirm edge function unreachable, saving locally only");
     }
 
     // 2. Persist to database
