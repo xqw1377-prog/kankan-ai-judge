@@ -1,5 +1,6 @@
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Award, Calendar, Utensils, Globe } from "lucide-react";
+import { ChevronRight, Award, Calendar, Utensils, Globe, Camera, X, Check } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import DietRing from "@/components/DietRing";
@@ -7,6 +8,7 @@ import AnimatedScore from "@/components/AnimatedScore";
 import DietCreditCard from "@/components/DietCreditCard";
 import InvestmentReport from "@/components/InvestmentReport";
 import { useI18n } from "@/lib/i18n";
+import { supabase } from "@/integrations/supabase/client";
 
 function calcHealthScore(
   totalMeals: number, uniqueDays: number,
@@ -36,9 +38,12 @@ function calcStreak(dates: string[]): number {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { profile } = useProfile();
+  const { profile, saveProfile } = useProfile();
   const { meals } = useMeals();
   const { t, locale, setLocale } = useI18n();
+  const [editingNickname, setEditingNickname] = useState(false);
+  const [nicknameValue, setNicknameValue] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!profile) {
     return (
@@ -51,11 +56,30 @@ const Profile = () => {
     );
   }
 
-  const nickname = profile.gender === "female" ? "小丽" : "小张";
+  const nickname = (profile as any).nickname || (profile.gender === "female" ? "小丽" : "小张");
+  const avatarUrl = (profile as any).avatar_url;
   const genderLabel = profile.gender === "female" ? t.female : t.male;
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
   const streak = calcStreak(meals.map(m => m.recorded_at));
   const { score, level, levelDesc } = calcHealthScore(meals.length, uniqueDays, t);
+
+  const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = reader.result as string;
+      await saveProfile({ avatar_url: dataUrl } as any);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleNicknameSave = async () => {
+    if (nicknameValue.trim()) {
+      await saveProfile({ nickname: nicknameValue.trim() } as any);
+    }
+    setEditingNickname(false);
+  };
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -78,9 +102,43 @@ const Profile = () => {
       <section className="px-5 mb-6">
         <div className="glass rounded-2xl p-5 shadow-card">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-2xl">👤</div>
+            {/* Avatar with edit */}
+            <div className="relative">
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarPick} />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-2xl overflow-hidden relative group"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span>👤</span>
+                )}
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 group-active:opacity-100 transition-opacity rounded-full">
+                  <Camera className="w-4 h-4 text-white" />
+                </div>
+              </button>
+            </div>
+            {/* Nickname with inline edit */}
             <div className="flex-1 min-w-0">
-              <h2 className="font-bold text-lg text-card-foreground">{nickname}</h2>
+              {editingNickname ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    value={nicknameValue}
+                    onChange={e => setNicknameValue(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && handleNicknameSave()}
+                    placeholder={t.nicknamePlaceholder}
+                    className="flex-1 bg-secondary rounded-lg px-3 py-1.5 text-sm text-card-foreground outline-none border border-border focus:border-primary"
+                  />
+                  <button onClick={handleNicknameSave} className="p-1 text-primary"><Check className="w-4 h-4" /></button>
+                  <button onClick={() => setEditingNickname(false)} className="p-1 text-muted-foreground"><X className="w-4 h-4" /></button>
+                </div>
+              ) : (
+                <button onClick={() => { setNicknameValue(nickname); setEditingNickname(true); }} className="text-left">
+                  <h2 className="font-bold text-lg text-card-foreground">{nickname}</h2>
+                </button>
+              )}
               <p className="text-sm text-muted-foreground">
                 {profile.age}{t.ageSuffix} · {genderLabel} · {profile.height_cm}cm / {profile.weight_kg}kg
               </p>

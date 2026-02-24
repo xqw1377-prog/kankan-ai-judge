@@ -151,6 +151,7 @@ export type Database = {
           activity_level: string | null
           age: number | null
           allergies: string | null
+          avatar_url: string | null
           cooking_source: string | null
           created_at: string
           device_id: string
@@ -160,6 +161,7 @@ export type Database = {
           health_conditions: string[] | null
           height_cm: number | null
           id: string
+          nickname: string | null
           onboarding_completed: boolean
           target_calories: number | null
           target_carbs_g: number | null
@@ -173,6 +175,7 @@ export type Database = {
           activity_level?: string | null
           age?: number | null
           allergies?: string | null
+          avatar_url?: string | null
           cooking_source?: string | null
           created_at?: string
           device_id: string
@@ -182,6 +185,7 @@ export type Database = {
           health_conditions?: string[] | null
           height_cm?: number | null
           id?: string
+          nickname?: string | null
           onboarding_completed?: boolean
           target_calories?: number | null
           target_carbs_g?: number | null
@@ -195,6 +199,7 @@ export type Database = {
           activity_level?: string | null
           age?: number | null
           allergies?: string | null
+          avatar_url?: string | null
           cooking_source?: string | null
           created_at?: string
           device_id?: string
@@ -204,6 +209,7 @@ export type Database = {
           health_conditions?: string[] | null
           height_cm?: number | null
           id?: string
+          nickname?: string | null
           onboarding_completed?: boolean
           target_calories?: number | null
           target_carbs_g?: number | null
