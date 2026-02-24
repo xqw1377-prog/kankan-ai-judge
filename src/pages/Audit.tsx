@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { FlaskConical, Zap, ImagePlus, WifiOff, ScanLine, ShieldCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { toast } from "@/hooks/use-toast";
@@ -20,7 +21,7 @@ const MOCK_INGREDIENTS: DetectedIngredient[] = [
   { name: "Tomato", grams: 60, gi: 15, gl: 0.6, oilG: 0.8, protein: 0.9, fat: 0.2, fiber: 1.2 },
 ];
 
-const AUDIT_API = "http://192.168.3.101:8080/api/v1/audit/standalone";
+// Audit API now uses Cloud edge function
 
 const Audit = () => {
   const { t } = useI18n();
@@ -61,14 +62,6 @@ const Audit = () => {
     t.auditPixelPhases[4] || "Generating audit report...",
   ];
 
-  const dataUrlToBlob = (dataUrl: string): Blob => {
-    const [meta, b64] = dataUrl.split(",");
-    const mime = meta.match(/:(.*?);/)?.[1] || "image/jpeg";
-    const bin = atob(b64);
-    const arr = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-    return new Blob([arr], { type: mime });
-  };
 
   const runAuditAnimation = (): Promise<void> => {
     return new Promise((resolve) => {
@@ -127,13 +120,19 @@ const Audit = () => {
 
     const [apiResult] = await Promise.allSettled([
       (async () => {
-        const formData = new FormData();
-        images.forEach((img, idx) => {
-          formData.append("files", dataUrlToBlob(img), `image_${idx}.jpg`);
+        const { data, error } = await supabase.functions.invoke("audit-standalone", {
+          body: {
+            imagesBase64: images,
+            language: "zh-CN",
+            userContext: profile ? {
+              goal: profile.goal,
+              allergies: (profile as any)?.allergies,
+              health_conditions: (profile as any)?.health_conditions,
+            } : undefined,
+          },
         });
-        const res = await fetch(AUDIT_API, { method: "POST", body: formData });
-        if (!res.ok) throw new Error(`${res.status}`);
-        return res.json();
+        if (error) throw error;
+        return data;
       })(),
       runAuditAnimation(),
     ]);
