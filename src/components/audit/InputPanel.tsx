@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, Camera, ScanLine } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Progress } from "@/components/ui/progress";
+import { takePhoto as capturePhoto } from "@/lib/camera";
 
 interface InputPanelProps {
   images: string[];
@@ -46,6 +47,34 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
     return () => clearInterval(interval);
   }, [analyzing, scanLineY, MOLECULAR_TAGS]);
 
+  const startAnalyzeAnimation = useCallback(() => {
+    setAnalyzing(true);
+    setAnalyzeProgress(0);
+    setPhaseIdx(0);
+    setScanLineY(0);
+    setAnalysisReady(false);
+    let p = 0;
+    let phase = 0;
+    const timer = setInterval(() => {
+      p += Math.random() * 8 + 2;
+      if (p >= 100) {
+        p = 100;
+        clearInterval(timer);
+        setTimeout(() => {
+          setAnalyzing(false);
+          setAnalysisReady(true);
+        }, 600);
+      }
+      const newPhase = Math.min(PIXEL_PHASES.length - 1, Math.floor((p / 100) * PIXEL_PHASES.length));
+      if (newPhase !== phase) {
+        phase = newPhase;
+        setPhaseIdx(phase);
+      }
+      setScanLineY(Math.min(100, p));
+      setAnalyzeProgress(Math.min(100, p));
+    }, 180);
+  }, [PIXEL_PHASES]);
+
   const handleFiles = useCallback(
     (files: FileList | null) => {
       if (!files) return;
@@ -55,36 +84,12 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
           const newImages = [...images.slice(-4), e.target?.result as string];
           onImagesChange(newImages);
 
-          setAnalyzing(true);
-          setAnalyzeProgress(0);
-          setPhaseIdx(0);
-          setScanLineY(0);
-          setAnalysisReady(false);
-          let p = 0;
-          let phase = 0;
-          const timer = setInterval(() => {
-            p += Math.random() * 8 + 2;
-            if (p >= 100) {
-              p = 100;
-              clearInterval(timer);
-              setTimeout(() => {
-                setAnalyzing(false);
-                setAnalysisReady(true);
-              }, 600);
-            }
-            const newPhase = Math.min(PIXEL_PHASES.length - 1, Math.floor((p / 100) * PIXEL_PHASES.length));
-            if (newPhase !== phase) {
-              phase = newPhase;
-              setPhaseIdx(phase);
-            }
-            setScanLineY(Math.min(100, p));
-            setAnalyzeProgress(Math.min(100, p));
-          }, 180);
+          startAnalyzeAnimation();
         };
         reader.readAsDataURL(file);
       });
     },
-    [images, onImagesChange, PIXEL_PHASES]
+    [images, onImagesChange, startAnalyzeAnimation]
   );
 
   const handleDrop = useCallback(
@@ -107,7 +112,15 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
       <div
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
-        onClick={() => inputRef.current?.click()}
+        onClick={async () => {
+          const data = await capturePhoto();
+          if (data) {
+            // Simulate file handling with the captured data
+            const newImages = [...images.slice(-4), data];
+            onImagesChange(newImages);
+            startAnalyzeAnimation();
+          }
+        }}
         className="relative flex-1 min-h-[200px] rounded-xl border border-primary/15 hover:border-primary/40 bg-background/80 backdrop-blur-md transition-all cursor-pointer flex flex-col items-center justify-center gap-3 group overflow-hidden shadow-[inset_0_2px_12px_hsl(0_0%_0%/0.5),0_0_24px_hsl(var(--primary)/0.04)]"
       >
         {images.length > 0 ? (

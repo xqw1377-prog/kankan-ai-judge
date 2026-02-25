@@ -1,25 +1,13 @@
-import { useRef } from "react";
+import { takePhoto } from "@/lib/camera";
 
 interface TheEyeProps {
   onCapture: (imageData: string) => void;
 }
 
 const TheEye = ({ onCapture }: TheEyeProps) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleClick = () => {
-    inputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      onCapture(ev.target?.result as string);
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
+  const handleClick = async () => {
+    const data = await takePhoto();
+    if (data) onCapture(data);
   };
 
   return (
@@ -53,15 +41,6 @@ const TheEye = ({ onCapture }: TheEyeProps) => {
       <p className="text-2xl font-black text-foreground tracking-wide text-glow-orange select-none">
         别藏了，给我<span className="text-primary">看看</span>。
       </p>
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={handleFileChange}
-      />
     </div>
   );
 };

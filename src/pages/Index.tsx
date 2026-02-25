@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, X, ImagePlus, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -7,6 +7,7 @@ import NutritionBar from "@/components/NutritionBar";
 import PerformanceStatus from "@/components/PerformanceStatus";
 import { getMealTypeLabel } from "@/lib/nutrition";
 import { useI18n } from "@/lib/i18n";
+import { takePhoto, pickPhoto } from "@/lib/camera";
 
 const MAX_PHOTOS = 5;
 
@@ -15,8 +16,6 @@ const Index = () => {
   const { profile, loading: profileLoading } = useProfile();
   const { todayMeals, todayTotals, loading: mealsLoading } = useMeals();
   const { t, locale, setLocale } = useI18n();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const addMoreRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<string[]>([]);
 
   useEffect(() => {
@@ -27,35 +26,19 @@ const Index = () => {
     }
   }, [profile, profileLoading, navigate]);
 
-  const handleCapture = () => {
-    if (photos.length === 0) {
-      inputRef.current?.click();
-    } else {
+  const handleCapture = async () => {
+    if (photos.length > 0) {
       navigate("/scan", { state: { images: photos } });
+      return;
     }
+    const data = await takePhoto();
+    if (data) setPhotos(prev => prev.length < MAX_PHOTOS ? [...prev, data] : prev);
   };
 
-  const addPhoto = (file: File) => {
+  const handleAddMore = async () => {
     if (photos.length >= MAX_PHOTOS) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const data = ev.target?.result as string;
-      setPhotos(prev => prev.length < MAX_PHOTOS ? [...prev, data] : prev);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    addPhoto(file);
-    e.target.value = "";
-  };
-
-  const handleAddMore = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) addPhoto(file);
-    e.target.value = "";
+    const data = await pickPhoto();
+    if (data) setPhotos(prev => prev.length < MAX_PHOTOS ? [...prev, data] : prev);
   };
 
   const removePhoto = (idx: number) => {
@@ -120,7 +103,7 @@ const Index = () => {
                 </div>
               ))}
               {photos.length < MAX_PHOTOS && (
-                <button onClick={() => addMoreRef.current?.click()} className="shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
+                <button onClick={handleAddMore} className="shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
                   <ImagePlus className="w-5 h-5" />
                 </button>
               )}
@@ -143,8 +126,6 @@ const Index = () => {
         <p className="text-sm text-muted-foreground mt-3">
           {photos.length === 0 ? t.takePhoto : t.startRecognize(photos.length)}
         </p>
-        <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
-        <input ref={addMoreRef} type="file" accept="image/*" className="hidden" onChange={handleAddMore} />
       </section>
 
       <section className="px-5 pb-6">
