@@ -16,8 +16,6 @@ const Index = () => {
   const { profile, loading: profileLoading } = useProfile();
   const { todayMeals, todayTotals, loading: mealsLoading } = useMeals();
   const { t, locale, setLocale } = useI18n();
-  const inputRef = useRef<HTMLInputElement>(null);
-  const addMoreRef = useRef<HTMLInputElement>(null);
   const [photos, setPhotos] = useState<string[]>([]);
 
   useEffect(() => {
@@ -28,35 +26,19 @@ const Index = () => {
     }
   }, [profile, profileLoading, navigate]);
 
-  const handleCapture = () => {
-    if (photos.length === 0) {
-      inputRef.current?.click();
-    } else {
+  const handleCapture = async () => {
+    if (photos.length > 0) {
       navigate("/scan", { state: { images: photos } });
+      return;
     }
+    const data = await takePhoto();
+    if (data) setPhotos(prev => prev.length < MAX_PHOTOS ? [...prev, data] : prev);
   };
 
-  const addPhoto = (file: File) => {
+  const handleAddMore = async () => {
     if (photos.length >= MAX_PHOTOS) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const data = ev.target?.result as string;
-      setPhotos(prev => prev.length < MAX_PHOTOS ? [...prev, data] : prev);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    addPhoto(file);
-    e.target.value = "";
-  };
-
-  const handleAddMore = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) addPhoto(file);
-    e.target.value = "";
+    const data = await pickPhoto();
+    if (data) setPhotos(prev => prev.length < MAX_PHOTOS ? [...prev, data] : prev);
   };
 
   const removePhoto = (idx: number) => {
