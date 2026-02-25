@@ -89,7 +89,7 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
         reader.readAsDataURL(file);
       });
     },
-    [images, onImagesChange, PIXEL_PHASES]
+    [images, onImagesChange, startAnalyzeAnimation]
   );
 
   const handleDrop = useCallback(
