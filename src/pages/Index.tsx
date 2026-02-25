@@ -103,7 +103,7 @@ const Index = () => {
                 </div>
               ))}
               {photos.length < MAX_PHOTOS && (
-                <button onClick={() => addMoreRef.current?.click()} className="shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
+                <button onClick={handleAddMore} className="shrink-0 w-16 h-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
                   <ImagePlus className="w-5 h-5" />
                 </button>
               )}
@@ -126,8 +126,6 @@ const Index = () => {
         <p className="text-sm text-muted-foreground mt-3">
           {photos.length === 0 ? t.takePhoto : t.startRecognize(photos.length)}
         </p>
-        <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
-        <input ref={addMoreRef} type="file" accept="image/*" className="hidden" onChange={handleAddMore} />
       </section>
 
       <section className="px-5 pb-6">
