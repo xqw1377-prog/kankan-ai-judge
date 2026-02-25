@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.audit-confirm]
 verify_jwt = false
+
+[functions.re-infer-dish]
+verify_jwt = false

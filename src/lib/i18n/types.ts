@@ -443,4 +443,11 @@ export interface Dictionary {
   postMealCrash: string;
   postMealNegativeFlag: string;
   postMealCalibrationNote: string;
+
+  // Re-infer dish
+  reInferDish: string;
+  reInferring: string;
+  reInferSuccess: string;
+  reInferFailed: string;
+  editFoodName: string;
 }

@@ -433,4 +433,10 @@ export const zhCN: Dictionary = {
   postMealCrash: "陷入宕机",
   postMealNegativeFlag: "该食材组合对用户资产有负面影响，已标记规避",
   postMealCalibrationNote: "您的反馈将用于校准生理模拟器，让 AI 更懂您的体质",
+
+  reInferDish: "AI 重新推断",
+  reInferring: "推断中…",
+  reInferSuccess: "菜品已更新",
+  reInferFailed: "推断失败，请重试",
+  editFoodName: "菜品名称",
 };

@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Check, Plus, Trash2, Minus, Sparkles } from "lucide-react";
+import { ChevronLeft, Check, Plus, Trash2, Minus, Sparkles, Wand2, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useMeals } from "@/hooks/useMeals";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
@@ -29,9 +30,10 @@ const EditIngredients = () => {
   const navigate = useNavigate();
   const { updateMeal } = useMeals();
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
-  const { mealId, foodName, ingredients: initialIngredients, fromResult, resultState } = location.state || {};
+  const { mealId, foodName: initialFoodName, ingredients: initialIngredients, fromResult, resultState } = location.state || {};
+  const [foodNameValue, setFoodNameValue] = useState<string>(initialFoodName || "");
   const [ingredients, setIngredients] = useState<Ingredient[]>(
     initialIngredients?.length ? [...initialIngredients] : []
   );
@@ -44,6 +46,7 @@ const EditIngredients = () => {
   const [addGrams, setAddGrams] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
   const [cookingMethod, setCookingMethod] = useState<CookingMethod>("stir_fried");
+  const [reInferring, setReInferring] = useState(false);
 
   // Real-time nutrition estimation with oil absorption correction
   const nutrition = useMemo(() => {
@@ -119,6 +122,25 @@ const EditIngredients = () => {
     showResearchFeedback();
   }, [showResearchFeedback]);
 
+  const handleReInfer = useCallback(async () => {
+    if (reInferring || ingredients.length === 0) return;
+    setReInferring(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("re-infer-dish", {
+        body: { ingredients, language: locale },
+      });
+      if (error) throw error;
+      if (data?.food) {
+        setFoodNameValue(data.food);
+        toast({ title: "✨ " + t.reInferSuccess, description: data.food });
+      }
+    } catch {
+      toast({ title: t.reInferFailed, variant: "destructive" });
+    } finally {
+      setReInferring(false);
+    }
+  }, [reInferring, ingredients, toast, t]);
+
   const triggerConfetti = useCallback(() => {
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 2000);
@@ -135,13 +157,13 @@ const EditIngredients = () => {
         navigate("/result", {
           state: {
             ...resultState,
-            result: { ...resultState.result, ingredients, ...nutrition },
+            result: { ...resultState.result, food: foodNameValue, ingredients, ...nutrition },
           },
           replace: true,
         });
       }, 800);
     } else if (mealId) {
-      await updateMeal(mealId, { ingredients: ingredients as any, ...nutrition });
+      await updateMeal(mealId, { food_name: foodNameValue, ingredients: ingredients as any, ...nutrition });
       triggerConfetti();
       toast({
         title: "🎉 KANKAN " + t.editExpGain,
@@ -188,10 +210,24 @@ const EditIngredients = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">
-        {/* Food name + real-time nutrition preview */}
+        {/* Editable food name + AI re-infer */}
         <div className="text-center mb-4">
           <span className="text-3xl">🍜</span>
-          <h2 className="text-xl font-bold mt-1 text-card-foreground">{foodName || t.editIngredientsTitle}</h2>
+          <input
+            type="text"
+            value={foodNameValue}
+            onChange={e => setFoodNameValue(e.target.value)}
+            placeholder={t.editFoodName}
+            className="mt-1 text-xl font-bold text-center text-card-foreground bg-transparent border-b border-border/50 focus:border-primary outline-none w-full max-w-[240px] transition-colors"
+          />
+          <button
+            onClick={handleReInfer}
+            disabled={reInferring || ingredients.length === 0}
+            className="mt-2 flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold disabled:opacity-40 transition-all active:scale-95"
+          >
+            {reInferring ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+            {reInferring ? t.reInferring : t.reInferDish}
+          </button>
         </div>
 
         {/* Real-time nutrition bar */}
