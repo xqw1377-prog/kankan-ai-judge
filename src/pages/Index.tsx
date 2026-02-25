@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, X, ImagePlus, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -7,6 +7,7 @@ import NutritionBar from "@/components/NutritionBar";
 import PerformanceStatus from "@/components/PerformanceStatus";
 import { getMealTypeLabel } from "@/lib/nutrition";
 import { useI18n } from "@/lib/i18n";
+import { takePhoto, pickPhoto } from "@/lib/camera";
 
 const MAX_PHOTOS = 5;
 
