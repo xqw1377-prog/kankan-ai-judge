@@ -433,4 +433,10 @@ export const enUS: Dictionary = {
   postMealCrash: "System Crash",
   postMealNegativeFlag: "This food combo flagged as negative impact on user assets — marked for avoidance",
   postMealCalibrationNote: "Your feedback calibrates the physiological simulator to better understand your constitution",
+
+  reInferDish: "AI Re-infer",
+  reInferring: "Inferring…",
+  reInferSuccess: "Dish updated",
+  reInferFailed: "Inference failed, retry",
+  editFoodName: "Dish Name",
 };
