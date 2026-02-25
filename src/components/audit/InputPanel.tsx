@@ -47,6 +47,34 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
     return () => clearInterval(interval);
   }, [analyzing, scanLineY, MOLECULAR_TAGS]);
 
+  const startAnalyzeAnimation = useCallback(() => {
+    setAnalyzing(true);
+    setAnalyzeProgress(0);
+    setPhaseIdx(0);
+    setScanLineY(0);
+    setAnalysisReady(false);
+    let p = 0;
+    let phase = 0;
+    const timer = setInterval(() => {
+      p += Math.random() * 8 + 2;
+      if (p >= 100) {
+        p = 100;
+        clearInterval(timer);
+        setTimeout(() => {
+          setAnalyzing(false);
+          setAnalysisReady(true);
+        }, 600);
+      }
+      const newPhase = Math.min(PIXEL_PHASES.length - 1, Math.floor((p / 100) * PIXEL_PHASES.length));
+      if (newPhase !== phase) {
+        phase = newPhase;
+        setPhaseIdx(phase);
+      }
+      setScanLineY(Math.min(100, p));
+      setAnalyzeProgress(Math.min(100, p));
+    }, 180);
+  }, [PIXEL_PHASES]);
+
   const handleFiles = useCallback(
     (files: FileList | null) => {
       if (!files) return;
