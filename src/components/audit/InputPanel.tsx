@@ -2,6 +2,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Upload, Camera, ScanLine } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { Progress } from "@/components/ui/progress";
+import { takePhoto as capturePhoto } from "@/lib/camera";
+import { Progress } from "@/components/ui/progress";
 
 interface InputPanelProps {
   images: string[];
@@ -107,7 +109,15 @@ const InputPanel = ({ images, onImagesChange }: InputPanelProps) => {
       <div
         onDrop={handleDrop}
         onDragOver={(e) => e.preventDefault()}
-        onClick={() => inputRef.current?.click()}
+        onClick={async () => {
+          const data = await capturePhoto();
+          if (data) {
+            // Simulate file handling with the captured data
+            const newImages = [...images.slice(-4), data];
+            onImagesChange(newImages);
+            startAnalyzeAnimation();
+          }
+        }}
         className="relative flex-1 min-h-[200px] rounded-xl border border-primary/15 hover:border-primary/40 bg-background/80 backdrop-blur-md transition-all cursor-pointer flex flex-col items-center justify-center gap-3 group overflow-hidden shadow-[inset_0_2px_12px_hsl(0_0%_0%/0.5),0_0_24px_hsl(var(--primary)/0.04)]"
       >
         {images.length > 0 ? (
