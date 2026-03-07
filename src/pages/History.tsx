@@ -351,4 +351,62 @@ function MiniCalChart({ meals }: { meals: { calories: number; recorded_at: strin
   );
 }
 
+/** SVG donut chart for macro distribution */
+function MacroPieChart({ protein, fat, carbs, isZh }: { protein: number; fat: number; carbs: number; isZh: boolean }) {
+  const total = protein + fat + carbs || 1;
+  const pPct = Math.round((protein / total) * 100);
+  const fPct = Math.round((fat / total) * 100);
+  const cPct = 100 - pPct - fPct;
+
+  // SVG donut segments
+  const r = 36, cx = 50, cy = 50, circumference = 2 * Math.PI * r;
+  const pLen = (pPct / 100) * circumference;
+  const fLen = (fPct / 100) * circumference;
+  const cLen = (cPct / 100) * circumference;
+
+  const segments = [
+    { len: pLen, offset: 0, color: "hsl(var(--success))", label: isZh ? "蛋白" : "P", pct: pPct, grams: Math.round(protein) },
+    { len: fLen, offset: pLen, color: "hsl(var(--warning))", label: isZh ? "脂肪" : "F", pct: fPct, grams: Math.round(fat) },
+    { len: cLen, offset: pLen + fLen, color: "hsl(var(--info))", label: isZh ? "碳水" : "C", pct: cPct, grams: Math.round(carbs) },
+  ];
+
+  return (
+    <div className="flex items-center gap-4">
+      <div className="relative w-20 h-20 flex-shrink-0">
+        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="hsl(var(--border) / 0.2)" strokeWidth="8" />
+          {segments.map((seg, i) => (
+            <circle
+              key={i}
+              cx={cx} cy={cy} r={r}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={`${seg.len} ${circumference}`}
+              strokeDashoffset={-seg.offset}
+              className="transition-all duration-700"
+              style={{ filter: `drop-shadow(0 0 4px ${seg.color})` }}
+            />
+          ))}
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <span className="text-[9px] font-mono font-bold text-card-foreground">{Math.round(total)}g</span>
+          <span className="text-[7px] text-muted-foreground/50">{isZh ? "总计" : "total"}</span>
+        </div>
+      </div>
+      <div className="flex-1 space-y-1.5">
+        {segments.map((seg, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: seg.color }} />
+            <span className="text-[9px] font-mono text-muted-foreground flex-1">{seg.label}</span>
+            <span className="text-[10px] font-mono font-bold text-card-foreground tabular-nums">{seg.grams}g</span>
+            <span className="text-[8px] font-mono text-muted-foreground/50 w-7 text-right">{seg.pct}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default History;
