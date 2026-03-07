@@ -95,6 +95,8 @@ export const enUS: Dictionary = {
   allergenWarningHint: "You've marked these as allergens in your profile. Please consume with caution.",
   ingredientList: "Ingredients",
   editIngredients: "Edit",
+  ingredientCount: "ingredients",
+  editIngredientHint: "Not accurate? Tap to edit",
   nutritionAnalysis: "Nutrition Analysis",
   repairSuggestion: "Recommendations",
   homemadeSuggestion: "🍳 Home Cooking Tip",

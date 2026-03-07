@@ -95,6 +95,8 @@ export const zhCN: Dictionary = {
   allergenWarningHint: "您在画像中标记了对以上食材过敏，请谨慎食用",
   ingredientList: "食材清单",
   editIngredients: "编辑食材",
+  ingredientCount: "项食材",
+  editIngredientHint: "不准确？点击修改",
   nutritionAnalysis: "营养素分析",
   repairSuggestion: "修复建议",
   homemadeSuggestion: "🍳 自炊建议",

@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator, Zap } from "lucide-react";
+import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, ShieldCheck, Zap } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
@@ -451,192 +451,29 @@ const Result = () => {
           onSequenceQualityChange={setSequenceQuality}
         />
 
-        {editableIngredients.length >= 0 && (
+        {/* Ingredient Edit Entry */}
+        {editableIngredients.length > 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
-              <span className="w-8 h-px bg-border" /> {t.ingredientList} <span className="flex-1 h-px bg-border" />
-            </h3>
-            <div className="glass rounded-xl p-4 shadow-card space-y-3">
-              {/* Column headers */}
-              {editableIngredients.length > 0 && (
-                <div className="flex items-center gap-2 text-[9px] font-mono text-muted-foreground/50 tracking-wider uppercase px-0.5">
-                  <span className="flex-1 min-w-0">{t.ingredientNamePlaceholder}</span>
-                  <span className="w-16 text-center">g</span>
-                  <span className="w-7" />
+            <button
+              onClick={handleEditIngredients}
+              className="w-full glass rounded-xl p-4 shadow-card flex items-center justify-between hover:border-primary/30 transition-all border border-border/30 group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                  <UtensilsCrossed className="w-4 h-4" />
                 </div>
-              )}
-              {editableIngredients.map((item, i) => {
-                const lower = item.name.toLowerCase();
-                const isVeg = /菜|蔬|叶|菠|芹|broccoli|spinach|lettuce|vegetable|greens|salad/.test(lower);
-                const isCarb = /米|饭|面|粉|麦|bread|rice|noodle|pasta|糖|sugar/.test(lower);
-                const isMeat = /鸡|鸭|猪|牛|羊|肉|鱼|虾|蛋|豆腐|chicken|pork|beef|meat|fish|egg|tofu|protein/.test(lower);
-                const ballColor = isVeg ? "hsl(200, 80%, 55%)" : isCarb ? "hsl(0, 72%, 55%)" : isMeat ? "hsl(43, 80%, 52%)" : undefined;
-                const ballLabel = isVeg ? "🛡" : isCarb ? "⚡" : isMeat ? "💪" : undefined;
-                const method = COOK_METHODS.find(m => m.key === item.cookMethod) || COOK_METHODS[0];
-                const isModified = item.cookMethod !== "steam";
-                const isDeepFry = item.cookMethod === "deepfry";
-                const isBraised = item.cookMethod === "braised";
-                const isHighHeat = isDeepFry || isBraised;
-                const adjustedCal = Math.round(item.calories * method.calMul);
-                const adjustedFat = Math.round(item.fat * method.fatMul * 10) / 10;
-                const calDelta = adjustedCal - item.calories;
-                const perfLoss = isDeepFry ? 18 : isBraised ? 10 : item.cookMethod === "stirfry" ? 5 : 0;
-
-                return (
-                  <div
-                    key={i}
-                    className={`space-y-1 rounded-lg px-1 py-1 -mx-1 transition-all duration-500 ${
-                      isDeepFry ? "bg-destructive/8 ring-1 ring-destructive/20" : ""
-                    }`}
-                    style={isDeepFry ? {
-                      animation: "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-                    } : undefined}
-                  >
-                    <div className="flex items-center gap-2">
-                      {/* Funnel type indicator */}
-                      <div className="w-5 flex items-center justify-center shrink-0">
-                        {ballColor ? (
-                          <div
-                            className="w-4 h-4 rounded-full flex items-center justify-center text-[7px]"
-                            style={{
-                              background: `radial-gradient(circle at 35% 35%, ${ballColor}dd, ${ballColor}88)`,
-                              boxShadow: `0 1px 4px ${ballColor}40`,
-                            }}
-                          >
-                            {ballLabel}
-                          </div>
-                        ) : (
-                          <span className="text-[9px] font-mono text-muted-foreground/30">●</span>
-                        )}
-                      </div>
-                      {allergenWarnings.includes(item.name) && <span className="text-destructive text-xs">⚠️</span>}
-                      {habitAppliedNames.includes(item.name) && (
-                        <span className="text-[7px] font-bold px-1.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 shrink-0 animate-fade-in">
-                          🤖 已校准
-                        </span>
-                      )}
-                      <input
-                        type="text"
-                        value={item.name}
-                        onChange={e => handleUpdateIngredient(i, "name", e.target.value)}
-                        placeholder={t.ingredientNamePlaceholder}
-                        className="flex-1 min-w-0 text-xs bg-secondary/50 border border-border/50 rounded-lg px-2 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition-all"
-                      />
-                      <input type="number" value={item.grams} onChange={e => handleUpdateIngredient(i, "grams", e.target.value)}
-                        className="w-16 text-xs text-center bg-secondary/50 border border-border/50 rounded-lg px-1 py-1.5 text-card-foreground focus:outline-none focus:ring-1 focus:ring-primary/40" />
-                      <button onClick={() => handleDeleteIngredient(i)}
-                        className="p-1 text-muted-foreground/40 hover:text-destructive transition-colors rounded-lg hover:bg-destructive/10">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    {/* Method Toggler Bar */}
-                    <div className="flex items-center gap-1 ml-7 mt-1.5">
-                      {COOK_METHODS.map((m) => {
-                        const isActive = item.cookMethod === m.key;
-                        const isFry = m.key === "deepfry";
-                        const isBraisedMethod = m.key === "braised";
-                        return (
-                          <button
-                            key={m.key}
-                            onClick={() => {
-                              setEditableIngredients(prev => prev.map((it, j) =>
-                                j === i ? { ...it, cookMethod: m.key } : it
-                              ));
-                              // Haptic vibration for high-heat methods
-                              if ((isFry || isBraisedMethod) && navigator.vibrate) {
-                                navigator.vibrate(isFry ? [50, 30, 80] : [40, 20, 40]);
-                              }
-                            }}
-                            className={`flex-1 py-1 rounded-md text-center transition-all duration-300 border ${
-                              isActive
-                                ? isFry
-                                  ? "bg-destructive/15 border-destructive/40 text-destructive shadow-sm"
-                                  : isBraisedMethod
-                                    ? "bg-warning/15 border-warning/40 text-warning shadow-sm"
-                                    : "bg-primary/15 border-primary/40 text-primary shadow-sm"
-                                : "border-border/20 text-muted-foreground/60 hover:border-border/40"
-                            }`}
-                          >
-                            <div className={`text-[10px] leading-none ${isActive && isFry ? "animate-bounce" : ""}`}>{m.icon}</div>
-                            <div className="text-[7px] font-bold mt-0.5">{m.label}</div>
-                            <div className="text-[6px] font-mono opacity-60">{m.calMul}x</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {/* Adjusted values + performance loss + deep-fry warning */}
-                    {isModified && (
-                      <div className="ml-7 mt-1 space-y-1 animate-fade-in">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span
-                            key={`cal-${item.cookMethod}`}
-                            className={`font-mono font-black transition-all duration-300 ${
-                              isDeepFry ? "text-[13px] text-destructive animate-pulse" 
-                              : isBraised ? "text-[11px] text-warning animate-pulse"
-                              : "text-[9px] text-warning"
-                            }`}
-                            style={isDeepFry ? { 
-                              textShadow: "0 0 8px hsl(0, 72%, 55%, 0.4)",
-                              animation: "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite, scale-in 0.3s ease-out"
-                            } : isBraised ? {
-                              animation: "scale-in 0.3s ease-out"
-                            } : undefined}
-                          >
-                            {adjustedCal}kcal {calDelta > 0 ? `(+${calDelta})` : ""}
-                          </span>
-                          <span className={`text-[8px] font-mono font-bold ${isDeepFry ? "text-destructive" : "text-warning"}`}>
-                            fat {adjustedFat}g
-                          </span>
-                          {perfLoss > 0 && (
-                            <span className={`text-[8px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                              isDeepFry
-                                ? "bg-destructive/15 text-destructive animate-pulse"
-                                : "bg-warning/10 text-warning"
-                            }`}>
-                              ⚡ -{perfLoss}% {t.pnlDeficit}
-                            </span>
-                          )}
-                        </div>
-                        {isDeepFry && (
-                          <div className="text-[8px] font-semibold text-destructive/90 bg-destructive/8 rounded px-2 py-1 border border-destructive/15 animate-pulse">
-                            ⚠️ 警告：高油损耗将导致下午血糖震荡风险增加
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-              <div className="flex items-center justify-between pt-2 border-t border-border/30">
-                <button onClick={handleAddIngredient}
-                  className="flex items-center gap-1.5 text-primary text-xs font-semibold hover:opacity-80 transition-opacity">
-                  <Plus className="w-3.5 h-3.5" /> {t.addIngredient}
-                </button>
-                {editableIngredients.length > 0 && (
-                  <div className="flex items-center gap-1 text-[8px] font-mono text-muted-foreground/40">
-                    <Calculator className="w-3 h-3" />
-                    <span>{liveTotals.calories} kcal · {t.liveRecalcHint}</span>
-                  </div>
-                )}
+                <div className="text-left">
+                  <p className="text-xs font-semibold text-card-foreground">{t.ingredientList}</p>
+                  <p className="text-[9px] text-muted-foreground/60 mt-0.5">
+                    {editableIngredients.length} {t.ingredientCount} · {liveTotals.calories} kcal
+                  </p>
+                </div>
               </div>
-              {/* Ball legend */}
-              {editableIngredients.length > 0 && (
-                <div className="flex items-center gap-3 mt-1.5">
-                  <div className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: "hsl(200, 80%, 55%)" }} />
-                    <span className="text-[8px] font-mono text-muted-foreground/40">{t.digestOrderAccel}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: "hsl(43, 80%, 52%)" }} />
-                    <span className="text-[8px] font-mono text-muted-foreground/40">💪</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ background: "hsl(0, 72%, 55%)" }} />
-                    <span className="text-[8px] font-mono text-muted-foreground/40">{t.digestOrderBrake}</span>
-                  </div>
-                </div>
-              )}
-            </div>
+              <div className="flex items-center gap-1.5 text-muted-foreground/40 group-hover:text-primary transition-colors">
+                <span className="text-[9px] font-mono">{t.editIngredientHint}</span>
+                <ChevronLeft className="w-3.5 h-3.5 rotate-180" />
+              </div>
+            </button>
           </section>
         )}
 
