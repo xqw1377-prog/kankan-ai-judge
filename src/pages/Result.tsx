@@ -184,6 +184,8 @@ const Result = () => {
   const handleSave = useCallback(async () => {
     if (confirmed) return;
 
+    const seqScore = calcSeqScore(editableIngredients);
+
     const finalPayload = {
       food_name: food,
       meal_type: getMealTypeByTime(),
@@ -194,6 +196,7 @@ const Result = () => {
       ingredients: editableIngredients,
       verdict,
       suggestion,
+      sequence_score: seqScore,
     };
 
     // 1. Send to Cloud audit-confirm edge function
