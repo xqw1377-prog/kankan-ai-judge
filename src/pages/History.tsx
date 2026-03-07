@@ -79,6 +79,9 @@ const History = () => {
 
     // Compare to previous period
     let prevAvgCal: number | null = null;
+    let prevTotalProtein: number | null = null;
+    let prevTotalFat: number | null = null;
+    let prevTotalCarbs: number | null = null;
     if (filter !== "all") {
       const prevRange = filter === "week"
         ? getWeekRange((filter === "week" ? weekOffset : monthOffset) + 1)
@@ -89,12 +92,15 @@ const History = () => {
       });
       if (prevMeals.length > 0) {
         prevAvgCal = Math.round(prevMeals.reduce((s, m) => s + m.calories, 0) / prevMeals.length);
+        prevTotalProtein = prevMeals.reduce((s, m) => s + m.protein_g, 0);
+        prevTotalFat = prevMeals.reduce((s, m) => s + m.fat_g, 0);
+        prevTotalCarbs = prevMeals.reduce((s, m) => s + m.carbs_g, 0);
       }
     }
 
     const calTrend = prevAvgCal !== null ? avgCal - prevAvgCal : 0;
 
-    return { totalCal, avgCal, avgProtein, avgBpi, calTrend, mealCount: filteredMeals.length, totalProtein, totalFat, totalCarbs };
+    return { totalCal, avgCal, avgProtein, avgBpi, calTrend, mealCount: filteredMeals.length, totalProtein, totalFat, totalCarbs, prevTotalProtein, prevTotalFat, prevTotalCarbs };
   }, [filteredMeals, meals, filter, weekOffset, monthOffset]);
 
   // Group by date
@@ -252,6 +258,9 @@ const History = () => {
                 protein={trendStats.totalProtein}
                 fat={trendStats.totalFat}
                 carbs={trendStats.totalCarbs}
+                prevProtein={trendStats.prevTotalProtein}
+                prevFat={trendStats.prevTotalFat}
+                prevCarbs={trendStats.prevTotalCarbs}
                 isZh={isZh}
               />
             </div>
@@ -351,23 +360,26 @@ function MiniCalChart({ meals }: { meals: { calories: number; recorded_at: strin
   );
 }
 
-/** SVG donut chart for macro distribution */
-function MacroPieChart({ protein, fat, carbs, isZh }: { protein: number; fat: number; carbs: number; isZh: boolean }) {
+/** SVG donut chart for macro distribution with period comparison */
+function MacroPieChart({ protein, fat, carbs, prevProtein, prevFat, prevCarbs, isZh }: {
+  protein: number; fat: number; carbs: number;
+  prevProtein: number | null; prevFat: number | null; prevCarbs: number | null;
+  isZh: boolean;
+}) {
   const total = protein + fat + carbs || 1;
   const pPct = Math.round((protein / total) * 100);
   const fPct = Math.round((fat / total) * 100);
   const cPct = 100 - pPct - fPct;
 
-  // SVG donut segments
   const r = 36, cx = 50, cy = 50, circumference = 2 * Math.PI * r;
   const pLen = (pPct / 100) * circumference;
   const fLen = (fPct / 100) * circumference;
   const cLen = (cPct / 100) * circumference;
 
   const segments = [
-    { len: pLen, offset: 0, color: "hsl(var(--success))", label: isZh ? "蛋白" : "P", pct: pPct, grams: Math.round(protein) },
-    { len: fLen, offset: pLen, color: "hsl(var(--warning))", label: isZh ? "脂肪" : "F", pct: fPct, grams: Math.round(fat) },
-    { len: cLen, offset: pLen + fLen, color: "hsl(var(--info))", label: isZh ? "碳水" : "C", pct: cPct, grams: Math.round(carbs) },
+    { len: pLen, offset: 0, color: "hsl(var(--success))", label: isZh ? "蛋白" : "P", pct: pPct, grams: Math.round(protein), prev: prevProtein },
+    { len: fLen, offset: pLen, color: "hsl(var(--warning))", label: isZh ? "脂肪" : "F", pct: fPct, grams: Math.round(fat), prev: prevFat },
+    { len: cLen, offset: pLen + fLen, color: "hsl(var(--info))", label: isZh ? "碳水" : "C", pct: cPct, grams: Math.round(carbs), prev: prevCarbs },
   ];
 
   return (
@@ -396,14 +408,30 @@ function MacroPieChart({ protein, fat, carbs, isZh }: { protein: number; fat: nu
         </div>
       </div>
       <div className="flex-1 space-y-1.5">
-        {segments.map((seg, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: seg.color }} />
-            <span className="text-[9px] font-mono text-muted-foreground flex-1">{seg.label}</span>
-            <span className="text-[10px] font-mono font-bold text-card-foreground tabular-nums">{seg.grams}g</span>
-            <span className="text-[8px] font-mono text-muted-foreground/50 w-7 text-right">{seg.pct}%</span>
-          </div>
-        ))}
+        {segments.map((seg, i) => {
+          const diff = seg.prev !== null ? seg.grams - Math.round(seg.prev) : null;
+          return (
+            <div key={i} className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: seg.color }} />
+              <span className="text-[9px] font-mono text-muted-foreground flex-1">{seg.label}</span>
+              <span className="text-[10px] font-mono font-bold text-card-foreground tabular-nums">{seg.grams}g</span>
+              <span className="text-[8px] font-mono text-muted-foreground/50 w-7 text-right">{seg.pct}%</span>
+              {diff !== null && diff !== 0 && (
+                <span className={`flex items-center text-[8px] font-mono w-10 justify-end ${
+                  diff > 0 ? "text-[hsl(var(--warning))]" : "text-[hsl(var(--success))]"
+                }`}>
+                  {diff > 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
+                  {diff > 0 ? "+" : ""}{diff}
+                </span>
+              )}
+              {diff !== null && diff === 0 && (
+                <span className="flex items-center text-[8px] font-mono text-muted-foreground/40 w-10 justify-end">
+                  <Minus className="w-2.5 h-2.5" />
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
