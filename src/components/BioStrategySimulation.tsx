@@ -35,7 +35,7 @@ interface TodayMeal {
 type DigestDifficulty = "easy" | "moderate" | "hard";
 export type SequenceQuality = "optimal" | "moderate" | "poor";
 
-// ── Digestibility Engine ───────────────────────────────────────────────────────
+// ── Science-based Digestion Data ───────────────────────────────────────────────
 
 function calcDigestScore(dish: DishInfo): number {
   const total = dish.calories || 1;
