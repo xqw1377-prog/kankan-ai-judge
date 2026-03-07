@@ -383,12 +383,13 @@ function DigestiveTract({ dishes, entered }: { dishes: OrderedDish[]; entered: b
 
 interface Props {
   dish: DishInfo;
+  ingredients?: IngredientInfo[];
   todayMeals?: TodayMeal[];
   visible: boolean;
   onSequenceQualityChange?: (quality: SequenceQuality) => void;
 }
 
-export default function BioStrategySimulation({ dish, todayMeals = [], visible, onSequenceQualityChange }: Props) {
+export default function BioStrategySimulation({ dish, ingredients = [], todayMeals = [], visible, onSequenceQualityChange }: Props) {
   const { t } = useI18n();
   const [entered, setEntered] = useState(false);
 
