@@ -102,6 +102,8 @@ export interface Dictionary {
   allergenWarningHint: string;
   ingredientList: string;
   editIngredients: string;
+  ingredientCount: string;
+  editIngredientHint: string;
   nutritionAnalysis: string;
   repairSuggestion: string;
   homemadeSuggestion: string;
