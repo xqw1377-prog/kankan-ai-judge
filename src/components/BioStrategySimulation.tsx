@@ -161,272 +161,134 @@ const COLORS: Record<DigestDifficulty, { main: string; bg: string; glow: string;
   hard:     { main: "#e53e3e", bg: "rgba(255,50,50,0.12)",  glow: "rgba(255,50,50,0.4)",  particle: "rgba(255,50,50,0.6)" },
 };
 
-// ── Animated Digestive Tract SVG ───────────────────────────────────────────────
+// ── Combined Digestive Flow + Order ───────────────────────────────────────────
 
-function DigestiveTract({ dishes, entered }: { dishes: OrderedDish[]; entered: boolean }) {
-  const totalHeight = Math.max(320, dishes.length * 70 + 180);
-  const tractWidth = 60;
-  const centerX = 100;
+function DigestiveFlow({ dishes, entered, t }: { dishes: OrderedDish[]; entered: boolean; t: any }) {
+  if (dishes.length === 0) return null;
 
-  // Tract sections
-  const mouthY = 20;
-  const stomachTopY = 60;
-  const stomachBottomY = stomachTopY + Math.max(120, dishes.length * 50 + 20);
-  const intestineY = stomachBottomY + 40;
-  const exitY = intestineY + 60;
-
-  // Calculate congestion: hard dishes near top = blockage
-  const hasBlockage = dishes.length > 0 && dishes[0].difficulty === "hard";
+  const hasBlockage = dishes.length > 0 && dishes[dishes.length - 1]?.difficulty === "hard";
   const congestionLevel = dishes.reduce((acc, d, i) => {
-    if (d.difficulty === "hard" && i < dishes.length * 0.5) return acc + 0.3;
-    if (d.difficulty === "moderate" && i < dishes.length * 0.3) return acc + 0.1;
+    if (d.difficulty === "hard" && i > dishes.length * 0.5) return acc + 0.3;
     return acc;
   }, 0);
   const isBlocked = congestionLevel > 0.3;
-  const flowSpeed = isBlocked ? 8 : congestionLevel > 0.15 ? 5 : 3;
 
   return (
-    <div className="relative w-full" style={{ height: totalHeight }}>
-      <svg
-        viewBox={`0 0 200 ${totalHeight}`}
-        className="w-full h-full"
-        style={{ filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.1))" }}
-      >
-        <defs>
-          {/* Tract gradient */}
-          <linearGradient id="tractGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="hsl(var(--muted-foreground))" stopOpacity="0.08" />
-            <stop offset="50%" stopColor="hsl(var(--muted-foreground))" stopOpacity="0.05" />
-            <stop offset="100%" stopColor="hsl(var(--muted-foreground))" stopOpacity="0.03" />
-          </linearGradient>
-          {/* Flow particles */}
-          <linearGradient id="flowGreen" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#39c864" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#39c864" stopOpacity="0.05" />
-          </linearGradient>
-          <linearGradient id="flowRed" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#e53e3e" stopOpacity="0.5" />
-            <stop offset="100%" stopColor="#e53e3e" stopOpacity="0.05" />
-          </linearGradient>
-          {/* Blockage pattern */}
-          <pattern id="blockagePattern" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
-            <line x1="0" y1="8" x2="8" y2="0" stroke="#e53e3e" strokeWidth="0.8" opacity="0.2" />
-          </pattern>
-          {/* Glow filter */}
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
+    <div className="relative">
+      {/* Flow status badge */}
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-[9px] font-semibold text-muted-foreground">🍽 {t.digestOrderTitle}</p>
+        <div className={`px-2 py-0.5 rounded-full text-[8px] font-bold ${
+          isBlocked
+            ? "bg-destructive/10 text-destructive border border-destructive/30"
+            : "bg-[hsl(var(--success))]/10 text-[hsl(var(--success))] border border-[hsl(var(--success))]/30"
+        }`}>
+          {isBlocked ? "⛔ 堵塞风险" : "✓ 通畅"}
+        </div>
+      </div>
 
-        {/* ── Mouth entrance ── */}
-        <path
-          d={`M ${centerX - 25} ${mouthY} Q ${centerX} ${mouthY - 8} ${centerX + 25} ${mouthY}`}
-          fill="none" stroke="hsl(var(--muted-foreground))" strokeWidth="1.5" opacity="0.2"
-        />
-        <text x={centerX} y={mouthY - 12} textAnchor="middle" fontSize="8" fill="hsl(var(--muted-foreground))" opacity="0.4" fontFamily="monospace">
-          ▼ INTAKE
-        </text>
-
-        {/* ── Esophagus (narrow tube) ── */}
-        <rect
-          x={centerX - 12} y={mouthY + 2} width={24} height={stomachTopY - mouthY - 2}
-          rx="8" fill="url(#tractGrad)" stroke="hsl(var(--border))" strokeWidth="0.5" opacity="0.6"
-        />
-        {/* Flow animation in esophagus */}
-        {entered && (
-          <rect x={centerX - 6} y={mouthY + 4} width={12} height={8} rx="4" opacity="0.3"
-            fill={isBlocked ? "#e53e3e" : "#39c864"}>
-            <animate attributeName="y" values={`${mouthY + 4};${stomachTopY - 10};${mouthY + 4}`}
-              dur={`${flowSpeed * 0.5}s`} repeatCount="indefinite" />
-            <animate attributeName="opacity" values="0.4;0.15;0.4" dur={`${flowSpeed * 0.5}s`} repeatCount="indefinite" />
-          </rect>
-        )}
-
-        {/* ── Stomach (wide chamber) ── */}
-        <path
-          d={`M ${centerX - 12} ${stomachTopY}
-              Q ${centerX - tractWidth} ${stomachTopY + 20} ${centerX - tractWidth} ${(stomachTopY + stomachBottomY) / 2}
-              Q ${centerX - tractWidth} ${stomachBottomY - 20} ${centerX - 15} ${stomachBottomY}
-              L ${centerX + 15} ${stomachBottomY}
-              Q ${centerX + tractWidth} ${stomachBottomY - 20} ${centerX + tractWidth} ${(stomachTopY + stomachBottomY) / 2}
-              Q ${centerX + tractWidth} ${stomachTopY + 20} ${centerX + 12} ${stomachTopY}
-              Z`}
-          fill="url(#tractGrad)" stroke="hsl(var(--border))" strokeWidth="0.8" opacity="0.8"
-        />
-
-        {/* Blockage overlay */}
-        {isBlocked && (
-          <path
-            d={`M ${centerX - 12} ${stomachTopY}
-                Q ${centerX - tractWidth} ${stomachTopY + 20} ${centerX - tractWidth} ${(stomachTopY + stomachBottomY) / 2}
-                Q ${centerX - tractWidth} ${stomachBottomY - 20} ${centerX - 15} ${stomachBottomY}
-                L ${centerX + 15} ${stomachBottomY}
-                Q ${centerX + tractWidth} ${stomachBottomY - 20} ${centerX + tractWidth} ${(stomachTopY + stomachBottomY) / 2}
-                Q ${centerX + tractWidth} ${stomachTopY + 20} ${centerX + 12} ${stomachTopY}
-                Z`}
-            fill="url(#blockagePattern)" opacity="0.5"
-          >
-            <animate attributeName="opacity" values="0.3;0.6;0.3" dur="2s" repeatCount="indefinite" />
-          </path>
-        )}
-
-        {/* Stomach label */}
-        <text x={centerX + tractWidth + 8} y={(stomachTopY + stomachBottomY) / 2} fontSize="7" fill="hsl(var(--muted-foreground))" opacity="0.3" fontFamily="monospace" dominantBaseline="middle">
-          胃 STOMACH
-        </text>
-
-        {/* ── Food layers in stomach ── */}
-        {dishes.map((dish, i) => {
-          const c = COLORS[dish.difficulty];
-          const layerY = stomachTopY + 18 + i * 50;
-          const layerWidth = tractWidth * 2 - 30;
-          const layerX = centerX - layerWidth / 2;
-
-          // Blocked items pile up and pulse red
-          const isStuck = isBlocked && i > 0;
-          const stuckDelay = isStuck ? i * 0.3 : 0;
-
-          return (
-            <g key={`${dish.name}-${i}`}
+      {/* Combined flow + order list */}
+      <div className="relative pl-6">
+        {/* Vertical flow line */}
+        <div className="absolute left-[9px] top-2 bottom-2 w-[2px] rounded-full overflow-hidden"
+          style={{ background: "hsl(var(--border) / 0.2)" }}>
+          {entered && (
+            <div
+              className="w-full rounded-full"
               style={{
-                opacity: entered ? 1 : 0,
-                transform: entered ? "translateY(0)" : "translateY(-20px)",
-                transition: `all 0.6s ease-out ${i * 0.15}s`,
+                height: "30%",
+                background: isBlocked
+                  ? "linear-gradient(to bottom, transparent, #e53e3e, transparent)"
+                  : "linear-gradient(to bottom, transparent, #39c864, transparent)",
+                animation: `flowDown ${isBlocked ? "3s" : "2s"} ease-in-out infinite`,
               }}
-            >
-              {/* Food layer block */}
-              <rect
-                x={layerX} y={layerY} width={layerWidth} height={38}
-                rx="10" fill={c.bg}
-                stroke={c.main} strokeWidth="1" strokeOpacity="0.4"
-              />
-              {/* Glow effect for current dish */}
-              {dish.isCurrent && (
-                <rect
-                  x={layerX - 2} y={layerY - 2} width={layerWidth + 4} height={42}
-                  rx="12" fill="none" stroke={c.main} strokeWidth="1.5" opacity="0.3"
-                  filter="url(#glow)"
-                >
-                  <animate attributeName="opacity" values="0.2;0.5;0.2" dur="2s" repeatCount="indefinite" />
-                </rect>
-              )}
-
-              {/* Stuck/congestion warning shimmer */}
-              {isStuck && (
-                <rect x={layerX} y={layerY} width={layerWidth} height={38} rx="10"
-                  fill="#e53e3e" opacity="0">
-                  <animate attributeName="opacity" values="0;0.08;0" dur="1.5s" begin={`${stuckDelay}s`} repeatCount="indefinite" />
-                </rect>
-              )}
-
-              {/* Emoji icon */}
-              <text x={layerX + 14} y={layerY + 24} fontSize="16" textAnchor="middle" dominantBaseline="middle">
-                {dish.icon}
-              </text>
-
-              {/* Dish name */}
-              <text x={layerX + 30} y={layerY + 15} fontSize="9" fontWeight="bold"
-                fill={dish.isCurrent ? c.main : "hsl(var(--card-foreground))"} dominantBaseline="middle">
-                {dish.name.length > 8 ? dish.name.slice(0, 8) + "…" : dish.name}
-              </text>
-
-              {/* Digest time + difficulty badge */}
-              <text x={layerX + 30} y={layerY + 28} fontSize="7" fontFamily="monospace" fill={c.main} opacity="0.8" dominantBaseline="middle">
-                {dish.stomachMin}min
-              </text>
-
-              {/* Traffic light indicator */}
-              <circle cx={layerX + layerWidth - 12} cy={layerY + 19} r="5" fill={c.main} opacity="0.7">
-                {dish.difficulty === "hard" && entered && (
-                  <animate attributeName="opacity" values="0.4;0.9;0.4" dur="1s" repeatCount="indefinite" />
-                )}
-              </circle>
-            </g>
-          );
-        })}
-
-        {/* ── Stomach exit (pylorus) ── */}
-        <rect
-          x={centerX - 10} y={stomachBottomY} width={20} height={8}
-          rx="3" fill={isBlocked ? "#e53e3e" : "#39c864"}
-          opacity={isBlocked ? 0.3 : 0.4}
-        >
-          {isBlocked && (
-            <animate attributeName="opacity" values="0.2;0.5;0.2" dur="1s" repeatCount="indefinite" />
-          )}
-        </rect>
-        {/* Gate status */}
-        <text x={centerX + 20} y={stomachBottomY + 6} fontSize="6" fontFamily="monospace"
-          fill={isBlocked ? "#e53e3e" : "#39c864"} opacity="0.6">
-          {isBlocked ? "⛔ BLOCKED" : "✓ FLOWING"}
-        </text>
-
-        {/* ── Small intestine (wavy tube) ── */}
-        <path
-          d={`M ${centerX - 10} ${stomachBottomY + 8}
-              Q ${centerX - 30} ${stomachBottomY + 25} ${centerX} ${stomachBottomY + 30}
-              Q ${centerX + 30} ${stomachBottomY + 35} ${centerX} ${stomachBottomY + 45}
-              Q ${centerX - 25} ${stomachBottomY + 55} ${centerX} ${intestineY}`}
-          fill="none" stroke="hsl(var(--border))" strokeWidth="18" opacity="0.15" strokeLinecap="round"
-        />
-        <path
-          d={`M ${centerX - 10} ${stomachBottomY + 8}
-              Q ${centerX - 30} ${stomachBottomY + 25} ${centerX} ${stomachBottomY + 30}
-              Q ${centerX + 30} ${stomachBottomY + 35} ${centerX} ${stomachBottomY + 45}
-              Q ${centerX - 25} ${stomachBottomY + 55} ${centerX} ${intestineY}`}
-          fill="none" stroke="hsl(var(--border))" strokeWidth="0.8" opacity="0.3" strokeLinecap="round"
-        />
-        {/* Flow particles in intestine */}
-        {entered && !isBlocked && (
-          <circle r="3" fill="#39c864" opacity="0.4">
-            <animateMotion
-              path={`M ${centerX - 10} ${stomachBottomY + 8}
-                Q ${centerX - 30} ${stomachBottomY + 25} ${centerX} ${stomachBottomY + 30}
-                Q ${centerX + 30} ${stomachBottomY + 35} ${centerX} ${stomachBottomY + 45}
-                Q ${centerX - 25} ${stomachBottomY + 55} ${centerX} ${intestineY}`}
-              dur={`${flowSpeed}s`} repeatCount="indefinite"
             />
-            <animate attributeName="opacity" values="0.5;0.2;0.5" dur={`${flowSpeed}s`} repeatCount="indefinite" />
-          </circle>
-        )}
-
-        <text x={centerX + 35} y={(stomachBottomY + intestineY) / 2 + 5} fontSize="7" fill="hsl(var(--muted-foreground))" opacity="0.3" fontFamily="monospace" dominantBaseline="middle">
-          小肠 INTESTINE
-        </text>
-
-        {/* ── Absorption exit ── */}
-        <circle cx={centerX} cy={exitY} r="10" fill={isBlocked ? "rgba(255,50,50,0.1)" : "rgba(57,200,100,0.1)"}
-          stroke={isBlocked ? "#e53e3e" : "#39c864"} strokeWidth="1" opacity="0.5" />
-        <text x={centerX} y={exitY + 1} textAnchor="middle" fontSize="10" dominantBaseline="middle">
-          {isBlocked ? "⚠️" : "✅"}
-        </text>
-        <text x={centerX} y={exitY + 18} textAnchor="middle" fontSize="7" fontFamily="monospace"
-          fill={isBlocked ? "#e53e3e" : "#39c864"} opacity="0.5">
-          {isBlocked ? "CONGESTED" : "ABSORBED"}
-        </text>
-      </svg>
-
-      {/* Blockage warning overlay */}
-      {isBlocked && entered && (
-        <div className="absolute top-2 right-2 animate-fade-in">
-          <div className="px-2 py-1 rounded-lg bg-destructive/10 border border-destructive/30 backdrop-blur-sm">
-            <p className="text-[8px] font-bold text-destructive">⛔ 堵塞风险</p>
-          </div>
+          )}
         </div>
-      )}
 
-      {/* Flow status overlay */}
-      {!isBlocked && entered && (
-        <div className="absolute top-2 right-2 animate-fade-in">
-          <div className="px-2 py-1 rounded-lg bg-success/10 border border-success/30 backdrop-blur-sm">
-            <p className="text-[8px] font-bold text-success">✓ 通畅</p>
-          </div>
+        {/* Dish items along the flow */}
+        <div className="space-y-1">
+          {dishes.map((d, i) => {
+            const c = COLORS[d.difficulty];
+            const isLast = i === dishes.length - 1;
+            return (
+              <div
+                key={`flow-${d.name}-${i}`}
+                className="flex items-center gap-2 px-2.5 py-2 rounded-xl transition-all relative"
+                style={{
+                  opacity: entered ? 1 : 0,
+                  transform: entered ? "translateX(0)" : "translateX(-12px)",
+                  transition: `all 0.5s ease-out ${i * 0.12}s`,
+                  background: c.bg,
+                  border: `1px solid ${c.main}22`,
+                }}
+              >
+                {/* Flow node dot on the line */}
+                <div className="absolute -left-[15px] top-1/2 -translate-y-1/2 w-5 h-5 rounded-full flex items-center justify-center"
+                  style={{ background: c.bg, border: `2px solid ${c.main}`, boxShadow: `0 0 8px ${c.glow}` }}>
+                  <span className="text-[8px] font-black" style={{ color: c.main }}>{i + 1}</span>
+                </div>
+
+                {/* Icon */}
+                <span className="text-base shrink-0">{d.icon}</span>
+
+                {/* Name + difficulty */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-bold text-card-foreground truncate">{d.name}</p>
+                  <p className="text-[8px] font-mono" style={{ color: c.main }}>
+                    {d.difficulty === "easy" ? "易消化" : d.difficulty === "moderate" ? "中等" : "难消化"}
+                  </p>
+                </div>
+
+                {/* Recommended grams */}
+                <span className="text-[8px] font-mono text-muted-foreground/70 shrink-0 px-1.5 py-0.5 rounded-md bg-background/50">
+                  ≈{d.recommendedGrams}g
+                </span>
+
+                {/* Digestion time */}
+                <div className="text-center shrink-0 min-w-[36px]">
+                  <p className="text-[11px] font-black font-mono leading-none" style={{ color: c.main }}>{d.stomachMin}</p>
+                  <p className="text-[6px] font-mono text-muted-foreground/40">{t.digestMinUnit}</p>
+                </div>
+
+                {/* Flow arrow to next */}
+                {!isLast && entered && (
+                  <div className="absolute -bottom-1.5 left-[9px] -translate-x-1/2 text-muted-foreground/20 text-[10px] z-10"
+                    style={{ left: "-6px" }}>
+                    ▼
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        {/* Absorption endpoint */}
+        <div className="flex items-center gap-2 mt-2 ml-[-4px]">
+          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px]"
+            style={{
+              background: isBlocked ? "rgba(255,50,50,0.1)" : "rgba(57,200,100,0.1)",
+              border: `2px solid ${isBlocked ? "#e53e3e" : "#39c864"}`,
+            }}>
+            {isBlocked ? "⚠️" : "✅"}
+          </div>
+          <span className="text-[8px] font-mono" style={{ color: isBlocked ? "#e53e3e" : "#39c864" }}>
+            {isBlocked ? "消化拥堵" : "顺畅吸收"}
+          </span>
+        </div>
+      </div>
+
+      <p className="text-[8px] text-muted-foreground/50 mt-3 leading-relaxed">
+        💡 {t.digestOrderAdvice}
+      </p>
+
+      {/* CSS animation for flow */}
+      <style>{`
+        @keyframes flowDown {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(400%); }
+        }
+      `}</style>
     </div>
   );
 }
