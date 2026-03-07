@@ -52,7 +52,8 @@ interface MealScoreCardProps {
 
 export default function MealScoreCard({ meal }: MealScoreCardProps) {
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isZh = locale === "zh-CN";
   const bpi = computeBpi(meal);
   const grade = getGrade(bpi);
   const cfg = GRADE_CONFIG[grade];
