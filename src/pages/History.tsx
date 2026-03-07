@@ -258,6 +258,9 @@ const History = () => {
                 protein={trendStats.totalProtein}
                 fat={trendStats.totalFat}
                 carbs={trendStats.totalCarbs}
+                prevProtein={trendStats.prevTotalProtein}
+                prevFat={trendStats.prevTotalFat}
+                prevCarbs={trendStats.prevTotalCarbs}
                 isZh={isZh}
               />
             </div>
