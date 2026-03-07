@@ -407,52 +407,9 @@ export default function BioStrategySimulation({ dish, ingredients = [], todayMea
           {difficulty === "easy" ? "✅" : difficulty === "moderate" ? "⚡" : "⚠️"} {diffDesc}
         </p>
 
-        {/* ─── Digestive Tract Animation ─── */}
-        <DigestiveTract dishes={orderedDishes} entered={entered} />
-
-        {/* ─── Dish Order Legend ─── */}
+        {/* ─── Combined Flow + Order ─── */}
         {orderedDishes.length > 1 && (
-          <div className="mt-3">
-            <p className="text-[9px] font-semibold text-muted-foreground mb-2">🍽 {t.digestOrderTitle}</p>
-            <div className="space-y-1">
-              {orderedDishes.map((d, i) => {
-                const c = COLORS[d.difficulty];
-                return (
-                  <div key={`legend-${d.name}-${i}`}
-                    className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all"
-                    style={{
-                      background: d.isCurrent ? c.bg : "transparent",
-                      ...(d.isCurrent ? { outline: `1px solid ${c.main}33` } : {}),
-                    }}
-                  >
-                    <span className="w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-black shrink-0"
-                      style={{ background: c.bg, color: c.main, border: `1px solid ${c.main}33` }}>
-                      {i + 1}
-                    </span>
-                    <span className="text-sm shrink-0">{d.icon}</span>
-                    <span className={`text-[10px] truncate flex-1 min-w-0 ${d.isCurrent ? "font-bold text-card-foreground" : "text-muted-foreground"}`}>
-                      {d.name}
-                      {d.isCurrent && <span className="text-[7px] ml-1 opacity-50">← {t.digestCurrentDish}</span>}
-                    </span>
-                    {/* Recommended serving */}
-                    {d.recommendedGrams && (
-                      <span className="text-[8px] font-mono text-muted-foreground/70 shrink-0 px-1.5 py-0.5 rounded-md bg-secondary/50">
-                        ≈{d.recommendedGrams}g
-                      </span>
-                    )}
-                    {/* Traffic light */}
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: c.main, opacity: 0.7 }} />
-                    <span className="text-[8px] font-mono shrink-0" style={{ color: c.main }}>
-                      {d.stomachMin}{t.digestMinUnit}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="text-[8px] text-muted-foreground/50 mt-2 leading-relaxed">
-              💡 {t.digestOrderAdvice}
-            </p>
-          </div>
+          <DigestiveFlow dishes={orderedDishes} entered={entered} t={t} />
         )}
 
         {/* ─── Tactical Advice ─── */}
