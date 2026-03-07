@@ -404,28 +404,52 @@ export default function BioStrategySimulation({ dish, ingredients = [], todayMea
   const stomachMin = getStomachTime(digestScore);
   const colors = COLORS[difficulty];
 
-  // Build ordered dish list (easy → hard)
+  // Build ordered dish list from ingredients (per-ingredient level) or fallback to meal level
   const orderedDishes = useMemo((): OrderedDish[] => {
     const allDishes: OrderedDish[] = [];
 
-    todayMeals.forEach(m => {
-      const s = calcDigestScore({
-        name: m.food_name, calories: m.calories,
-        protein_g: m.protein_g, fat_g: m.fat_g, carbs_g: m.carbs_g,
+    // If we have ingredient-level data, use each ingredient as a separate item
+    if (ingredients.length > 1) {
+      ingredients.forEach(ing => {
+        const ingAsDish: DishInfo = {
+          name: ing.name,
+          calories: ing.calories || Math.round((ing.protein || 0) * 4 + (ing.fat || 0) * 9 + (ing.carbs || 0) * 4),
+          protein_g: ing.protein || 0,
+          fat_g: ing.fat || 0,
+          carbs_g: ing.carbs || 0,
+          cookMethod: ing.cookMethod,
+        };
+        const s = calcDigestScore(ingAsDish);
+        allDishes.push({
+          name: ing.name,
+          score: s,
+          difficulty: getDifficulty(s),
+          stomachMin: getStomachTime(s),
+          icon: getDishIcon(ing.name),
+          isCurrent: false,
+        });
       });
-      allDishes.push({
-        name: m.food_name, score: s, difficulty: getDifficulty(s),
-        stomachMin: getStomachTime(s), icon: getDishIcon(m.food_name), isCurrent: false,
+    } else {
+      // Fallback: treat previous meals + current dish as items
+      todayMeals.forEach(m => {
+        const s = calcDigestScore({
+          name: m.food_name, calories: m.calories,
+          protein_g: m.protein_g, fat_g: m.fat_g, carbs_g: m.carbs_g,
+        });
+        allDishes.push({
+          name: m.food_name, score: s, difficulty: getDifficulty(s),
+          stomachMin: getStomachTime(s), icon: getDishIcon(m.food_name), isCurrent: false,
+        });
       });
-    });
 
-    allDishes.push({
-      name: dish.name, score: digestScore, difficulty, stomachMin,
-      icon: getDishIcon(dish.name), isCurrent: true,
-    });
+      allDishes.push({
+        name: dish.name, score: digestScore, difficulty, stomachMin,
+        icon: getDishIcon(dish.name), isCurrent: true,
+      });
+    }
 
     return allDishes.sort((a, b) => b.score - a.score);
-  }, [todayMeals, dish, digestScore, difficulty, stomachMin]);
+  }, [ingredients, todayMeals, dish, digestScore, difficulty, stomachMin]);
 
   const sequenceQuality = useMemo((): SequenceQuality => {
     if (orderedDishes.length <= 1) return difficulty === "hard" ? "moderate" : "optimal";
