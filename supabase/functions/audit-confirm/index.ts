@@ -40,6 +40,7 @@ serve(async (req) => {
       ingredients: ingredients || [],
       verdict,
       suggestion,
+      sequence_score: sequence_score ?? null,
     }).select().single();
 
     if (error) throw error;
