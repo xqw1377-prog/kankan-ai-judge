@@ -12,6 +12,16 @@ interface DishInfo {
   cookMethod?: string;
 }
 
+interface IngredientInfo {
+  name: string;
+  grams: number;
+  protein?: number;
+  fat?: number;
+  carbs?: number;
+  calories?: number;
+  cookMethod?: string;
+}
+
 interface TodayMeal {
   id: string;
   food_name: string;
