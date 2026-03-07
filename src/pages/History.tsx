@@ -35,6 +35,7 @@ function computeBpi(meal: { protein_g: number; carbs_g: number; fat_g: number })
 const History = () => {
   const navigate = useNavigate();
   const { meals, loading } = useMeals();
+  const { profile } = useProfile();
   const { t, locale, setLocale } = useI18n();
   const isZh = locale === "zh-CN";
 
