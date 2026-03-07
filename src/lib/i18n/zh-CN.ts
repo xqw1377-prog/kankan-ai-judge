@@ -418,6 +418,17 @@ export const zhCN: Dictionary = {
   historyFocusForecast: "餐后专注力走势",
   historyCompareBtn: "对账分析",
 
+  historyMealScore: "餐食评分",
+  historyScoreExcellent: "优秀",
+  historyScoreGood: "良好",
+  historyScoreFair: "一般",
+  historyScorePoor: "较差",
+  historyProtein: "蛋白",
+  historyFat: "脂肪",
+  historyCarbs: "碳水",
+  historyDailySummary: (meals, cal) => `${meals} 餐 · 共 ${cal} kcal`,
+  historyNoMealsYet: "暂无记录，去拍下第一餐吧",
+
   bpiTitle: "生理性能指数 · BPI",
   bpiSurplus: "性能盈余",
   bpiDeficit: "性能负债",

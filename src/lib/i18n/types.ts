@@ -424,6 +424,18 @@ export interface Dictionary {
   historyFocusForecast: string;
   historyCompareBtn: string;
 
+  // History Assessment
+  historyMealScore: string;
+  historyScoreExcellent: string;
+  historyScoreGood: string;
+  historyScoreFair: string;
+  historyScorePoor: string;
+  historyProtein: string;
+  historyFat: string;
+  historyCarbs: string;
+  historyDailySummary: (meals: number, cal: number) => string;
+  historyNoMealsYet: string;
+
   // BPI Gauge
   bpiTitle: string;
   bpiSurplus: string;
