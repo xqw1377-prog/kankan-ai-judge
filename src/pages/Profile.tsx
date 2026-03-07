@@ -85,13 +85,21 @@ const Profile = () => {
     <div className="flex-1 overflow-y-auto">
       <header className="px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-card-foreground">{t.myPage}</h1>
-        <button
-          onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-semibold text-muted-foreground"
-        >
-          <Globe className="w-3.5 h-3.5" />
-          {locale === "zh-CN" ? "EN" : "中"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => navigate("/login")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-semibold text-primary border border-primary/20"
+          >
+            {locale === "zh-CN" ? "💬 登录" : "🔑 Login"}
+          </button>
+          <button
+            onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-semibold text-muted-foreground"
+          >
+            <Globe className="w-3.5 h-3.5" />
+            {locale === "zh-CN" ? "EN" : "中"}
+          </button>
+        </div>
       </header>
 
       {/* Diet Credit Card */}
