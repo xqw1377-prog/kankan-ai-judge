@@ -456,9 +456,7 @@ export default function BioStrategySimulation({ dish, todayMeals = [], visible, 
                 return (
                   <div
                     key={`${d.name}-${i}`}
-                    className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-all ${
-                      d.isCurrent ? "ring-1" : ""
-                    }`}
+                    className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-all`}
                     style={{
                       background: d.isCurrent ? dc.bg : "transparent",
                       borderColor: d.isCurrent ? dc.border : "transparent",
