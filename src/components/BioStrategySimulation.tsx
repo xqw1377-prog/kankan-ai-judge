@@ -576,6 +576,12 @@ export default function BioStrategySimulation({ dish, ingredients = [], todayMea
                       {d.name}
                       {d.isCurrent && <span className="text-[7px] ml-1 opacity-50">← {t.digestCurrentDish}</span>}
                     </span>
+                    {/* Recommended serving */}
+                    {d.recommendedGrams && (
+                      <span className="text-[8px] font-mono text-muted-foreground/70 shrink-0 px-1.5 py-0.5 rounded-md bg-secondary/50">
+                        ≈{d.recommendedGrams}g
+                      </span>
+                    )}
                     {/* Traffic light */}
                     <span className="w-2 h-2 rounded-full shrink-0" style={{ background: c.main, opacity: 0.7 }} />
                     <span className="text-[8px] font-mono shrink-0" style={{ color: c.main }}>
