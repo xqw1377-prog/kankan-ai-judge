@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, Plus, Trash2, ShieldCheck, Calculator, Zap } from "lucide-react";
+import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, ShieldCheck, Zap } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
