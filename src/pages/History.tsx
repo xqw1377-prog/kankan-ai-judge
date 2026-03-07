@@ -72,6 +72,8 @@ const History = () => {
     const totalCal = filteredMeals.reduce((s, m) => s + m.calories, 0);
     const avgCal = Math.round(totalCal / filteredMeals.length);
     const totalProtein = filteredMeals.reduce((s, m) => s + m.protein_g, 0);
+    const totalFat = filteredMeals.reduce((s, m) => s + m.fat_g, 0);
+    const totalCarbs = filteredMeals.reduce((s, m) => s + m.carbs_g, 0);
     const avgProtein = Math.round(totalProtein / filteredMeals.length);
     const avgBpi = Math.round(filteredMeals.reduce((s, m) => s + computeBpi(m), 0) / filteredMeals.length);
 
@@ -92,7 +94,7 @@ const History = () => {
 
     const calTrend = prevAvgCal !== null ? avgCal - prevAvgCal : 0;
 
-    return { totalCal, avgCal, avgProtein, avgBpi, calTrend, mealCount: filteredMeals.length };
+    return { totalCal, avgCal, avgProtein, avgBpi, calTrend, mealCount: filteredMeals.length, totalProtein, totalFat, totalCarbs };
   }, [filteredMeals, meals, filter, weekOffset, monthOffset]);
 
   // Group by date
