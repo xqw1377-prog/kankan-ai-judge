@@ -7,6 +7,7 @@ import DietRing from "@/components/DietRing";
 import AnimatedScore from "@/components/AnimatedScore";
 import DietCreditCard from "@/components/DietCreditCard";
 import InvestmentReport from "@/components/InvestmentReport";
+import MealSequenceCoach from "@/components/MealSequenceCoach";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 
