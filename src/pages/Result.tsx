@@ -443,6 +443,15 @@ const Result = () => {
             carbs_g: liveTotals.carbs_g,
             cookMethod: editableIngredients[0]?.cookMethod,
           }}
+          ingredients={editableIngredients.map(ing => ({
+            name: ing.name,
+            grams: ing.grams,
+            protein: ing.protein,
+            fat: ing.fat,
+            carbs: ing.carbs,
+            calories: ing.calories,
+            cookMethod: ing.cookMethod,
+          }))}
           todayMeals={todayMeals.filter(m => m.food_name !== food).map(m => ({
             id: m.id,
             food_name: m.food_name,
