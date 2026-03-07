@@ -350,6 +350,30 @@ export interface Dictionary {
   tacticModerate: string;
   tacticPoor: string;
 
+  // Dish-level digestion
+  digestEasy: string;
+  digestModerate: string;
+  digestHard: string;
+  digestEasyDesc: string;
+  digestModerateDesc: string;
+  digestHardDesc: string;
+  digestScoreLabel: string;
+  digestMinUnit: string;
+  digestStageIntake: string;
+  digestStageAbsorb: string;
+  digestToxinWarning: string;
+  digestToxinDesc: (min: number) => string;
+  digestTimelineTitle: string;
+  digestChartStomach: string;
+  digestChartAbsorbed: string;
+  digestChartToxin: string;
+  digestOrderTitle: string;
+  digestCurrentDish: string;
+  digestOrderAdvice: string;
+  digestAdviceEasy: string;
+  digestAdviceModerate: string;
+  digestAdviceHard: string;
+
   // Energy Prediction
   energyPredictionTitle: string;
   energyOptimal: string;

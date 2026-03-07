@@ -462,7 +462,7 @@ export default function BioStrategySimulation({ dish, todayMeals = [], visible, 
                     style={{
                       background: d.isCurrent ? dc.bg : "transparent",
                       borderColor: d.isCurrent ? dc.border : "transparent",
-                      ringColor: d.isCurrent ? dc.border : undefined,
+                      ...(d.isCurrent ? { outline: `1px solid ${dc.border}` } : {}),
                     }}
                   >
                     {/* Order number */}

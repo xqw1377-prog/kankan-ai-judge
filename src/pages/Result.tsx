@@ -430,7 +430,26 @@ const Result = () => {
         />
 
         {/* Bio-Strategy Simulation */}
-        <BioStrategySimulation ingredients={editableIngredients} visible={editableIngredients.length > 0} onSequenceQualityChange={setSequenceQuality} />
+        <BioStrategySimulation
+          dish={{
+            name: food,
+            calories: liveTotals.calories,
+            protein_g: liveTotals.protein_g,
+            fat_g: liveTotals.fat_g,
+            carbs_g: liveTotals.carbs_g,
+            cookMethod: editableIngredients[0]?.cookMethod,
+          }}
+          todayMeals={todayMeals.filter(m => m.food_name !== food).map(m => ({
+            id: m.id,
+            food_name: m.food_name,
+            calories: m.calories,
+            protein_g: Number(m.protein_g),
+            fat_g: Number(m.fat_g),
+            carbs_g: Number(m.carbs_g),
+          }))}
+          visible={true}
+          onSequenceQualityChange={setSequenceQuality}
+        />
 
         {editableIngredients.length >= 0 && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.1s" }}>
