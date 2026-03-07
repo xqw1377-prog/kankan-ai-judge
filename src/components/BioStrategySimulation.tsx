@@ -1,558 +1,517 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
-import { AreaChart, Area, XAxis, YAxis, ReferenceLine, ReferenceArea, ResponsiveContainer, Tooltip } from "recharts";
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, ReferenceLine } from "recharts";
 
-interface Ingredient {
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+interface DishInfo {
   name: string;
-  grams: number;
-  protein: number;
-  fat: number;
-  carbs: number;
   calories: number;
+  protein_g: number;
+  fat_g: number;
+  carbs_g: number;
+  cookMethod?: string;
 }
 
-type BallType = "pioneer" | "supply" | "core";
-
-interface SimBall {
-  id: number;
-  name: string;
-  type: BallType;
-  icon: string;
+interface TodayMeal {
+  id: string;
+  food_name: string;
   calories: number;
+  protein_g: number;
+  fat_g: number;
+  carbs_g: number;
+  recorded_at?: string;
 }
 
-const BALL_COLORS: Record<BallType, { color: string; glow: string; bg: string }> = {
-  pioneer: { color: "hsl(160, 70%, 45%)", glow: "rgba(57,200,100,0.35)", bg: "rgba(57,200,100,0.12)" },
-  supply:  { color: "hsl(43, 80%, 52%)",  glow: "rgba(212,175,55,0.35)", bg: "rgba(212,175,55,0.12)" },
-  core:    { color: "hsl(0, 72%, 55%)",   glow: "rgba(255,50,50,0.35)",  bg: "rgba(255,50,50,0.12)" },
-};
+type DigestDifficulty = "easy" | "moderate" | "hard";
+export type SequenceQuality = "optimal" | "moderate" | "poor";
 
-function classifyBall(name: string, ing: Ingredient): BallType {
-  const l = name.toLowerCase();
-  if (/菜|蔬|叶|菠|芹|笋|瓜|萝卜|broccoli|spinach|lettuce|vegetable|greens|salad|celery|cucumber/.test(l)) return "pioneer";
-  if (/鸡|鸭|鹅|猪|牛|羊|肉|鱼|虾|蟹|蛋|豆腐|chicken|duck|pork|beef|lamb|meat|fish|shrimp|egg|tofu|protein/.test(l)) return "supply";
-  if (/米|饭|面|粉|麦|馒头|包子|bread|rice|noodle|pasta|糖|sugar|薯|芋/.test(l)) return "core";
-  const total = ing.protein + ing.fat + ing.carbs || 1;
-  if (ing.carbs / total > 0.6) return "core";
-  if (ing.protein / total > 0.4) return "supply";
-  return "pioneer";
+// ── Digestibility Engine ───────────────────────────────────────────────────────
+// Score 1-10: 10 = easiest to digest, 1 = hardest
+// Based on: fat content, protein density, cooking method, food type keywords
+
+function calcDigestScore(dish: DishInfo): number {
+  const total = dish.calories || 1;
+  const fatRatio = (dish.fat_g * 9) / total;
+  const proteinRatio = (dish.protein_g * 4) / total;
+  const carbRatio = (dish.carbs_g * 4) / total;
+  const name = dish.name.toLowerCase();
+
+  let score = 6; // baseline
+
+  // Food type bonuses/penalties
+  if (/汤|粥|soup|congee|broth|羹/.test(name)) score += 3;
+  if (/沙拉|salad|凉拌/.test(name)) score += 2;
+  if (/菜|蔬|vegetable|greens|青/.test(name)) score += 2;
+  if (/蒸|steam/.test(name)) score += 1;
+  if (/炸|fried|煎|炒|烤|grill|bbq|烧烤/.test(name)) score -= 2;
+  if (/红烧|braised|卤|焖/.test(name)) score -= 1.5;
+  if (/火锅|hotpot/.test(name)) score -= 1;
+  if (/奶油|cream|芝士|cheese|披萨|pizza/.test(name)) score -= 2;
+  if (/肥|五花|排骨|rib|猪蹄/.test(name)) score -= 2;
+
+  // Cook method adjustment
+  if (dish.cookMethod === "deepfry") score -= 2;
+  if (dish.cookMethod === "braised") score -= 1;
+  if (dish.cookMethod === "steam") score += 1;
+
+  // Macro-based adjustments
+  if (fatRatio > 0.5) score -= 2;
+  else if (fatRatio > 0.35) score -= 1;
+  if (proteinRatio > 0.5) score -= 0.5; // heavy protein slows digestion
+  if (carbRatio > 0.7 && fatRatio < 0.15) score += 1; // plain carbs digest ok
+
+  // Calorie load
+  if (dish.calories > 800) score -= 1;
+  if (dish.calories < 200) score += 1;
+
+  return Math.max(1, Math.min(10, Math.round(score)));
 }
 
-function getBallIcon(name: string): string {
-  const l = name.toLowerCase();
-  if (/米|饭|rice/.test(l)) return "🍚";
-  if (/面|粉|noodle|pasta/.test(l)) return "🍜";
-  if (/鸡|chicken/.test(l)) return "🍗";
-  if (/猪|牛|羊|肉|meat|pork|beef/.test(l)) return "🥩";
-  if (/鱼|虾|fish|shrimp/.test(l)) return "🐟";
-  if (/蛋|egg/.test(l)) return "🥚";
-  if (/菜|蔬|叶|vegetable|greens/.test(l)) return "🥬";
-  if (/豆|bean|tofu/.test(l)) return "🫘";
-  if (/bread|馒头|包/.test(l)) return "🍞";
-  return "🍽";
+function getDifficulty(score: number): DigestDifficulty {
+  if (score >= 7) return "easy";
+  if (score >= 4) return "moderate";
+  return "hard";
 }
 
-type HedgePatch = "walk" | "water" | null;
-type SequenceQuality = "optimal" | "moderate" | "poor";
-
-function evaluateSequence(balls: SimBall[]): SequenceQuality {
-  if (balls.length <= 1) return "optimal";
-  const types = balls.map(b => b.type);
-  const firstCore = types.indexOf("core");
-  const firstPioneer = types.indexOf("pioneer");
-  const lastPioneer = types.lastIndexOf("pioneer");
-
-  // If core comes before all pioneers → poor
-  if (firstCore !== -1 && firstPioneer !== -1 && firstCore < firstPioneer) return "poor";
-  // If core is in first half → poor
-  if (firstCore !== -1 && firstCore < balls.length * 0.3) return "poor";
-  // If pioneer is in first position → check if overall OK
-  if (firstPioneer === 0) return "optimal";
-  // Mixed
-  return "moderate";
+function getStomachTime(score: number): number {
+  // Minutes the food stays in stomach. Easy=30-60min, Hard=120-240min
+  return Math.round(240 - (score - 1) * 23); // score 1→240min, score 10→33min
 }
 
-interface PulsePoint {
+// ── Digestion Timeline Data ────────────────────────────────────────────────────
+
+interface TimelinePoint {
   time: string;
   minutes: number;
-  focus: number;
+  stomach: number;   // % remaining in stomach
+  absorbed: number;  // % absorbed
+  toxinRisk: number; // 0-100 risk of fermentation/toxin
+  energy: number;    // energy availability
 }
 
-function generateFocusCurve(quality: SequenceQuality, topType?: BallType, hedge?: HedgePatch): PulsePoint[] {
-  const pts: PulsePoint[] = [];
+function generateTimeline(score: number, calories: number): TimelinePoint[] {
+  const stomachEmpty = getStomachTime(score);
+  const pts: TimelinePoint[] = [];
+
   for (let i = 0; i <= 48; i++) {
-    const t = i / 48; // 0 to 1 over 4 hours
+    const t = i / 48; // 0-1 over 4 hours
     const minutes = Math.round(t * 240);
     const hr = Math.floor(minutes / 60);
     const min = minutes % 60;
     const time = `${hr}:${min.toString().padStart(2, "0")}`;
-    let focus: number;
 
-    if (quality === "poor" || topType === "core") {
-      const spike = Math.exp(-((t - 0.12) ** 2) / 0.008) * 55;
-      const crash = t > 0.2 ? -55 * (t - 0.2) : 0;
-      const floor = t > 0.5 ? -4 * Math.sin((t - 0.5) * Math.PI * 3) : 0;
-      focus = Math.max(12, 48 + spike + crash + floor);
+    // Stomach emptying (exponential decay)
+    const emptyRate = 3.5 / (stomachEmpty / 60); // faster for easy foods
+    const stomach = Math.max(0, 100 * Math.exp(-emptyRate * t));
 
-      // Apply hedge patches to soften the crash
-      if (hedge === "walk") {
-        // Walk: reduce dip by 20%
-        const baseline = 48;
-        if (focus < baseline) focus = focus + (baseline - focus) * 0.2;
-      } else if (hedge === "water") {
-        // Water: metabolism boost, raise floor by 10%
-        const baseline = 48;
-        if (focus < baseline) focus = focus + (baseline - focus) * 0.1;
-      }
-    } else if (quality === "optimal" && topType === "pioneer") {
-      focus = 82 + 14 * Math.sin(t * Math.PI * 0.7) * (1 - t * 0.12);
-    } else if (quality === "optimal") {
-      focus = 78 + 18 * Math.sin(t * Math.PI * 0.8) * (1 - t * 0.18);
-    } else {
-      const spike = Math.exp(-((t - 0.25) ** 2) / 0.03) * 22;
-      const dip = t > 0.45 ? -15 * (t - 0.45) : 0;
-      focus = 62 + spike + dip;
+    // Absorption lags stomach emptying
+    const absorbDelay = score >= 7 ? 0.08 : score >= 4 ? 0.15 : 0.25;
+    const absorbed = Math.min(100, 100 * (1 - Math.exp(-emptyRate * Math.max(0, t - absorbDelay))));
+
+    // Toxin/fermentation risk: high when food sits in stomach too long
+    let toxinRisk = 0;
+    if (score <= 4) {
+      // Hard to digest → toxin risk rises after 60 min if stomach still >50%
+      const stagnation = Math.max(0, stomach - 30) / 70;
+      const timeWeight = Math.max(0, (minutes - 60) / 120);
+      toxinRisk = Math.min(100, Math.round(stagnation * timeWeight * 100));
+    } else if (score <= 6) {
+      const stagnation = Math.max(0, stomach - 40) / 60;
+      const timeWeight = Math.max(0, (minutes - 90) / 150);
+      toxinRisk = Math.min(60, Math.round(stagnation * timeWeight * 60));
     }
-    pts.push({ time, minutes, focus: Math.round(focus) });
+
+    // Energy availability curve
+    const energyPeak = score >= 7 ? 0.3 : score >= 4 ? 0.45 : 0.6;
+    const energyWidth = score >= 7 ? 0.15 : score >= 4 ? 0.2 : 0.25;
+    const energyBase = 20;
+    const energyMax = Math.min(95, 40 + calories * 0.04);
+    const energy = energyBase + (energyMax - energyBase) * Math.exp(-((t - energyPeak) ** 2) / (2 * energyWidth ** 2));
+
+    pts.push({
+      time, minutes,
+      stomach: Math.round(stomach),
+      absorbed: Math.round(absorbed),
+      toxinRisk: Math.round(toxinRisk),
+      energy: Math.round(energy),
+    });
   }
   return pts;
 }
 
-function findDrowsinessZone(curve: PulsePoint[]): { startMin: number; endMin: number; lowestMin: number; lowestVal: number } | null {
-  // Find steepest drop region
-  let maxDrop = 0, dropStart = 0, dropEnd = 0;
-  for (let i = 1; i < curve.length; i++) {
-    const drop = curve[i - 1].focus - curve[i].focus;
-    if (drop > maxDrop) {
-      maxDrop = drop;
-      dropStart = curve[i - 1].minutes;
-      dropEnd = curve[i].minutes;
-    }
-  }
-  if (maxDrop < 5) return null;
+// ── Multi-dish ordering ────────────────────────────────────────────────────────
 
-  // Expand zone around the drop
-  let lowestIdx = 0, lowestVal = 100;
-  for (let i = 0; i < curve.length; i++) {
-    if (curve[i].focus < lowestVal) { lowestVal = curve[i].focus; lowestIdx = i; }
-  }
-  const zoneStart = Math.max(0, dropStart - 15);
-  const zoneEnd = Math.min(240, curve[lowestIdx].minutes + 30);
-  return { startMin: zoneStart, endMin: zoneEnd, lowestMin: curve[lowestIdx].minutes, lowestVal };
+interface OrderedDish {
+  name: string;
+  score: number;
+  difficulty: DigestDifficulty;
+  stomachMin: number;
+  icon: string;
+  isCurrent?: boolean;
 }
 
-function getTacticalAdvice(quality: SequenceQuality, balls: SimBall[], t: any): string {
-  const pioneerCount = balls.filter(b => b.type === "pioneer").length;
-  const coreCount = balls.filter(b => b.type === "core").length;
-
-  if (quality === "optimal") {
-    if (pioneerCount > 0) {
-      return t.tacticOptimalWithFiber(pioneerCount);
-    }
-    return t.tacticOptimalGeneral;
-  }
-  if (quality === "poor") {
-    return t.tacticPoor;
-  }
-  return t.tacticModerate;
+function getDishIcon(name: string): string {
+  const l = name.toLowerCase();
+  if (/汤|soup|broth|羹/.test(l)) return "🍲";
+  if (/粥|congee/.test(l)) return "🥣";
+  if (/沙拉|salad/.test(l)) return "🥗";
+  if (/菜|蔬|vegetable|greens/.test(l)) return "🥬";
+  if (/鸡|chicken/.test(l)) return "🍗";
+  if (/鱼|fish/.test(l)) return "🐟";
+  if (/虾|shrimp/.test(l)) return "🦐";
+  if (/牛|beef/.test(l)) return "🥩";
+  if (/猪|pork|排骨|rib/.test(l)) return "🍖";
+  if (/面|noodle|pasta/.test(l)) return "🍜";
+  if (/饭|rice/.test(l)) return "🍚";
+  if (/蛋|egg/.test(l)) return "🥚";
+  if (/炸|fried/.test(l)) return "🍳";
+  if (/火锅|hotpot/.test(l)) return "♨️";
+  return "🍽";
 }
+
+const DIFFICULTY_COLORS: Record<DigestDifficulty, { text: string; bg: string; border: string; glow: string }> = {
+  easy:     { text: "hsl(160, 70%, 40%)", bg: "rgba(57,200,100,0.08)", border: "rgba(57,200,100,0.25)", glow: "rgba(57,200,100,0.15)" },
+  moderate: { text: "hsl(43, 80%, 48%)",  bg: "rgba(212,175,55,0.08)", border: "rgba(212,175,55,0.25)", glow: "rgba(212,175,55,0.15)" },
+  hard:     { text: "hsl(0, 72%, 52%)",   bg: "rgba(255,50,50,0.08)", border: "rgba(255,50,50,0.25)",  glow: "rgba(255,50,50,0.15)" },
+};
+
+// ── Component ──────────────────────────────────────────────────────────────────
 
 interface Props {
-  ingredients: Ingredient[];
+  dish: DishInfo;
+  todayMeals?: TodayMeal[];
   visible: boolean;
   onSequenceQualityChange?: (quality: SequenceQuality) => void;
 }
 
-export type { SequenceQuality, HedgePatch };
-
-export default function BioStrategySimulation({ ingredients, visible, onSequenceQualityChange }: Props) {
+export default function BioStrategySimulation({ dish, todayMeals = [], visible, onSequenceQualityChange }: Props) {
   const { t } = useI18n();
-
-  // Initialize balls sorted by optimal order: pioneer → supply → core
-  const initialBalls = useMemo((): SimBall[] => {
-    return ingredients
-      .map((ing, i) => ({
-        id: i,
-        name: ing.name,
-        type: classifyBall(ing.name, ing),
-        icon: getBallIcon(ing.name),
-        calories: ing.calories,
-      }))
-      .sort((a, b) => {
-        const order: Record<BallType, number> = { pioneer: 0, supply: 1, core: 2 };
-        return order[a.type] - order[b.type];
-      });
-  }, [ingredients]);
-
-  const [balls, setBalls] = useState<SimBall[]>(initialBalls);
-  const [dragIdx, setDragIdx] = useState<number | null>(null);
-  const [hedgePatch, setHedgePatch] = useState<HedgePatch>(null);
-  const [showHedgePanel, setShowHedgePanel] = useState(false);
   const [entered, setEntered] = useState(false);
-  const touchStartY = useRef(0);
-  const touchStartIdx = useRef<number | null>(null);
+  const [showTimeline, setShowTimeline] = useState(false);
 
-  // Sync when ingredients change
-  useEffect(() => { setBalls(initialBalls); }, [initialBalls]);
-
-  // Entry animation
   useEffect(() => {
     if (!visible) { setEntered(false); return; }
     const timer = setTimeout(() => setEntered(true), 200);
     return () => clearTimeout(timer);
   }, [visible]);
 
-  // Evaluate current sequence
-  const quality = useMemo(() => evaluateSequence(balls), [balls]);
-  const topType = balls.length > 0 ? balls[0].type : undefined;
-  const isPioneerTop = topType === "pioneer";
-  const isCoreTop = topType === "core";
-  const curve = useMemo(() => generateFocusCurve(quality, topType, hedgePatch), [quality, topType, hedgePatch]);
-  const advice = useMemo(() => getTacticalAdvice(quality, balls, t), [quality, balls, t]);
+  // Current dish analysis
+  const digestScore = useMemo(() => calcDigestScore(dish), [dish]);
+  const difficulty = getDifficulty(digestScore);
+  const stomachMin = getStomachTime(digestScore);
+  const timeline = useMemo(() => generateTimeline(digestScore, dish.calories), [digestScore, dish.calories]);
+  const maxToxin = useMemo(() => Math.max(...timeline.map(p => p.toxinRisk)), [timeline]);
+  const colors = DIFFICULTY_COLORS[difficulty];
 
-  // Show hedge panel when core is on top
-  useEffect(() => {
-    if (isCoreTop) {
-      setShowHedgePanel(true);
-    } else {
-      setShowHedgePanel(false);
-      setHedgePatch(null);
+  // Multi-dish ordering (current + today's meals)
+  const orderedDishes = useMemo((): OrderedDish[] => {
+    const allDishes: OrderedDish[] = [];
+
+    // Add today's meals
+    todayMeals.forEach(m => {
+      const s = calcDigestScore({
+        name: m.food_name,
+        calories: m.calories,
+        protein_g: m.protein_g,
+        fat_g: m.fat_g,
+        carbs_g: m.carbs_g,
+      });
+      allDishes.push({
+        name: m.food_name,
+        score: s,
+        difficulty: getDifficulty(s),
+        stomachMin: getStomachTime(s),
+        icon: getDishIcon(m.food_name),
+        isCurrent: false,
+      });
+    });
+
+    // Add current dish
+    allDishes.push({
+      name: dish.name,
+      score: digestScore,
+      difficulty,
+      stomachMin,
+      icon: getDishIcon(dish.name),
+      isCurrent: true,
+    });
+
+    // Sort by digestibility: easiest first
+    return allDishes.sort((a, b) => b.score - a.score);
+  }, [todayMeals, dish, digestScore, difficulty, stomachMin]);
+
+  const hasMultipleDishes = orderedDishes.length > 1;
+
+  // Sequence quality based on whether current dish is in right order
+  const sequenceQuality = useMemo((): SequenceQuality => {
+    if (!hasMultipleDishes) {
+      return difficulty === "hard" ? "moderate" : "optimal";
     }
-  }, [isCoreTop]);
+    // Check if dishes are naturally ordered by digestibility
+    const currentIdx = orderedDishes.findIndex(d => d.isCurrent);
+    const idealIdx = [...orderedDishes].sort((a, b) => b.score - a.score).findIndex(d => d.isCurrent);
+    if (currentIdx === idealIdx) return "optimal";
+    if (Math.abs(currentIdx - idealIdx) <= 1) return "moderate";
+    return "poor";
+  }, [orderedDishes, hasMultipleDishes, difficulty]);
 
-  // Notify parent of sequence quality changes
   useEffect(() => {
-    onSequenceQualityChange?.(quality);
-  }, [quality, onSequenceQualityChange]);
+    onSequenceQualityChange?.(sequenceQuality);
+  }, [sequenceQuality, onSequenceQualityChange]);
 
+  if (!visible) return null;
 
-  // Drag handlers (touch)
-  const handleTouchStart = useCallback((idx: number, e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchStartIdx.current = idx;
-    setDragIdx(idx);
-  }, []);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (touchStartIdx.current === null) return;
-    const deltaY = e.touches[0].clientY - touchStartY.current;
-    const threshold = 40;
-    if (Math.abs(deltaY) > threshold) {
-      const dir = deltaY > 0 ? 1 : -1;
-      const fromIdx = touchStartIdx.current;
-      const toIdx = fromIdx + dir;
-      if (toIdx >= 0 && toIdx < balls.length) {
-        setBalls(prev => {
-          const next = [...prev];
-          [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
-          return next;
-        });
-        touchStartIdx.current = toIdx;
-        touchStartY.current = e.touches[0].clientY;
-      }
-    }
-  }, [balls.length]);
-
-  const handleTouchEnd = useCallback(() => {
-    setDragIdx(null);
-    touchStartIdx.current = null;
-  }, []);
-
-  // Drag handlers (mouse)
-  const handleMouseDown = useCallback((idx: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    touchStartY.current = e.clientY;
-    touchStartIdx.current = idx;
-    setDragIdx(idx);
-
-    const handleMouseMove = (ev: MouseEvent) => {
-      if (touchStartIdx.current === null) return;
-      const deltaY = ev.clientY - touchStartY.current;
-      const threshold = 35;
-      if (Math.abs(deltaY) > threshold) {
-        const dir = deltaY > 0 ? 1 : -1;
-        const fromIdx = touchStartIdx.current;
-        const toIdx = fromIdx + dir;
-        setBalls(prev => {
-          if (toIdx < 0 || toIdx >= prev.length) return prev;
-          const next = [...prev];
-          [next[fromIdx], next[toIdx]] = [next[toIdx], next[fromIdx]];
-          touchStartIdx.current = toIdx;
-          touchStartY.current = ev.clientY;
-          return next;
-        });
-      }
-    };
-
-    const handleMouseUp = () => {
-      setDragIdx(null);
-      touchStartIdx.current = null;
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-  }, []);
-
-  // Drowsiness zone detection
-  const drowsinessZone = useMemo(() => findDrowsinessZone(curve), [curve]);
-
-  if (!visible || ingredients.length === 0) return null;
-
-  const isPoor = quality === "poor" || isCoreTop;
-  const isOptimal = quality === "optimal";
-
-  const statusColor = isCoreTop ? "hsl(0, 72%, 55%)" : isOptimal ? "hsl(160, 60%, 45%)" : isPoor ? "hsl(0, 72%, 55%)" : "hsl(43, 72%, 52%)";
-  const drowsinessTimeLabel = drowsinessZone
-    ? `${Math.floor(drowsinessZone.lowestMin / 60)}:${(drowsinessZone.lowestMin % 60).toString().padStart(2, "0")}`
-    : "";
-  const nowHour = new Date().getHours();
-  const riskTimeStr = drowsinessZone
-    ? `${nowHour + Math.floor(drowsinessZone.lowestMin / 60)}:${(drowsinessZone.lowestMin % 60).toString().padStart(2, "0")}`
-    : "";
+  const diffLabel = difficulty === "easy" ? t.digestEasy : difficulty === "moderate" ? t.digestModerate : t.digestHard;
+  const diffDesc = difficulty === "easy" ? t.digestEasyDesc : difficulty === "moderate" ? t.digestModerateDesc : t.digestHardDesc;
 
   return (
     <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.08s" }}>
       <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
         <span className="w-8 h-px bg-border" /> {t.bioStrategyTitle} <span className="flex-1 h-px bg-border" />
       </h3>
-      <div
-        className={`glass rounded-2xl p-4 shadow-card relative overflow-hidden transition-all duration-500 ${
-          isPoor ? "ring-1 ring-destructive/30" : ""
-        }`}
-      >
-        {/* Red overlay when poor */}
-        {isPoor && (
+
+      <div className={`glass rounded-2xl p-4 shadow-card relative overflow-hidden transition-all duration-500 ${
+        difficulty === "hard" ? "ring-1 ring-destructive/30" : ""
+      }`}>
+        {/* Difficulty pulse for hard foods */}
+        {difficulty === "hard" && (
           <div className="absolute inset-0 pointer-events-none rounded-2xl animate-pulse"
             style={{ background: "radial-gradient(ellipse at center, hsl(0 72% 55% / 0.06) 0%, transparent 70%)" }}
           />
         )}
 
-        {/* Funnel */}
-        <div>
-          {/* Vertical Funnel */}
-          <div className="max-w-[200px] mx-auto">
-            {/* Top label */}
-            <div className="text-center mb-2">
-              <span className="text-[8px] font-mono text-muted-foreground/50 tracking-widest uppercase">
-                ▼ {t.funnelIntake}
+        {/* ─── Dish Digest Card ─── */}
+        <div className="flex items-center gap-3 mb-4">
+          <div
+            className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shrink-0 transition-all"
+            style={{
+              background: colors.bg,
+              border: `1.5px solid ${colors.border}`,
+              boxShadow: `0 4px 16px ${colors.glow}`,
+            }}
+          >
+            {getDishIcon(dish.name)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-card-foreground truncate">{dish.name}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+              >
+                {diffLabel}
+              </span>
+              <span className="text-[9px] font-mono text-muted-foreground">
+                {t.digestScoreLabel}: {digestScore}/10
               </span>
             </div>
-
-            {/* Funnel container */}
-            <div className="relative mx-auto" style={{ maxWidth: 180 }}>
-              {/* SVG Funnel shape (background) */}
-              <svg viewBox="0 0 180 260" className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="xMidYMid meet">
-                {/* Funnel body */}
-                <path
-                  d="M 10 5 L 170 5 L 130 180 L 115 250 L 65 250 L 50 180 Z"
-                  fill="none"
-                  stroke={isPoor ? "hsl(0, 72%, 55%)" : "hsl(var(--border))"}
-                  strokeWidth="1.2"
-                  opacity={isPoor ? 0.4 : 0.15}
-                  className="transition-all duration-500"
-                />
-                <path
-                  d="M 12 7 L 168 7 L 129 179 L 114 248 L 66 248 L 51 179 Z"
-                  fill={isPoor ? "hsl(0, 72%, 55%, 0.03)" : "hsl(var(--primary) / 0.02)"}
-                />
-                {/* Grid lines */}
-                {[50, 100, 150, 200].map(y => {
-                  const ratio = (y - 5) / 245;
-                  const halfW = 80 - ratio * 47;
-                  return (
-                    <line key={y} x1={90 - halfW} y1={y} x2={90 + halfW} y2={y}
-                      stroke="hsl(var(--border))" strokeWidth="0.4" opacity="0.08"
-                    />
-                  );
-                })}
-                {/* Exit spout */}
-                <rect x="75" y="250" width="30" height="6" rx="2"
-                  fill={isPoor ? "hsl(0, 72%, 55%, 0.15)" : isPioneerTop ? "hsl(160, 70%, 45%, 0.2)" : "hsl(var(--primary) / 0.08)"}
-                  stroke={isPoor ? "hsl(0, 72%, 55%)" : isPioneerTop ? "hsl(160, 70%, 45%)" : "hsl(var(--border))"}
-                  strokeWidth="0.6" opacity={isPioneerTop ? 0.7 : 0.4}
-                />
-                {/* Buffer filter glow when pioneer is on top */}
-                {isPioneerTop && (
-                  <>
-                    <rect x="65" y="244" width="50" height="4" rx="2"
-                      fill="hsl(160, 70%, 45%)" opacity="0.15"
-                    >
-                      <animate attributeName="opacity" values="0.08;0.2;0.08" dur="2s" repeatCount="indefinite" />
-                    </rect>
-                    <line x1="70" y1="246" x2="110" y2="246"
-                      stroke="hsl(160, 70%, 45%)" strokeWidth="1" strokeDasharray="3 2" opacity="0.4"
-                    >
-                      <animate attributeName="strokeDashoffset" values="0;-10" dur="1.5s" repeatCount="indefinite" />
-                    </line>
-                  </>
-                )}
-              </svg>
-
-              {/* Ball slots (draggable) */}
-              <div
-                className="relative flex flex-col items-center gap-1 py-3 px-2"
-                style={{ minHeight: Math.max(180, balls.length * 52 + 40) }}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-              >
-                {balls.map((ball, i) => {
-                  const cfg = BALL_COLORS[ball.type];
-                  const isDragging = dragIdx === i;
-                  const typeLabel = ball.type === "pioneer" ? t.funnelPioneer
-                    : ball.type === "supply" ? t.funnelSupply : t.funnelCore;
-
-                  return (
-                    <div
-                      key={ball.id}
-                      className={`relative flex items-center gap-2 px-2 py-1.5 rounded-xl cursor-grab select-none transition-all duration-300 ${
-                        isDragging ? "scale-105 z-20 shadow-lg" : "z-10"
-                      }`}
-                      style={{
-                        background: isDragging ? `${cfg.bg}` : "transparent",
-                        opacity: entered ? 1 : 0,
-                        transform: `translateY(${entered ? 0 : -20}px) ${isDragging ? "scale(1.05)" : "scale(1)"}`,
-                        transitionDelay: `${i * 100}ms`,
-                      }}
-                      onTouchStart={(e) => handleTouchStart(i, e)}
-                      onMouseDown={(e) => handleMouseDown(i, e)}
-                    >
-                      {/* Order number */}
-                      <span className="text-[8px] font-mono text-muted-foreground/30 w-3 text-center shrink-0">
-                        {i + 1}
-                      </span>
-                      {/* Ball */}
-                      <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 transition-shadow"
-                        style={{
-                          background: `radial-gradient(circle at 35% 35%, ${cfg.color}ee, ${cfg.color}88)`,
-                          boxShadow: isDragging
-                            ? `0 4px 20px ${cfg.glow}, inset 0 1px 3px rgba(255,255,255,0.3)`
-                            : `0 2px 8px ${cfg.glow}, inset 0 1px 2px rgba(255,255,255,0.2)`,
-                        }}
-                      >
-                        {ball.icon}
-                      </div>
-                      {/* Info */}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[9px] font-mono font-bold text-card-foreground truncate leading-tight">
-                          {ball.name}
-                        </p>
-                        <p className="text-[7px] font-mono whitespace-nowrap" style={{ color: cfg.color }}>
-                          {typeLabel}
-                        </p>
-                      </div>
-                      {/* Drag handle */}
-                      <div className="flex flex-col gap-px shrink-0 opacity-30">
-                        <div className="w-1 h-1 rounded-full bg-muted-foreground" />
-                        <div className="w-1 h-1 rounded-full bg-muted-foreground" />
-                        <div className="w-1 h-1 rounded-full bg-muted-foreground" />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Bottom label + buffer filter status */}
-            <div className="text-center mt-1">
-              {isPioneerTop ? (
-                <span className="text-[8px] font-mono tracking-widest uppercase font-bold" style={{ color: "hsl(160, 70%, 45%)" }}>
-                  🛡 {t.bufferFilterActive}
-                </span>
-              ) : (
-                <span className="text-[8px] font-mono text-muted-foreground/50 tracking-widest uppercase">
-                  ⚡ {t.funnelEnergyOutput}
-                </span>
-              )}
-            </div>
           </div>
-
+          {/* Stomach time */}
+          <div className="text-center shrink-0">
+            <p className="text-lg font-black font-mono" style={{ color: colors.text }}>{stomachMin}</p>
+            <p className="text-[7px] font-mono text-muted-foreground/60">{t.digestMinUnit}</p>
+          </div>
         </div>
 
-        {/* Legend */}
-        <div className="flex items-center justify-center gap-3 mt-3 mb-2">
-          {([
-            { type: "pioneer" as BallType, label: t.funnelPioneer },
-            { type: "supply" as BallType, label: t.funnelSupply },
-            { type: "core" as BallType, label: t.funnelCore },
-          ]).map(({ type, label }) => (
-            <div key={type} className="flex items-center gap-1">
-              <div className="w-2 h-2 rounded-full" style={{
-                background: BALL_COLORS[type].color,
-                boxShadow: `0 0 4px ${BALL_COLORS[type].glow}`,
-              }} />
-              <span className="text-[7px] font-mono text-muted-foreground/50">{label}</span>
-            </div>
-          ))}
-        </div>
+        {/* Digest description */}
+        <p className="text-[10px] leading-relaxed text-muted-foreground mb-3">
+          🎯 {diffDesc}
+        </p>
 
-        {/* Asset Hedge Rescue Panel */}
-        {showHedgePanel && (
-          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 mb-3 animate-fade-in">
-            <p className="text-[11px] font-bold text-destructive mb-1">{t.hedgeAlertTitle}</p>
-            <p className="text-[9px] text-muted-foreground mb-3">{t.hedgeAlertDesc}</p>
-            <div className="flex flex-col gap-2">
-              {([
-                { key: "walk" as HedgePatch, label: t.hedgeOptionWalk, effect: t.hedgeOptionWalkEffect, icon: "🚶" },
-                { key: "water" as HedgePatch, label: t.hedgeOptionWater, effect: t.hedgeOptionWaterEffect, icon: "💧" },
-                { key: null as HedgePatch, label: t.hedgeOptionSkip, effect: t.hedgeOptionSkipEffect, icon: "😴" },
-              ]).map((opt) => {
-                const isActive = hedgePatch === opt.key;
-                return (
-                  <button
-                    key={opt.label}
-                    onClick={() => setHedgePatch(opt.key)}
-                    className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left transition-all duration-300 border ${
-                      isActive
-                        ? opt.key ? "border-primary/40 bg-primary/10 ring-1 ring-primary/20" : "border-destructive/40 bg-destructive/10"
-                        : "border-border/20 hover:border-border/40 hover:bg-muted/30"
-                    }`}
-                  >
-                    <span className="text-base shrink-0">{opt.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-[10px] font-semibold ${isActive ? "text-card-foreground" : "text-muted-foreground"}`}>
-                        {opt.label}
-                      </p>
-                      <p className={`text-[8px] font-mono ${
-                        isActive && opt.key ? "text-primary" : isActive ? "text-destructive" : "text-muted-foreground/50"
-                      }`}>
-                        {opt.effect}
-                      </p>
-                    </div>
-                    {isActive && (
-                      <span className="text-[8px] font-mono text-primary shrink-0">●</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {hedgePatch && (
-              <div className="mt-2 rounded-lg bg-primary/5 border border-primary/20 px-3 py-1.5 animate-fade-in">
-                <p className="text-[9px] font-mono text-primary font-bold">{t.hedgePatchApplied}</p>
+        {/* ─── Digestion Pipeline ─── */}
+        <div className="flex items-center gap-1 mb-4">
+          {["🍴", "→", "胃", "→", "小肠", "→", "✅"].map((label, i) => {
+            const isOrgan = label === "胃" || label === "小肠";
+            const isArrow = label === "→";
+            const stageProgress = i <= 2 ? 100 - timeline[Math.min(24, Math.round(i * 8))].stomach :
+              i <= 4 ? timeline[Math.min(36, Math.round(i * 6))].absorbed : 100;
+
+            if (isArrow) {
+              return (
+                <div key={i} className="text-[8px] text-muted-foreground/30 font-mono">→</div>
+              );
+            }
+
+            return (
+              <div key={i} className="flex-1 relative">
+                <div className="h-6 rounded-lg overflow-hidden" style={{ background: "hsl(var(--secondary))" }}>
+                  <div
+                    className="h-full rounded-lg transition-all duration-1000"
+                    style={{
+                      width: entered ? `${Math.min(100, stageProgress)}%` : "0%",
+                      background: `linear-gradient(90deg, ${colors.text}33, ${colors.text}66)`,
+                      transitionDelay: `${i * 200}ms`,
+                    }}
+                  />
+                </div>
+                <p className="text-[7px] font-mono text-center mt-0.5 text-muted-foreground/50">
+                  {isOrgan ? label : label === "🍴" ? t.digestStageIntake : label === "✅" ? t.digestStageAbsorb : label}
+                </p>
               </div>
-            )}
+            );
+          })}
+        </div>
+
+        {/* Toxin warning */}
+        {maxToxin > 30 && (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-3 py-2 mb-3 animate-fade-in">
+            <p className="text-[10px] font-bold text-destructive flex items-center gap-1">
+              ⚠️ {t.digestToxinWarning}
+            </p>
+            <p className="text-[8px] text-muted-foreground mt-0.5">
+              {t.digestToxinDesc(stomachMin)}
+            </p>
           </div>
         )}
 
-        {/* Tactical advice */}
-        <div
-          className={`rounded-xl p-3 border transition-all duration-500 ${
-            isPoor ? "border-destructive/30 bg-destructive/5" : "border-border/30 glass"
-          }`}
+        {/* ─── Timeline Chart (expandable) ─── */}
+        <button
+          onClick={() => setShowTimeline(v => !v)}
+          className="w-full flex items-center justify-between rounded-lg px-3 py-2 border border-border/30 hover:border-border/50 transition-all mb-2"
         >
+          <span className="text-[10px] font-semibold text-muted-foreground">{t.digestTimelineTitle}</span>
+          <span className="text-[9px] text-muted-foreground/50">{showTimeline ? "▲" : "▼"}</span>
+        </button>
+
+        {showTimeline && (
+          <div className="animate-fade-in mb-3">
+            <div className="h-[140px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={timeline} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="stomachGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={colors.text} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={colors.text} stopOpacity={0.02} />
+                    </linearGradient>
+                    <linearGradient id="absorbGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="hsl(160, 70%, 45%)" stopOpacity={0.02} />
+                    </linearGradient>
+                    {maxToxin > 20 && (
+                      <linearGradient id="toxinGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(0, 72%, 55%)" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="hsl(0, 72%, 55%)" stopOpacity={0.02} />
+                      </linearGradient>
+                    )}
+                  </defs>
+                  <XAxis
+                    dataKey="time" axisLine={false} tickLine={false}
+                    tick={{ fontSize: 8, fill: "hsl(var(--muted-foreground))", opacity: 0.4 }}
+                    interval={11}
+                  />
+                  <YAxis
+                    domain={[0, 100]} axisLine={false} tickLine={false}
+                    tick={{ fontSize: 7, fill: "hsl(var(--muted-foreground))", opacity: 0.3 }}
+                    tickCount={3}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "hsl(var(--card))", border: "1px solid hsl(var(--border))",
+                      borderRadius: 8, fontSize: 10, padding: "6px 10px",
+                    }}
+                    formatter={(val: number, name: string) => {
+                      const labels: Record<string, string> = {
+                        stomach: t.digestChartStomach,
+                        absorbed: t.digestChartAbsorbed,
+                        toxinRisk: t.digestChartToxin,
+                      };
+                      return [`${val}%`, labels[name] || name];
+                    }}
+                  />
+                  <Area type="monotone" dataKey="stomach" stroke={colors.text} fill="url(#stomachGrad)" strokeWidth={1.5} dot={false} />
+                  <Area type="monotone" dataKey="absorbed" stroke="hsl(160, 70%, 45%)" fill="url(#absorbGrad)" strokeWidth={1.5} dot={false} />
+                  {maxToxin > 20 && (
+                    <Area type="monotone" dataKey="toxinRisk" stroke="hsl(0, 72%, 55%)" fill="url(#toxinGrad)" strokeWidth={1} dot={false} strokeDasharray="3 2" />
+                  )}
+                  <ReferenceLine y={50} stroke="hsl(var(--border))" strokeDasharray="3 3" strokeOpacity={0.3} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            {/* Legend */}
+            <div className="flex items-center justify-center gap-4 mt-1">
+              {[
+                { color: colors.text, label: t.digestChartStomach },
+                { color: "hsl(160, 70%, 45%)", label: t.digestChartAbsorbed },
+                ...(maxToxin > 20 ? [{ color: "hsl(0, 72%, 55%)", label: t.digestChartToxin }] : []),
+              ].map(({ color, label }) => (
+                <div key={label} className="flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+                  <span className="text-[7px] font-mono text-muted-foreground/50">{label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ─── Multi-Dish Eating Order ─── */}
+        {hasMultipleDishes && (
+          <div className="mt-2">
+            <p className="text-[10px] font-semibold text-muted-foreground mb-2 flex items-center gap-1">
+              🍽 {t.digestOrderTitle}
+            </p>
+            <div className="space-y-1.5">
+              {orderedDishes.map((d, i) => {
+                const dc = DIFFICULTY_COLORS[d.difficulty];
+                return (
+                  <div
+                    key={`${d.name}-${i}`}
+                    className={`flex items-center gap-2 rounded-xl px-3 py-2 transition-all ${
+                      d.isCurrent ? "ring-1" : ""
+                    }`}
+                    style={{
+                      background: d.isCurrent ? dc.bg : "transparent",
+                      borderColor: d.isCurrent ? dc.border : "transparent",
+                      ringColor: d.isCurrent ? dc.border : undefined,
+                    }}
+                  >
+                    {/* Order number */}
+                    <span
+                      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shrink-0"
+                      style={{ background: dc.bg, color: dc.text, border: `1px solid ${dc.border}` }}
+                    >
+                      {i + 1}
+                    </span>
+                    {/* Icon */}
+                    <span className="text-base shrink-0">{d.icon}</span>
+                    {/* Name */}
+                    <span className={`text-[10px] font-semibold truncate flex-1 min-w-0 ${
+                      d.isCurrent ? "text-card-foreground" : "text-muted-foreground"
+                    }`}>
+                      {d.name}
+                      {d.isCurrent && (
+                        <span className="text-[7px] font-mono ml-1 opacity-60">← {t.digestCurrentDish}</span>
+                      )}
+                    </span>
+                    {/* Digest time */}
+                    <span className="text-[8px] font-mono shrink-0" style={{ color: dc.text }}>
+                      {d.stomachMin}{t.digestMinUnit}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Order advice */}
+            <p className="text-[9px] text-muted-foreground/60 mt-2 leading-relaxed">
+              💡 {t.digestOrderAdvice}
+            </p>
+          </div>
+        )}
+
+        {/* ─── Tactical Advice ─── */}
+        <div className={`rounded-xl p-3 border transition-all duration-500 mt-3 ${
+          difficulty === "hard" ? "border-destructive/30 bg-destructive/5" : "border-border/30 glass"
+        }`}>
           <p className={`text-[10px] leading-relaxed ${
-            isPoor ? "text-destructive font-bold" : "text-muted-foreground"
+            difficulty === "hard" ? "text-destructive font-bold" : "text-muted-foreground"
           }`}>
-            🎯 {advice}
+            {difficulty === "easy" ? "✅" : difficulty === "moderate" ? "⚡" : "⚠️"} {
+              difficulty === "easy" ? t.digestAdviceEasy
+              : difficulty === "moderate" ? t.digestAdviceModerate
+              : t.digestAdviceHard
+            }
           </p>
         </div>
-
-        {/* Drag hint */}
-        <p className="text-[8px] font-mono text-muted-foreground/30 text-center mt-2">
-          ↕ {t.dragToReorder}
-        </p>
       </div>
     </section>
   );
