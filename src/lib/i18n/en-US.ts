@@ -465,4 +465,22 @@ export const enUS: Dictionary = {
   reInferSuccess: "Dish updated",
   reInferFailed: "Inference failed, retry",
   editFoodName: "Dish Name",
+
+  // Login
+  loginSubtitle: "AI-Powered Diet Audit",
+  loginSuccess: "Login Successful",
+  loginWelcomeBack: "Welcome back! Ready for today's diet insights",
+  loginLoading: "Signing in…",
+  loginSkip: "Skip login, use directly →",
+  loginTerms: "By signing in you agree to our Terms of Service and Privacy Policy",
+  loginGoogleTitle: "Welcome to KanKan",
+  loginGoogleDesc: "Sign in to sync your nutrition data across devices",
+  loginGoogleBtn: "Continue with Google",
+  loginWechatTitle: "WeChat Login",
+  loginWechatDesc: "Scan with WeChat to sign in instantly",
+  loginWechatBtn: "Sign in with WeChat",
+  loginWechatScanning: "Scan with WeChat",
+  loginWechatScanHint: "Open WeChat → Scan → Scan the QR code above",
+  loginWechatConfirming: "Scanned! Confirm on your phone",
+  loginWechatConfirmHint: "Tap 'Confirm Login' in WeChat",
 };

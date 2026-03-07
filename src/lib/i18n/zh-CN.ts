@@ -465,4 +465,22 @@ export const zhCN: Dictionary = {
   reInferSuccess: "菜品已更新",
   reInferFailed: "推断失败，请重试",
   editFoodName: "菜品名称",
+
+  // Login
+  loginSubtitle: "AI 智能饮食审计",
+  loginSuccess: "登录成功",
+  loginWelcomeBack: "欢迎回来，开始今日饮食管理",
+  loginLoading: "登录中…",
+  loginSkip: "跳过登录，直接使用 →",
+  loginTerms: "登录即表示同意《用户协议》和《隐私政策》",
+  loginGoogleTitle: "Sign in with Google",
+  loginGoogleDesc: "Use your Google account to sync data across devices",
+  loginGoogleBtn: "Continue with Google",
+  loginWechatTitle: "微信一键登录",
+  loginWechatDesc: "使用微信扫码，一秒登录同步数据",
+  loginWechatBtn: "微信登录",
+  loginWechatScanning: "请使用微信扫一扫",
+  loginWechatScanHint: "打开微信 → 扫一扫 → 扫描上方二维码",
+  loginWechatConfirming: "已扫描，请在手机上确认",
+  loginWechatConfirmHint: "请在微信中点击「确认登录」",
 };

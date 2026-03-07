@@ -42,6 +42,7 @@ const App = () => (
                 <Route path="/history" element={<History />} />
                 <Route path="/meal/:id" element={<MealDetail />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/login" element={<Login />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
