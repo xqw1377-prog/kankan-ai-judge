@@ -243,6 +243,19 @@ const History = () => {
               ))}
             </div>
 
+            {/* Macro Distribution Pie */}
+            <div className="mt-3 pt-3 border-t border-border/20">
+              <p className="text-[8px] font-mono text-muted-foreground/50 tracking-wider mb-2">
+                {isZh ? "营养素分布" : "MACRO DISTRIBUTION"}
+              </p>
+              <MacroPieChart
+                protein={trendStats.totalProtein}
+                fat={trendStats.totalFat}
+                carbs={trendStats.totalCarbs}
+                isZh={isZh}
+              />
+            </div>
+
             {/* Mini calorie chart */}
             {filteredMeals.length > 1 && (
               <div className="mt-3 pt-3 border-t border-border/20">
