@@ -14,7 +14,7 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    const { food_name, meal_type, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion, device_id } = payload;
+    const { food_name, meal_type, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion, device_id, sequence_score } = payload;
 
     if (!food_name || !device_id) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
