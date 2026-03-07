@@ -71,7 +71,7 @@ const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
       >
         {/* Top: food image */}
         <div style={{
-          width: 380, height: Math.round(380 * 9 / 16),
+          width: 380, height: Math.round(380 * 9 / 16 * 1.2),
           position: "relative", overflow: "hidden", background: "#111318",
         }}>
           {imageData ? (
