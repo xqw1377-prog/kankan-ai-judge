@@ -169,6 +169,11 @@ const Profile = () => {
         </div>
       </section>
 
+      {/* Meal Sequence Coach */}
+      <section className="px-5">
+        <MealSequenceCoach meals={meals} />
+      </section>
+
       <section className="px-5 mb-6">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.healthAssets}</h3>
         <div className="glass rounded-2xl p-5 shadow-card mb-3">
