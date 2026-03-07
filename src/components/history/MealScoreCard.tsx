@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { MealRecord } from "@/hooks/useMeals";
 import { getMealTypeLabel } from "@/lib/nutrition";
+import { getSequenceGrade, getSequenceGradeInfo } from "@/lib/sequenceScore";
 import { useI18n } from "@/lib/i18n";
 
 type ScoreGrade = "excellent" | "good" | "fair" | "poor";
