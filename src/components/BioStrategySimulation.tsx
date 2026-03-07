@@ -437,13 +437,16 @@ export default function BioStrategySimulation({ dish, ingredients = [], todayMea
   const stomachMin = getStomachTime(digestScore);
   const colors = COLORS[difficulty];
 
-  // Build ordered dish list from ingredients (per-ingredient level) or fallback to meal level
+  // Build ordered dish list — treat each dish as a whole unit, skip condiments/oils
   const orderedDishes = useMemo((): OrderedDish[] => {
     const allDishes: OrderedDish[] = [];
 
-    // If we have ingredient-level data, use each ingredient as a separate item
+    // If we have ingredients, group by actual dishes (filter out oils/seasonings)
     if (ingredients.length > 1) {
-      ingredients.forEach(ing => {
+      const dishes = ingredients.filter(ing => isDish(ing.name));
+      // If filtering left nothing, use all
+      const source = dishes.length > 0 ? dishes : ingredients;
+      source.forEach(ing => {
         const ingAsDish: DishInfo = {
           name: ing.name,
           calories: ing.calories || Math.round((ing.protein || 0) * 4 + (ing.fat || 0) * 9 + (ing.carbs || 0) * 4),
@@ -460,6 +463,7 @@ export default function BioStrategySimulation({ dish, ingredients = [], todayMea
           stomachMin: getStomachTime(s),
           icon: getDishIcon(ing.name),
           isCurrent: false,
+          recommendedGrams: getRecommendedGrams(ing.name, ingAsDish.calories),
         });
       });
     } else {
@@ -472,12 +476,14 @@ export default function BioStrategySimulation({ dish, ingredients = [], todayMea
         allDishes.push({
           name: m.food_name, score: s, difficulty: getDifficulty(s),
           stomachMin: getStomachTime(s), icon: getDishIcon(m.food_name), isCurrent: false,
+          recommendedGrams: getRecommendedGrams(m.food_name, m.calories),
         });
       });
 
       allDishes.push({
         name: dish.name, score: digestScore, difficulty, stomachMin,
         icon: getDishIcon(dish.name), isCurrent: true,
+        recommendedGrams: getRecommendedGrams(dish.name, dish.calories),
       });
     }
 
