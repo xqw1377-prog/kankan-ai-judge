@@ -418,6 +418,17 @@ export const enUS: Dictionary = {
   historyFocusForecast: "Post-Meal Focus Trend",
   historyCompareBtn: "Reconcile",
 
+  historyMealScore: "Meal Score",
+  historyScoreExcellent: "Excellent",
+  historyScoreGood: "Good",
+  historyScoreFair: "Fair",
+  historyScorePoor: "Poor",
+  historyProtein: "P",
+  historyFat: "F",
+  historyCarbs: "C",
+  historyDailySummary: (meals, cal) => `${meals} meals · ${cal} kcal total`,
+  historyNoMealsYet: "No records yet — snap your first meal",
+
   bpiTitle: "BIOLOGICAL PERFORMANCE INDEX · BPI",
   bpiSurplus: "Performance Surplus",
   bpiDeficit: "Performance Deficit",
