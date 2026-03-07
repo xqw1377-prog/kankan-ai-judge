@@ -476,4 +476,22 @@ export interface Dictionary {
   reInferSuccess: string;
   reInferFailed: string;
   editFoodName: string;
+
+  // Login
+  loginSubtitle: string;
+  loginSuccess: string;
+  loginWelcomeBack: string;
+  loginLoading: string;
+  loginSkip: string;
+  loginTerms: string;
+  loginGoogleTitle: string;
+  loginGoogleDesc: string;
+  loginGoogleBtn: string;
+  loginWechatTitle: string;
+  loginWechatDesc: string;
+  loginWechatBtn: string;
+  loginWechatScanning: string;
+  loginWechatScanHint: string;
+  loginWechatConfirming: string;
+  loginWechatConfirmHint: string;
 }
