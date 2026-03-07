@@ -14,6 +14,7 @@ export interface MealRecord {
   verdict: string;
   suggestion: string;
   recorded_at: string;
+  sequence_score: number | null;
 }
 
 export function useMeals() {

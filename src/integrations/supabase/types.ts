@@ -106,6 +106,7 @@ export type Database = {
           meal_type: string | null
           protein_g: number
           recorded_at: string
+          sequence_score: number | null
           suggestion: string | null
           updated_at: string
           verdict: string | null
@@ -123,6 +124,7 @@ export type Database = {
           meal_type?: string | null
           protein_g?: number
           recorded_at?: string
+          sequence_score?: number | null
           suggestion?: string | null
           updated_at?: string
           verdict?: string | null
@@ -140,6 +142,7 @@ export type Database = {
           meal_type?: string | null
           protein_g?: number
           recorded_at?: string
+          sequence_score?: number | null
           suggestion?: string | null
           updated_at?: string
           verdict?: string | null

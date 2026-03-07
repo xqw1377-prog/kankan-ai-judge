@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { MealRecord } from "@/hooks/useMeals";
 import { getMealTypeLabel } from "@/lib/nutrition";
+import { getSequenceGrade, getSequenceGradeInfo } from "@/lib/sequenceScore";
 import { useI18n } from "@/lib/i18n";
 
 type ScoreGrade = "excellent" | "good" | "fair" | "poor";
@@ -51,7 +52,8 @@ interface MealScoreCardProps {
 
 export default function MealScoreCard({ meal }: MealScoreCardProps) {
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isZh = locale === "zh-CN";
   const bpi = computeBpi(meal);
   const grade = getGrade(bpi);
   const cfg = GRADE_CONFIG[grade];
@@ -78,8 +80,20 @@ export default function MealScoreCard({ meal }: MealScoreCardProps) {
             <p className="font-semibold text-sm text-card-foreground truncate leading-tight">
               {meal.food_name}
             </p>
-            <p className="text-[10px] font-mono text-muted-foreground mt-0.5">
+            <p className="text-[10px] font-mono text-muted-foreground mt-0.5 flex items-center gap-1.5">
               {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+              {meal.sequence_score != null && (() => {
+                const grade = getSequenceGrade(meal.sequence_score);
+                const info = getSequenceGradeInfo(grade, isZh);
+                return (
+                  <span
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-bold"
+                    style={{ background: `${info.color}15`, color: info.color }}
+                  >
+                    {info.icon} {info.label}
+                  </span>
+                );
+              })()}
             </p>
           </div>
 
