@@ -267,13 +267,18 @@ const History = () => {
               />
             </div>
 
-            {/* Daily Calorie Goal Achievement */}
+            {/* Daily Goal Achievement */}
             {profile?.targets?.calories && (
               <div className="mt-3 pt-3 border-t border-border/20">
                 <p className="text-[8px] font-mono text-muted-foreground/50 tracking-wider mb-2">
-                  {isZh ? "每日热量达成率" : "DAILY CALORIE GOAL"}
+                  {isZh ? "每日目标达成率" : "DAILY GOAL ACHIEVEMENT"}
                 </p>
-                <DailyGoalBars meals={filteredMeals} targetCal={profile.targets.calories} isZh={isZh} />
+                <DailyGoalBars
+                  meals={filteredMeals}
+                  targetCal={profile.targets.calories}
+                  targetProtein={profile.targets.protein_g}
+                  isZh={isZh}
+                />
               </div>
             )}
 
