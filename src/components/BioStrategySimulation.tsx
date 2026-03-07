@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -35,63 +35,81 @@ interface TodayMeal {
 type DigestDifficulty = "easy" | "moderate" | "hard";
 export type SequenceQuality = "optimal" | "moderate" | "poor";
 
-// ── Digestibility Engine ───────────────────────────────────────────────────────
+// ── Science-based Digestion Data ───────────────────────────────────────────────
 
-function calcDigestScore(dish: DishInfo): number {
-  const total = dish.calories || 1;
-  const fatRatio = (dish.fat_g * 9) / total;
-  const proteinRatio = (dish.protein_g * 4) / total;
-  const carbRatio = (dish.carbs_g * 4) / total;
-  const name = dish.name.toLowerCase();
-  let score = 6;
-  if (/汤|粥|soup|congee|broth|羹/.test(name)) score += 3;
-  if (/沙拉|salad|凉拌/.test(name)) score += 2;
-  if (/菜|蔬|vegetable|greens|青/.test(name)) score += 2;
-  if (/蒸|steam/.test(name)) score += 1;
-  if (/炸|fried|煎|炒|烤|grill|bbq|烧烤/.test(name)) score -= 2;
-  if (/红烧|braised|卤|焖/.test(name)) score -= 1.5;
-  if (/火锅|hotpot/.test(name)) score -= 1;
-  if (/奶油|cream|芝士|cheese|披萨|pizza/.test(name)) score -= 2;
-  if (/肥|五花|排骨|rib|猪蹄/.test(name)) score -= 2;
-  if (dish.cookMethod === "deepfry") score -= 2;
-  if (dish.cookMethod === "braised") score -= 1;
-  if (dish.cookMethod === "steam") score += 1;
-  if (fatRatio > 0.5) score -= 2;
-  else if (fatRatio > 0.35) score -= 1;
-  if (proteinRatio > 0.5) score -= 0.5;
-  if (carbRatio > 0.7 && fatRatio < 0.15) score += 1;
-  if (dish.calories > 800) score -= 1;
-  if (dish.calories < 200) score += 1;
-  return Math.max(1, Math.min(10, Math.round(score)));
+// Gastric emptying times based on clinical research (Mayo Clinic, NCBI gastroenterology studies)
+// Values = approximate stomach emptying time in minutes
+
+type FoodCategory = "water" | "fruit" | "vegetable" | "grain" | "legume" | "seafood" | "poultry" | "egg" | "redmeat" | "fatmeat" | "dairy" | "nut" | "soup" | "congee" | "salad" | "tofu" | "other";
+
+const DIGEST_DATA: Record<FoodCategory, { minMin: number; icon: string; zhName: string; enName: string; recommendedGrams: number }> = {
+  water:     { minMin: 15,  icon: "💧", zhName: "水/饮料",    enName: "Water/Drinks",    recommendedGrams: 200 },
+  soup:      { minMin: 30,  icon: "🍲", zhName: "汤类",      enName: "Soup",            recommendedGrams: 250 },
+  fruit:     { minMin: 40,  icon: "🍎", zhName: "水果",      enName: "Fruits",          recommendedGrams: 200 },
+  congee:    { minMin: 45,  icon: "🥣", zhName: "粥类",      enName: "Congee/Porridge", recommendedGrams: 300 },
+  salad:     { minMin: 45,  icon: "🥗", zhName: "沙拉/凉拌",  enName: "Salad",           recommendedGrams: 200 },
+  vegetable: { minMin: 50,  icon: "🥬", zhName: "蔬菜",      enName: "Vegetables",      recommendedGrams: 200 },
+  grain:     { minMin: 90,  icon: "🍚", zhName: "主食/谷物",  enName: "Grains/Rice",     recommendedGrams: 150 },
+  tofu:      { minMin: 90,  icon: "🧈", zhName: "豆制品",    enName: "Tofu/Soy",        recommendedGrams: 150 },
+  legume:    { minMin: 100, icon: "🫘", zhName: "豆类",      enName: "Legumes",         recommendedGrams: 100 },
+  egg:       { minMin: 105, icon: "🥚", zhName: "蛋类",      enName: "Eggs",            recommendedGrams: 100 },
+  dairy:     { minMin: 120, icon: "🧀", zhName: "乳制品",    enName: "Dairy",           recommendedGrams: 150 },
+  seafood:   { minMin: 120, icon: "🐟", zhName: "海鲜/鱼类",  enName: "Seafood/Fish",    recommendedGrams: 150 },
+  poultry:   { minMin: 150, icon: "🍗", zhName: "禽肉",      enName: "Poultry",         recommendedGrams: 120 },
+  nut:       { minMin: 180, icon: "🥜", zhName: "坚果",      enName: "Nuts",            recommendedGrams: 30 },
+  redmeat:   { minMin: 210, icon: "🥩", zhName: "红肉",      enName: "Red Meat",        recommendedGrams: 100 },
+  fatmeat:   { minMin: 270, icon: "🍖", zhName: "肥肉/油炸",  enName: "Fatty/Fried",     recommendedGrams: 80 },
+  other:     { minMin: 120, icon: "🍽", zhName: "其他",      enName: "Other",           recommendedGrams: 150 },
+};
+
+/** Classify ingredient name into a food category */
+function classifyFood(name: string): FoodCategory {
+  const l = name.toLowerCase();
+  if (/水|茶|咖啡|果汁|饮料|奶茶|water|tea|coffee|juice|drink|cola|soda/.test(l)) return "water";
+  if (/汤|broth|soup|羹/.test(l)) return "soup";
+  if (/粥|congee|porridge|糊/.test(l)) return "congee";
+  if (/苹果|梨|桃|橙|柑|橘|柚|葡萄|香蕉|芒果|草莓|蓝莓|西瓜|哈密瓜|猕猴桃|樱桃|荔枝|龙眼|榴莲|菠萝|木瓜|火龙果|石榴|杏|李|枣|柿|水果|fruit|apple|pear|peach|orange|grape|banana|mango|strawberry|blueberry|watermelon|melon|kiwi|cherry|lychee|pineapple|papaya|berry|plum/.test(l)) return "fruit";
+  if (/沙拉|salad|凉拌/.test(l)) return "salad";
+  if (/菜|蔬|瓜|丝瓜|黄瓜|苦瓜|冬瓜|南瓜|茄子|番茄|西红柿|白菜|菠菜|芹菜|西兰花|花菜|豆角|青椒|辣椒|生菜|莴笋|韭菜|藕|萝卜|竹笋|木耳|蘑菇|香菇|金针菇|秋葵|芦笋|vegetable|greens|broccoli|spinach|cabbage|lettuce|cucumber|tomato|pepper|carrot|celery|mushroom|eggplant|zucchini|corn|asparagus|okra/.test(l)) return "vegetable";
+  if (/豆腐|豆干|豆皮|腐竹|tofu|bean curd/.test(l)) return "tofu";
+  if (/饭|米|面|馒头|包子|饺子|馄饨|面包|吐司|面条|河粉|米粉|年糕|烧饼|饼|薯|芋|红薯|土豆|rice|noodle|pasta|bread|toast|dumpling|bun|wheat|oat|cereal|pancake|potato|yam/.test(l)) return "grain";
+  if (/豆(?!腐|干|皮)|绿豆|红豆|黄豆|黑豆|扁豆|鹰嘴豆|bean|lentil|chickpea|legume/.test(l)) return "legume";
+  if (/蛋|egg/.test(l)) return "egg";
+  if (/奶|乳|酸奶|芝士|cheese|milk|yogurt|cream|butter|dairy/.test(l)) return "dairy";
+  if (/鱼|虾|蟹|蛤|贝|海鲜|鳗|鱿鱼|章鱼|三文鱼|金枪鱼|fish|shrimp|prawn|crab|clam|oyster|mussel|squid|octopus|salmon|tuna|seafood|lobster/.test(l)) return "seafood";
+  if (/鸡|鸭|鹅|鸽|chicken|duck|goose|turkey|poultry/.test(l)) return "poultry";
+  if (/坚果|核桃|杏仁|花生|腰果|开心果|松子|瓜子|nut|walnut|almond|peanut|cashew|pistachio|seed/.test(l)) return "nut";
+  if (/肥|五花|扣肉|猪蹄|炸|油炸|fried|deep.?fr/.test(l)) return "fatmeat";
+  if (/猪|牛|羊|排骨|肉|pork|beef|lamb|mutton|steak|rib|meat/.test(l)) return "redmeat";
+  return "other";
 }
 
-function getDifficulty(score: number): DigestDifficulty {
-  if (score >= 7) return "easy";
-  if (score >= 4) return "moderate";
+/** Filter out condiments, oils, seasonings */
+function isDish(name: string): boolean {
+  const l = name.toLowerCase();
+  if (/油|酱|盐|糖|醋|料酒|葱|姜|蒜|辣椒粉|胡椒|香料|调料|味精|酱油|蚝油|花椒/.test(l)) return false;
+  if (/^(oil|salt|sugar|pepper|sauce|vinegar|garlic|ginger|scallion|chili|spice|seasoning|soy sauce|oyster sauce|msg|cooking wine)/i.test(l)) return false;
+  return true;
+}
+
+function getDifficulty(minMin: number): DigestDifficulty {
+  if (minMin <= 60) return "easy";
+  if (minMin <= 150) return "moderate";
   return "hard";
 }
 
-function getStomachTime(score: number): number {
-  return Math.round(240 - (score - 1) * 23);
+function calcDigestScore(dish: DishInfo): number {
+  const cat = classifyFood(dish.name);
+  const data = DIGEST_DATA[cat];
+  return Math.max(1, Math.min(10, Math.round(10 - (data.minMin / 30))));
+}
+
+function getStomachTime(_score: number, name: string): number {
+  return DIGEST_DATA[classifyFood(name)].minMin;
 }
 
 function getDishIcon(name: string): string {
-  const l = name.toLowerCase();
-  if (/汤|soup|broth|羹/.test(l)) return "🍲";
-  if (/粥|congee/.test(l)) return "🥣";
-  if (/沙拉|salad/.test(l)) return "🥗";
-  if (/菜|蔬|vegetable|greens/.test(l)) return "🥬";
-  if (/鸡|chicken/.test(l)) return "🍗";
-  if (/鱼|fish/.test(l)) return "🐟";
-  if (/虾|shrimp/.test(l)) return "🦐";
-  if (/牛|beef/.test(l)) return "🥩";
-  if (/猪|pork|排骨|rib/.test(l)) return "🍖";
-  if (/面|noodle|pasta/.test(l)) return "🍜";
-  if (/饭|rice/.test(l)) return "🍚";
-  if (/蛋|egg/.test(l)) return "🥚";
-  if (/炸|fried/.test(l)) return "🍳";
-  if (/火锅|hotpot/.test(l)) return "♨️";
-  return "🍽";
+  return DIGEST_DATA[classifyFood(name)].icon;
 }
 
 interface OrderedDish {
@@ -101,39 +119,40 @@ interface OrderedDish {
   stomachMin: number;
   icon: string;
   isCurrent?: boolean;
-  recommendedGrams?: number;
+  recommendedGrams: number;
 }
 
-/** Filter out condiments, oils, seasonings — keep only actual dishes/foods */
-function isDish(name: string): boolean {
-  const l = name.toLowerCase();
-  // Exclude common condiments, oils, seasonings, sauces
-  if (/油|酱|盐|糖|醋|料酒|葱|姜|蒜|辣椒粉|胡椒|香料|调料|味精|酱油|蚝油|花椒/.test(l)) return false;
-  if (/^(oil|salt|sugar|pepper|sauce|vinegar|garlic|ginger|scallion|chili|spice|seasoning|soy sauce|oyster sauce|msg|cooking wine)/i.test(l)) return false;
-  return true;
-}
+/** Group ingredients by food category, merge similar items */
+function groupByCategory(ingredients: IngredientInfo[], isZh: boolean): OrderedDish[] {
+  const filtered = ingredients.filter(ing => isDish(ing.name));
+  const source = filtered.length > 0 ? filtered : ingredients;
 
-/** Estimate recommended serving grams based on food type */
-function getRecommendedGrams(name: string, calories: number): number {
-  const l = name.toLowerCase();
-  if (/汤|soup|broth|羹/.test(l)) return 250;
-  if (/粥|congee/.test(l)) return 300;
-  if (/沙拉|salad/.test(l)) return 200;
-  if (/菜|蔬|vegetable|greens|青|瓜|豆角|西兰花|白菜|菠菜|芹菜/.test(l)) return 200;
-  if (/饭|rice/.test(l)) return 150;
-  if (/面|noodle|pasta/.test(l)) return 200;
-  if (/鸡胸|chicken breast/.test(l)) return 120;
-  if (/鸡|chicken/.test(l)) return 150;
-  if (/鱼|fish/.test(l)) return 150;
-  if (/虾|shrimp/.test(l)) return 100;
-  if (/牛|beef/.test(l)) return 120;
-  if (/猪|pork|扣肉|排骨|rib/.test(l)) return 100;
-  if (/蛋|egg/.test(l)) return 100;
-  if (/豆腐|tofu/.test(l)) return 150;
-  // Default: estimate from calories
-  if (calories > 400) return 100;
-  if (calories > 200) return 150;
-  return 180;
+  const catMap = new Map<FoodCategory, string[]>();
+  source.forEach(ing => {
+    const cat = classifyFood(ing.name);
+    const existing = catMap.get(cat) || [];
+    existing.push(ing.name);
+    catMap.set(cat, existing);
+  });
+
+  const dishes: OrderedDish[] = [];
+  catMap.forEach((names, cat) => {
+    const data = DIGEST_DATA[cat];
+    const displayName = names.length > 1
+      ? (isZh ? data.zhName : data.enName)
+      : names[0];
+    dishes.push({
+      name: displayName,
+      score: Math.max(1, Math.min(10, Math.round(10 - (data.minMin / 30)))),
+      stomachMin: data.minMin,
+      difficulty: getDifficulty(data.minMin),
+      icon: data.icon,
+      isCurrent: false,
+      recommendedGrams: data.recommendedGrams,
+    });
+  });
+
+  return dishes.sort((a, b) => a.stomachMin - b.stomachMin);
 }
 
 const COLORS: Record<DigestDifficulty, { main: string; bg: string; glow: string; particle: string }> = {
@@ -423,7 +442,8 @@ interface Props {
 }
 
 export default function BioStrategySimulation({ dish, ingredients = [], todayMeals = [], visible, onSequenceQualityChange }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isZh = locale === "zh-CN";
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
@@ -433,62 +453,38 @@ export default function BioStrategySimulation({ dish, ingredients = [], todayMea
   }, [visible]);
 
   const digestScore = useMemo(() => calcDigestScore(dish), [dish]);
-  const difficulty = getDifficulty(digestScore);
-  const stomachMin = getStomachTime(digestScore);
+  const catData = DIGEST_DATA[classifyFood(dish.name)];
+  const difficulty = getDifficulty(catData.minMin);
+  const stomachMin = catData.minMin;
   const colors = COLORS[difficulty];
 
-  // Build ordered dish list — treat each dish as a whole unit, skip condiments/oils
+  // Build ordered dish list — group by food category, use science-based digestion times
   const orderedDishes = useMemo((): OrderedDish[] => {
-    const allDishes: OrderedDish[] = [];
-
-    // If we have ingredients, group by actual dishes (filter out oils/seasonings)
     if (ingredients.length > 1) {
-      const dishes = ingredients.filter(ing => isDish(ing.name));
-      // If filtering left nothing, use all
-      const source = dishes.length > 0 ? dishes : ingredients;
-      source.forEach(ing => {
-        const ingAsDish: DishInfo = {
-          name: ing.name,
-          calories: ing.calories || Math.round((ing.protein || 0) * 4 + (ing.fat || 0) * 9 + (ing.carbs || 0) * 4),
-          protein_g: ing.protein || 0,
-          fat_g: ing.fat || 0,
-          carbs_g: ing.carbs || 0,
-          cookMethod: ing.cookMethod,
-        };
-        const s = calcDigestScore(ingAsDish);
-        allDishes.push({
-          name: ing.name,
-          score: s,
-          difficulty: getDifficulty(s),
-          stomachMin: getStomachTime(s),
-          icon: getDishIcon(ing.name),
-          isCurrent: false,
-          recommendedGrams: getRecommendedGrams(ing.name, ingAsDish.calories),
-        });
-      });
-    } else {
-      // Fallback: treat previous meals + current dish as items
-      todayMeals.forEach(m => {
-        const s = calcDigestScore({
-          name: m.food_name, calories: m.calories,
-          protein_g: m.protein_g, fat_g: m.fat_g, carbs_g: m.carbs_g,
-        });
-        allDishes.push({
-          name: m.food_name, score: s, difficulty: getDifficulty(s),
-          stomachMin: getStomachTime(s), icon: getDishIcon(m.food_name), isCurrent: false,
-          recommendedGrams: getRecommendedGrams(m.food_name, m.calories),
-        });
-      });
-
-      allDishes.push({
-        name: dish.name, score: digestScore, difficulty, stomachMin,
-        icon: getDishIcon(dish.name), isCurrent: true,
-        recommendedGrams: getRecommendedGrams(dish.name, dish.calories),
-      });
+      return groupByCategory(ingredients, isZh);
     }
 
-    return allDishes.sort((a, b) => b.score - a.score);
-  }, [ingredients, todayMeals, dish, digestScore, difficulty, stomachMin]);
+    // Fallback: today's meals + current dish
+    const allDishes: OrderedDish[] = [];
+    todayMeals.forEach(m => {
+      const cat = classifyFood(m.food_name);
+      const data = DIGEST_DATA[cat];
+      allDishes.push({
+        name: m.food_name, score: Math.max(1, Math.min(10, Math.round(10 - (data.minMin / 30)))),
+        difficulty: getDifficulty(data.minMin),
+        stomachMin: data.minMin, icon: data.icon, isCurrent: false,
+        recommendedGrams: data.recommendedGrams,
+      });
+    });
+
+    allDishes.push({
+      name: dish.name, score: digestScore, difficulty, stomachMin,
+      icon: getDishIcon(dish.name), isCurrent: true,
+      recommendedGrams: catData.recommendedGrams,
+    });
+
+    return allDishes.sort((a, b) => a.stomachMin - b.stomachMin);
+  }, [ingredients, todayMeals, dish, digestScore, difficulty, stomachMin, isZh, catData]);
 
   const sequenceQuality = useMemo((): SequenceQuality => {
     if (orderedDishes.length <= 1) return difficulty === "hard" ? "moderate" : "optimal";
