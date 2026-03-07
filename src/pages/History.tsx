@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Globe, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
+import { useProfile } from "@/hooks/useProfile";
 import { useI18n } from "@/lib/i18n";
 import MealScoreCard from "@/components/history/MealScoreCard";
 
