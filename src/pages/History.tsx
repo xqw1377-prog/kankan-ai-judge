@@ -79,6 +79,9 @@ const History = () => {
 
     // Compare to previous period
     let prevAvgCal: number | null = null;
+    let prevTotalProtein: number | null = null;
+    let prevTotalFat: number | null = null;
+    let prevTotalCarbs: number | null = null;
     if (filter !== "all") {
       const prevRange = filter === "week"
         ? getWeekRange((filter === "week" ? weekOffset : monthOffset) + 1)
@@ -89,12 +92,15 @@ const History = () => {
       });
       if (prevMeals.length > 0) {
         prevAvgCal = Math.round(prevMeals.reduce((s, m) => s + m.calories, 0) / prevMeals.length);
+        prevTotalProtein = prevMeals.reduce((s, m) => s + m.protein_g, 0);
+        prevTotalFat = prevMeals.reduce((s, m) => s + m.fat_g, 0);
+        prevTotalCarbs = prevMeals.reduce((s, m) => s + m.carbs_g, 0);
       }
     }
 
     const calTrend = prevAvgCal !== null ? avgCal - prevAvgCal : 0;
 
-    return { totalCal, avgCal, avgProtein, avgBpi, calTrend, mealCount: filteredMeals.length, totalProtein, totalFat, totalCarbs };
+    return { totalCal, avgCal, avgProtein, avgBpi, calTrend, mealCount: filteredMeals.length, totalProtein, totalFat, totalCarbs, prevTotalProtein, prevTotalFat, prevTotalCarbs };
   }, [filteredMeals, meals, filter, weekOffset, monthOffset]);
 
   // Group by date
