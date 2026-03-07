@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useI18n } from "@/lib/i18n";
 import type { MealRecord } from "@/hooks/useMeals";
+import { getSequenceGrade, getSequenceGradeInfo } from "@/lib/sequenceScore";
 
 interface Props {
   meals: MealRecord[];
@@ -17,7 +18,6 @@ function buildTimingHeatmap(meals: MealRecord[]) {
     const dateStr = date.toDateString();
     const dayMeals = meals.filter(m => new Date(m.recorded_at).toDateString() === dateStr);
 
-    // 4 time slots: breakfast(5-10), lunch(10-14), snack(14-17), dinner(17-22)
     const slots = [0, 0, 0, 0];
     dayMeals.forEach(m => {
       const h = new Date(m.recorded_at).getHours();
@@ -35,96 +35,39 @@ function buildTimingHeatmap(meals: MealRecord[]) {
   return days;
 }
 
-// Compute sequence compliance: how often user eats in ideal timing
-function computeSequenceScore(meals: MealRecord[]): number {
-  if (meals.length === 0) return 0;
-
-  const last14 = meals.filter(m => {
-    const diff = Date.now() - new Date(m.recorded_at).getTime();
-    return diff < 14 * 86400000;
-  });
-
-  if (last14.length === 0) return 0;
-
-  let goodCount = 0;
-  // Group by day
-  const dayMap = new Map<string, MealRecord[]>();
-  last14.forEach(m => {
-    const key = new Date(m.recorded_at).toDateString();
-    if (!dayMap.has(key)) dayMap.set(key, []);
-    dayMap.get(key)!.push(m);
-  });
-
-  dayMap.forEach(dayMeals => {
-    const sorted = [...dayMeals].sort(
-      (a, b) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()
-    );
-    // Check: protein before carbs? veggies early?
-    let hasEarlyProtein = false;
-    let hasLateCarb = false;
-    sorted.forEach((m, i) => {
-      const ratio = i / Math.max(sorted.length - 1, 1);
-      if (m.protein_g > m.carbs_g * 0.8 && ratio < 0.5) hasEarlyProtein = true;
-      if (m.carbs_g > m.protein_g && ratio > 0.5) hasLateCarb = true;
-    });
-    if (hasEarlyProtein || hasLateCarb) goodCount++;
-    // Regularity: meals at consistent times
-    if (sorted.length >= 2) goodCount += 0.5;
-  });
-
-  return Math.min(100, Math.round((goodCount / Math.max(dayMap.size, 1)) * 80 + 20));
+function computeOverallScore(meals: MealRecord[]): number {
+  const scored = meals.filter(m => m.sequence_score != null);
+  if (scored.length === 0) return 0;
+  return Math.round(scored.reduce((s, m) => s + (m.sequence_score || 0), 0) / scored.length);
 }
 
-// Generate smart tips based on patterns
 function generateTips(meals: MealRecord[], isZh: boolean): string[] {
   const tips: string[] = [];
   if (meals.length === 0) return tips;
 
   const last7 = meals.filter(m => Date.now() - new Date(m.recorded_at).getTime() < 7 * 86400000);
 
-  // Check breakfast frequency
-  const breakfasts = last7.filter(m => {
-    const h = new Date(m.recorded_at).getHours();
-    return h >= 5 && h < 10;
-  });
+  const breakfasts = last7.filter(m => new Date(m.recorded_at).getHours() >= 5 && new Date(m.recorded_at).getHours() < 10);
   if (breakfasts.length < 3) {
     tips.push(isZh ? "🌅 本周早餐不足3次，建议每天7-8点进食，启动代谢引擎" : "🌅 Less than 3 breakfasts this week — try eating by 7-8 AM to kickstart metabolism");
   }
 
-  // Check late-night eating
   const lateNight = last7.filter(m => new Date(m.recorded_at).getHours() >= 21);
   if (lateNight.length > 0) {
     tips.push(isZh ? "🌙 检测到夜间进食记录，21点后进食会增加脂肪存储风险" : "🌙 Late-night eating detected — eating after 9 PM increases fat storage risk");
   }
 
-  // Check protein distribution
-  const avgProtein = last7.reduce((s, m) => s + m.protein_g, 0) / Math.max(last7.length, 1);
-  if (avgProtein < 15) {
-    tips.push(isZh ? "💪 蛋白质摄入偏低，建议每餐保证20g+蛋白质以稳定血糖" : "💪 Low protein per meal — aim for 20g+ protein each meal to stabilize blood sugar");
-  }
-
-  // Meal spacing tip
-  const dayMap = new Map<string, number[]>();
-  last7.forEach(m => {
-    const d = new Date(m.recorded_at);
-    const key = d.toDateString();
-    if (!dayMap.has(key)) dayMap.set(key, []);
-    dayMap.get(key)!.push(d.getHours() * 60 + d.getMinutes());
-  });
-
-  let tooClose = 0;
-  dayMap.forEach(times => {
-    const sorted = times.sort((a, b) => a - b);
-    for (let i = 1; i < sorted.length; i++) {
-      if (sorted[i] - sorted[i - 1] < 120) tooClose++;
+  // Sequence score trend tip
+  const scored = last7.filter(m => m.sequence_score != null);
+  if (scored.length >= 2) {
+    const avgScore = scored.reduce((s, m) => s + (m.sequence_score || 0), 0) / scored.length;
+    if (avgScore < 50) {
+      tips.push(isZh ? "🔄 近期进食顺序评分偏低，记住：蔬菜→蛋白质→主食，血糖更稳定" : "🔄 Recent sequence scores are low — remember: Veggies → Protein → Carbs for stable blood sugar");
+    } else if (avgScore >= 80) {
+      tips.push(isZh ? "🏆 进食顺序表现优秀！身体资产持续增值，午后专注力+20%" : "🏆 Excellent eating order! Body assets appreciating, afternoon focus +20%");
     }
-  });
-
-  if (tooClose > 2) {
-    tips.push(isZh ? "⏰ 部分餐食间隔不足2小时，建议间隔3-4小时让消化系统充分休息" : "⏰ Some meals are too close together — space meals 3-4 hours apart for proper digestion");
   }
 
-  // Always add a positive tip if we have data
   if (tips.length === 0) {
     tips.push(isZh ? "✨ 饮食时序表现良好！保持规律进食，身体资产持续增值" : "✨ Great meal timing! Keep it up — consistent timing maximizes body asset growth");
   }
@@ -133,19 +76,28 @@ function generateTips(meals: MealRecord[], isZh: boolean): string[] {
 }
 
 export default function MealSequenceCoach({ meals }: Props) {
-  const { t, locale } = useI18n();
+  const { locale } = useI18n();
   const isZh = locale === "zh-CN";
 
   const heatmap = useMemo(() => buildTimingHeatmap(meals), [meals]);
-  const score = useMemo(() => computeSequenceScore(meals), [meals]);
+  const overallScore = useMemo(() => computeOverallScore(meals), [meals]);
   const tips = useMemo(() => generateTips(meals, isZh), [meals, isZh]);
 
-  const scoreColor = score >= 75 ? "hsl(var(--success))" : score >= 50 ? "hsl(var(--warning))" : "hsl(var(--destructive))";
-  const scoreLabel = score >= 75
+  // Recent meals with sequence scores
+  const scoredMeals = useMemo(() => {
+    return meals
+      .filter(m => m.sequence_score != null)
+      .slice(0, 10);
+  }, [meals]);
+
+  const scoreColor = overallScore >= 75 ? "hsl(var(--success))" : overallScore >= 50 ? "hsl(var(--warning))" : "hsl(var(--destructive))";
+  const scoreLabel = overallScore >= 75
     ? (isZh ? "优秀" : "Excellent")
-    : score >= 50
+    : overallScore >= 50
       ? (isZh ? "良好" : "Good")
-      : (isZh ? "需改善" : "Needs Work");
+      : overallScore > 0
+        ? (isZh ? "需改善" : "Needs Work")
+        : (isZh ? "暂无数据" : "No Data");
 
   const slotLabels = isZh ? ["早", "午", "加", "晚"] : ["AM", "Noon", "Snk", "PM"];
 
@@ -167,27 +119,96 @@ export default function MealSequenceCoach({ meals }: Props) {
                 stroke={scoreColor}
                 strokeWidth="5"
                 strokeLinecap="round"
-                strokeDasharray={`${score * 2.136} 999`}
+                strokeDasharray={`${overallScore * 2.136} 999`}
                 className="transition-all duration-1000 ease-out"
                 style={{ filter: `drop-shadow(0 0 6px ${scoreColor})` }}
               />
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-xl font-bold font-mono" style={{ color: scoreColor }}>{score}</span>
+              <span className="text-xl font-bold font-mono" style={{ color: scoreColor }}>{overallScore}</span>
               <span className="text-[8px] font-mono text-muted-foreground tracking-wider">{scoreLabel}</span>
             </div>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-card-foreground mb-1">
-              {isZh ? "时序合规度" : "Timing Compliance"}
+              {isZh ? "进食顺序评分" : "Eating Order Score"}
             </p>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               {isZh
-                ? "基于近14天的进食时间、顺序和间隔综合评估"
-                : "Based on 14-day analysis of meal timing, order, and spacing"}
+                ? "基于每餐食材顺序评估：蔬菜→蛋白质→主食为最优路径"
+                : "Per-meal ingredient order: Veggies → Protein → Carbs is optimal"}
             </p>
           </div>
         </div>
+
+        {/* Per-Meal Sequence Score History */}
+        {scoredMeals.length > 0 && (
+          <div>
+            <p className="text-[10px] font-mono font-bold text-muted-foreground tracking-wider mb-2">
+              {isZh ? "近期顺序评分记录" : "RECENT SEQUENCE SCORES"}
+            </p>
+            {/* Sparkline bar chart */}
+            <div className="flex items-end gap-1 h-16 mb-2">
+              {scoredMeals.map((m, i) => {
+                const s = m.sequence_score || 0;
+                const grade = getSequenceGrade(s);
+                const info = getSequenceGradeInfo(grade, isZh);
+                return (
+                  <div key={m.id} className="flex-1 flex flex-col items-center gap-0.5 group relative">
+                    <div
+                      className="w-full rounded-t-sm transition-all duration-500 min-h-[4px]"
+                      style={{
+                        height: `${Math.max(8, s * 0.6)}%`,
+                        background: info.color,
+                        opacity: 0.7 + (i === 0 ? 0.3 : 0),
+                      }}
+                    />
+                    {/* Tooltip on hover */}
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 glass-strong rounded-md px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
+                      <p className="text-[8px] font-mono text-card-foreground">{m.food_name}</p>
+                      <p className="text-[7px] font-mono" style={{ color: info.color }}>{info.icon} {s} · {info.label}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {/* Meal list with scores */}
+            <div className="space-y-1.5 max-h-[180px] overflow-y-auto">
+              {scoredMeals.slice(0, 5).map(m => {
+                const s = m.sequence_score || 0;
+                const grade = getSequenceGrade(s);
+                const info = getSequenceGradeInfo(grade, isZh);
+                return (
+                  <div
+                    key={m.id}
+                    className="flex items-center justify-between px-2.5 py-2 rounded-lg border border-border/20"
+                    style={{ background: `${info.color}08` }}
+                  >
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="text-sm">{info.icon}</span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold text-card-foreground truncate">{m.food_name}</p>
+                        <p className="text-[8px] font-mono text-muted-foreground/50">
+                          {new Date(m.recorded_at).toLocaleDateString(isZh ? "zh-CN" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="w-12 h-1.5 rounded-full overflow-hidden bg-secondary/50">
+                        <div
+                          className="h-full rounded-full transition-all duration-700"
+                          style={{ width: `${s}%`, background: info.color }}
+                        />
+                      </div>
+                      <span className="text-xs font-black font-mono tabular-nums" style={{ color: info.color }}>{s}</span>
+                      <span className="text-[7px] font-mono text-muted-foreground/40">{info.label}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Timing Heatmap */}
         <div>
@@ -195,17 +216,15 @@ export default function MealSequenceCoach({ meals }: Props) {
             {isZh ? "7日进食热力图" : "7-DAY TIMING HEATMAP"}
           </p>
           <div className="grid grid-cols-8 gap-1">
-            {/* Header */}
             <div />
             {heatmap.map((day, i) => (
               <div key={i} className="text-center text-[8px] font-mono text-muted-foreground/60">
                 {isZh ? day.label : ["S", "M", "T", "W", "T", "F", "S"][new Date(Date.now() - (6 - i) * 86400000).getDay()]}
               </div>
             ))}
-            {/* Rows */}
             {slotLabels.map((slot, si) => (
-              <>
-                <div key={`label-${si}`} className="text-[8px] font-mono text-muted-foreground/50 flex items-center justify-end pr-1">
+              <div key={`row-${si}`} className="contents">
+                <div className="text-[8px] font-mono text-muted-foreground/50 flex items-center justify-end pr-1">
                   {slot}
                 </div>
                 {heatmap.map((day, di) => {
@@ -222,7 +241,7 @@ export default function MealSequenceCoach({ meals }: Props) {
                     />
                   );
                 })}
-              </>
+              </div>
             ))}
           </div>
         </div>
@@ -268,7 +287,6 @@ export default function MealSequenceCoach({ meals }: Props) {
               <div
                 key={i}
                 className="glass rounded-lg px-3 py-2.5 text-[10px] text-muted-foreground leading-relaxed border border-border/20"
-                style={{ animationDelay: `${i * 0.1}s` }}
               >
                 {tip}
               </div>
@@ -276,7 +294,7 @@ export default function MealSequenceCoach({ meals }: Props) {
           </div>
         )}
 
-        {/* Meal Interval Visualization */}
+        {/* Meal Rhythm */}
         {meals.length > 0 && (
           <div>
             <p className="text-[10px] font-mono font-bold text-muted-foreground tracking-wider mb-2">
@@ -304,12 +322,10 @@ function MealRhythmBar({ meals, isZh }: { meals: MealRecord[]; isZh: boolean }) 
     );
   }
 
-  // Timeline from 6:00 to 22:00 (16 hours)
   const startH = 6, endH = 22, range = endH - startH;
 
   return (
     <div className="relative h-8 rounded-lg overflow-hidden" style={{ background: "hsl(var(--border) / 0.15)" }}>
-      {/* Hour markers */}
       {[6, 9, 12, 15, 18, 21].map(h => (
         <div
           key={h}
@@ -321,26 +337,28 @@ function MealRhythmBar({ meals, isZh }: { meals: MealRecord[]; isZh: boolean }) 
           </span>
         </div>
       ))}
-      {/* Meal dots */}
       {todayMeals.map((m, i) => {
         const d = new Date(m.recorded_at);
         const hourPos = d.getHours() + d.getMinutes() / 60;
         const left = Math.max(0, Math.min(100, ((hourPos - startH) / range) * 100));
+        const hasScore = m.sequence_score != null;
+        const grade = hasScore ? getSequenceGrade(m.sequence_score!) : null;
+        const info = grade ? getSequenceGradeInfo(grade, isZh) : null;
         return (
           <div
             key={m.id}
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center"
+            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
             style={{ left: `${left}%` }}
           >
             <div
               className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2"
               style={{
-                background: "hsl(var(--primary) / 0.15)",
-                borderColor: "hsl(var(--primary) / 0.5)",
-                boxShadow: "0 0 8px hsl(var(--primary) / 0.3)",
+                background: info ? `${info.color}20` : "hsl(var(--primary) / 0.15)",
+                borderColor: info ? `${info.color}80` : "hsl(var(--primary) / 0.5)",
+                boxShadow: `0 0 8px ${info ? `${info.color}40` : "hsl(var(--primary) / 0.3)"}`,
               }}
             >
-              {i + 1}
+              {hasScore ? <span className="text-[7px] font-mono font-bold">{m.sequence_score}</span> : i + 1}
             </div>
           </div>
         );
