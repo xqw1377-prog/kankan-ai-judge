@@ -19,6 +19,7 @@ import BrainBattery from "@/components/BrainBattery";
 import { useHabitLearner } from "@/hooks/useHabitLearner";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
+import { computeSequenceScore as calcSeqScore } from "@/lib/sequenceScore";
 import html2canvas from "html2canvas";
 
 function renderSuggestionWithBold(text: string) {
