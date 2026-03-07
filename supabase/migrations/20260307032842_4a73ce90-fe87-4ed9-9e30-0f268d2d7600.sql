@@ -1,0 +1,1 @@
+ALTER TABLE public.meal_records ADD COLUMN IF NOT EXISTS sequence_score integer DEFAULT NULL;
