@@ -101,6 +101,39 @@ interface OrderedDish {
   stomachMin: number;
   icon: string;
   isCurrent?: boolean;
+  recommendedGrams?: number;
+}
+
+/** Filter out condiments, oils, seasonings — keep only actual dishes/foods */
+function isDish(name: string): boolean {
+  const l = name.toLowerCase();
+  // Exclude common condiments, oils, seasonings, sauces
+  if (/油|酱|盐|糖|醋|料酒|葱|姜|蒜|辣椒粉|胡椒|香料|调料|味精|酱油|蚝油|花椒/.test(l)) return false;
+  if (/^(oil|salt|sugar|pepper|sauce|vinegar|garlic|ginger|scallion|chili|spice|seasoning|soy sauce|oyster sauce|msg|cooking wine)/i.test(l)) return false;
+  return true;
+}
+
+/** Estimate recommended serving grams based on food type */
+function getRecommendedGrams(name: string, calories: number): number {
+  const l = name.toLowerCase();
+  if (/汤|soup|broth|羹/.test(l)) return 250;
+  if (/粥|congee/.test(l)) return 300;
+  if (/沙拉|salad/.test(l)) return 200;
+  if (/菜|蔬|vegetable|greens|青|瓜|豆角|西兰花|白菜|菠菜|芹菜/.test(l)) return 200;
+  if (/饭|rice/.test(l)) return 150;
+  if (/面|noodle|pasta/.test(l)) return 200;
+  if (/鸡胸|chicken breast/.test(l)) return 120;
+  if (/鸡|chicken/.test(l)) return 150;
+  if (/鱼|fish/.test(l)) return 150;
+  if (/虾|shrimp/.test(l)) return 100;
+  if (/牛|beef/.test(l)) return 120;
+  if (/猪|pork|扣肉|排骨|rib/.test(l)) return 100;
+  if (/蛋|egg/.test(l)) return 100;
+  if (/豆腐|tofu/.test(l)) return 150;
+  // Default: estimate from calories
+  if (calories > 400) return 100;
+  if (calories > 200) return 150;
+  return 180;
 }
 
 const COLORS: Record<DigestDifficulty, { main: string; bg: string; glow: string; particle: string }> = {
