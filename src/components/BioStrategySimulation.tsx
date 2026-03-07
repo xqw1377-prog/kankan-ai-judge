@@ -442,7 +442,8 @@ interface Props {
 }
 
 export default function BioStrategySimulation({ dish, ingredients = [], todayMeals = [], visible, onSequenceQualityChange }: Props) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const isZh = locale === "zh-CN";
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
@@ -452,62 +453,38 @@ export default function BioStrategySimulation({ dish, ingredients = [], todayMea
   }, [visible]);
 
   const digestScore = useMemo(() => calcDigestScore(dish), [dish]);
-  const difficulty = getDifficulty(digestScore);
-  const stomachMin = getStomachTime(digestScore);
+  const catData = DIGEST_DATA[classifyFood(dish.name)];
+  const difficulty = getDifficulty(catData.minMin);
+  const stomachMin = catData.minMin;
   const colors = COLORS[difficulty];
 
-  // Build ordered dish list — treat each dish as a whole unit, skip condiments/oils
+  // Build ordered dish list — group by food category, use science-based digestion times
   const orderedDishes = useMemo((): OrderedDish[] => {
-    const allDishes: OrderedDish[] = [];
-
-    // If we have ingredients, group by actual dishes (filter out oils/seasonings)
     if (ingredients.length > 1) {
-      const dishes = ingredients.filter(ing => isDish(ing.name));
-      // If filtering left nothing, use all
-      const source = dishes.length > 0 ? dishes : ingredients;
-      source.forEach(ing => {
-        const ingAsDish: DishInfo = {
-          name: ing.name,
-          calories: ing.calories || Math.round((ing.protein || 0) * 4 + (ing.fat || 0) * 9 + (ing.carbs || 0) * 4),
-          protein_g: ing.protein || 0,
-          fat_g: ing.fat || 0,
-          carbs_g: ing.carbs || 0,
-          cookMethod: ing.cookMethod,
-        };
-        const s = calcDigestScore(ingAsDish);
-        allDishes.push({
-          name: ing.name,
-          score: s,
-          difficulty: getDifficulty(s),
-          stomachMin: getStomachTime(s),
-          icon: getDishIcon(ing.name),
-          isCurrent: false,
-          recommendedGrams: getRecommendedGrams(ing.name, ingAsDish.calories),
-        });
-      });
-    } else {
-      // Fallback: treat previous meals + current dish as items
-      todayMeals.forEach(m => {
-        const s = calcDigestScore({
-          name: m.food_name, calories: m.calories,
-          protein_g: m.protein_g, fat_g: m.fat_g, carbs_g: m.carbs_g,
-        });
-        allDishes.push({
-          name: m.food_name, score: s, difficulty: getDifficulty(s),
-          stomachMin: getStomachTime(s), icon: getDishIcon(m.food_name), isCurrent: false,
-          recommendedGrams: getRecommendedGrams(m.food_name, m.calories),
-        });
-      });
-
-      allDishes.push({
-        name: dish.name, score: digestScore, difficulty, stomachMin,
-        icon: getDishIcon(dish.name), isCurrent: true,
-        recommendedGrams: getRecommendedGrams(dish.name, dish.calories),
-      });
+      return groupByCategory(ingredients, isZh);
     }
 
-    return allDishes.sort((a, b) => b.score - a.score);
-  }, [ingredients, todayMeals, dish, digestScore, difficulty, stomachMin]);
+    // Fallback: today's meals + current dish
+    const allDishes: OrderedDish[] = [];
+    todayMeals.forEach(m => {
+      const cat = classifyFood(m.food_name);
+      const data = DIGEST_DATA[cat];
+      allDishes.push({
+        name: m.food_name, score: Math.max(1, Math.min(10, Math.round(10 - (data.minMin / 30)))),
+        difficulty: getDifficulty(data.minMin),
+        stomachMin: data.minMin, icon: data.icon, isCurrent: false,
+        recommendedGrams: data.recommendedGrams,
+      });
+    });
+
+    allDishes.push({
+      name: dish.name, score: digestScore, difficulty, stomachMin,
+      icon: getDishIcon(dish.name), isCurrent: true,
+      recommendedGrams: catData.recommendedGrams,
+    });
+
+    return allDishes.sort((a, b) => a.stomachMin - b.stomachMin);
+  }, [ingredients, todayMeals, dish, digestScore, difficulty, stomachMin, isZh, catData]);
 
   const sequenceQuality = useMemo((): SequenceQuality => {
     if (orderedDishes.length <= 1) return difficulty === "hard" ? "moderate" : "optimal";
