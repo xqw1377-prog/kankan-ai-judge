@@ -7,6 +7,7 @@ import DietRing from "@/components/DietRing";
 import AnimatedScore from "@/components/AnimatedScore";
 import DietCreditCard from "@/components/DietCreditCard";
 import InvestmentReport from "@/components/InvestmentReport";
+import MealSequenceCoach from "@/components/MealSequenceCoach";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -166,6 +167,11 @@ const Profile = () => {
         <div className="glass rounded-2xl p-5 shadow-card flex justify-center">
           <DietRing meals={meals} />
         </div>
+      </section>
+
+      {/* Meal Sequence Coach */}
+      <section className="px-5">
+        <MealSequenceCoach meals={meals} />
       </section>
 
       <section className="px-5 mb-6">
