@@ -267,13 +267,18 @@ const History = () => {
               />
             </div>
 
-            {/* Daily Calorie Goal Achievement */}
+            {/* Daily Goal Achievement */}
             {profile?.targets?.calories && (
               <div className="mt-3 pt-3 border-t border-border/20">
                 <p className="text-[8px] font-mono text-muted-foreground/50 tracking-wider mb-2">
-                  {isZh ? "每日热量达成率" : "DAILY CALORIE GOAL"}
+                  {isZh ? "每日目标达成率" : "DAILY GOAL ACHIEVEMENT"}
                 </p>
-                <DailyGoalBars meals={filteredMeals} targetCal={profile.targets.calories} isZh={isZh} />
+                <DailyGoalBars
+                  meals={filteredMeals}
+                  targetCal={profile.targets.calories}
+                  targetProtein={profile.targets.protein_g}
+                  isZh={isZh}
+                />
               </div>
             )}
 
@@ -448,9 +453,14 @@ function MacroPieChart({ protein, fat, carbs, prevProtein, prevFat, prevCarbs, i
   );
 }
 
-/** Daily calorie goal achievement bars */
-function DailyGoalBars({ meals, targetCal, isZh }: { meals: { calories: number; recorded_at: string }[]; targetCal: number; isZh: boolean }) {
-  const dayMap = new Map<string, { total: number; label: string }>();
+/** Daily calorie + protein goal achievement */
+function DailyGoalBars({ meals, targetCal, targetProtein, isZh }: {
+  meals: { calories: number; protein_g: number; recorded_at: string }[];
+  targetCal: number;
+  targetProtein: number;
+  isZh: boolean;
+}) {
+  const dayMap = new Map<string, { cal: number; protein: number; label: string }>();
   meals.forEach(m => {
     const d = new Date(m.recorded_at);
     const key = d.toLocaleDateString();
@@ -458,75 +468,94 @@ function DailyGoalBars({ meals, targetCal, isZh }: { meals: { calories: number; 
       ? `${d.getMonth() + 1}/${d.getDate()}`
       : d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     const existing = dayMap.get(key);
-    dayMap.set(key, { total: (existing?.total || 0) + m.calories, label: existing?.label || label });
+    dayMap.set(key, {
+      cal: (existing?.cal || 0) + m.calories,
+      protein: (existing?.protein || 0) + m.protein_g,
+      label: existing?.label || label,
+    });
   });
 
   const days = [...dayMap.values()];
   if (days.length === 0) return null;
 
-  const avgPct = Math.round(days.reduce((s, d) => s + (d.total / targetCal) * 100, 0) / days.length);
+  const avgCalPct = Math.round(days.reduce((s, d) => s + (d.cal / targetCal) * 100, 0) / days.length);
+  const avgProtPct = targetProtein > 0
+    ? Math.round(days.reduce((s, d) => s + (d.protein / targetProtein) * 100, 0) / days.length)
+    : 0;
+
+  function pctColor(pct: number) {
+    if (pct >= 90 && pct <= 110) return "hsl(var(--success))";
+    if (pct > 110) return "hsl(var(--warning))";
+    return "hsl(var(--info))";
+  }
+  function pctClass(pct: number) {
+    if (pct >= 90 && pct <= 110) return "text-[hsl(var(--success))]";
+    if (pct > 110) return "text-[hsl(var(--warning))]";
+    return "text-[hsl(var(--info))]";
+  }
 
   return (
     <div className="space-y-2">
-      {/* Average summary */}
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-[9px] font-mono text-muted-foreground">
-          {isZh ? "平均达成" : "Avg achievement"}
-        </span>
-        <span className={`text-[10px] font-mono font-bold ${
-          avgPct >= 90 && avgPct <= 110 ? "text-[hsl(var(--success))]"
-            : avgPct > 110 ? "text-[hsl(var(--warning))]"
-            : "text-[hsl(var(--info))]"
-        }`}>
-          {avgPct}%
-        </span>
-      </div>
-      <div className="h-2 rounded-full overflow-hidden bg-secondary/50 relative">
-        <div
-          className="h-full rounded-full transition-all duration-700"
-          style={{
-            width: `${Math.min(avgPct, 100)}%`,
-            background: avgPct >= 90 && avgPct <= 110
-              ? "hsl(var(--success))"
-              : avgPct > 110
-                ? "hsl(var(--warning))"
-                : "hsl(var(--info))",
-          }}
-        />
-        {/* 100% marker */}
-        <div className="absolute top-0 bottom-0 w-px bg-card-foreground/20" style={{ left: "100%" }} />
+      {/* Average summary — two bars */}
+      <div className="grid grid-cols-2 gap-3 mb-1">
+        {[
+          { label: isZh ? "热量" : "Calories", pct: avgCalPct, target: `${targetCal} kcal` },
+          ...(targetProtein > 0 ? [{ label: isZh ? "蛋白质" : "Protein", pct: avgProtPct, target: `${targetProtein}g` }] : []),
+        ].map((item, idx) => (
+          <div key={idx}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[8px] font-mono text-muted-foreground">{item.label}</span>
+              <span className={`text-[10px] font-mono font-bold ${pctClass(item.pct)}`}>{item.pct}%</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden bg-secondary/50 relative">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${Math.min(item.pct, 100)}%`, background: pctColor(item.pct) }}
+              />
+            </div>
+            <p className="text-[7px] text-muted-foreground/40 font-mono mt-0.5">
+              {isZh ? `目标 ${item.target}/天` : `Target ${item.target}/day`}
+            </p>
+          </div>
+        ))}
       </div>
 
-      {/* Per-day bars */}
-      <div className="space-y-1 mt-2">
+      {/* Per-day dual bars */}
+      <div className="space-y-1.5 mt-2">
         {days.slice(0, 7).map((day, i) => {
-          const pct = Math.round((day.total / targetCal) * 100);
-          const isOver = pct > 110;
-          const isGood = pct >= 90 && pct <= 110;
+          const calPct = Math.round((day.cal / targetCal) * 100);
+          const protPct = targetProtein > 0 ? Math.round((day.protein / targetProtein) * 100) : 0;
           return (
-            <div key={i} className="flex items-center gap-2">
-              <span className="text-[8px] font-mono text-muted-foreground/60 w-10 shrink-0">{day.label}</span>
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-secondary/40 relative">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${Math.min(pct, 100)}%`,
-                    background: isGood ? "hsl(var(--success))" : isOver ? "hsl(var(--warning))" : "hsl(var(--info))",
-                  }}
-                />
+            <div key={i}>
+              <div className="flex items-center gap-2">
+                <span className="text-[8px] font-mono text-muted-foreground/60 w-10 shrink-0">{day.label}</span>
+                <div className="flex-1 space-y-0.5">
+                  {/* Calorie bar */}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[6px] font-mono text-muted-foreground/40 w-4">🔥</span>
+                    <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-secondary/40">
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(calPct, 100)}%`, background: pctColor(calPct) }} />
+                    </div>
+                    <span className={`text-[7px] font-mono w-7 text-right tabular-nums ${pctClass(calPct)}`}>{calPct}%</span>
+                  </div>
+                  {/* Protein bar */}
+                  {targetProtein > 0 && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-[6px] font-mono text-muted-foreground/40 w-4">💪</span>
+                      <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-secondary/40">
+                        <div className="h-full rounded-full transition-all duration-500"
+                          style={{ width: `${Math.min(protPct, 100)}%`, background: pctColor(protPct) }} />
+                      </div>
+                      <span className={`text-[7px] font-mono w-7 text-right tabular-nums ${pctClass(protPct)}`}>{protPct}%</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <span className={`text-[8px] font-mono w-8 text-right tabular-nums ${
-                isGood ? "text-[hsl(var(--success))]" : isOver ? "text-[hsl(var(--warning))]" : "text-muted-foreground"
-              }`}>
-                {pct}%
-              </span>
             </div>
           );
         })}
       </div>
-      <p className="text-[7px] text-muted-foreground/40 font-mono mt-1">
-        {isZh ? `目标 ${targetCal} kcal/天` : `Target ${targetCal} kcal/day`}
-      </p>
     </div>
   );
 }
