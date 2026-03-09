@@ -32,7 +32,6 @@ const App = () => (
           <div className="h-full flex flex-col">
             <Suspense fallback={<div className="h-full flex items-center justify-center text-muted-foreground">Loading…</div>}>
               <Routes>
-                <Route path="/welcome" element={<Welcome />} />
                 <Route path="/onboarding" element={<Onboarding />} />
                 <Route path="/" element={<Index />} />
                 <Route path="/scan" element={<Scan />} />

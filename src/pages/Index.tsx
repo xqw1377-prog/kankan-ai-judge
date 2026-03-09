@@ -20,7 +20,7 @@ const Index = () => {
 
   useEffect(() => {
     if (!profileLoading && !profile) {
-      navigate("/welcome", { replace: true });
+      navigate("/login", { replace: true });
     } else if (!profileLoading && profile && !profile.onboarding_completed) {
       navigate("/onboarding", { replace: true });
     }

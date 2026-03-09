@@ -281,7 +281,7 @@ const Profile = () => {
             <AlertDialogAction
               onClick={async () => {
                 await supabase.auth.signOut();
-                navigate("/welcome", { replace: true });
+                navigate("/login", { replace: true });
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
