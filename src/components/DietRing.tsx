@@ -112,7 +112,7 @@ const DietRing = ({ meals }: DietRingProps) => {
       }
 
       const labelAngle = (startAngle + endAngle) / 2;
-      const labelR = ringRadius + 22;
+      const labelR = ringRadius + size * 0.085;
       const lx = cx + Math.cos(labelAngle) * labelR;
       const ly = cy + Math.sin(labelAngle) * labelR;
       const dayLabels = ["一", "二", "三", "四", "五", "六", "日"];
