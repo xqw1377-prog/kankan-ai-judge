@@ -25,18 +25,20 @@ function getDayData(dayMeals: MealRecord[], date: Date): DayData {
 
 const DietRing = ({ meals }: DietRingProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; day: DayData } | null>(null);
   const daysRef = useRef<DayData[]>([]);
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const size = 260;
+    const size = Math.min(container.clientWidth, 300);
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;
