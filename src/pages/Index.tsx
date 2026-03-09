@@ -73,8 +73,14 @@ const Index = () => {
       <header className="px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">{greeting}，</p>
-            <h1 className="text-xl font-bold text-card-foreground">{nickname}</h1>
+            <p className="text-sm text-muted-foreground">{greeting}{nickname ? "，" : ""}</p>
+            {nickname ? (
+              <h1 className="text-xl font-bold text-card-foreground">{nickname}</h1>
+            ) : (
+              <button onClick={() => navigate("/profile")} className="text-sm text-primary font-semibold mt-0.5">
+                {t.nicknamePlaceholder}
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button
