@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Camera, X, ImagePlus, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -19,9 +20,17 @@ const Index = () => {
   const [photos, setPhotos] = useState<string[]>([]);
 
   useEffect(() => {
-    if (!profileLoading && !profile) {
-      navigate("/login", { replace: true });
-    } else if (!profileLoading && profile && !profile.onboarding_completed) {
+    if (profileLoading) return;
+    if (!profile) {
+      // Check if user is authenticated but has no profile yet → go to onboarding
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          navigate("/onboarding", { replace: true });
+        } else {
+          navigate("/login", { replace: true });
+        }
+      });
+    } else if (!profile.onboarding_completed) {
       navigate("/onboarding", { replace: true });
     }
   }, [profile, profileLoading, navigate]);
