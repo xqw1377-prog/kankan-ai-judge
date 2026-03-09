@@ -59,8 +59,11 @@ const Profile = () => {
   }, []);
 
   if (!profile) {
-    navigate("/login", { replace: true });
-    return null;
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
   }
 
   const nickname = (profile as any).nickname || "";
