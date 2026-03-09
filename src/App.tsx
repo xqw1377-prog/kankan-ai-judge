@@ -7,7 +7,6 @@ import { lazy, Suspense } from "react";
 import { I18nProvider } from "@/lib/i18n";
 import BottomNav from "@/components/BottomNav";
 
-const Welcome = lazy(() => import("./pages/Welcome"));
 const Onboarding = lazy(() => import("./pages/Onboarding"));
 const Index = lazy(() => import("./pages/Index"));
 const Scan = lazy(() => import("./pages/Scan"));
