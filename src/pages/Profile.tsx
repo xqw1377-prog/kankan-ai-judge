@@ -47,7 +47,16 @@ const Profile = () => {
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setAuthUser(data.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   if (!profile) {
     return (
