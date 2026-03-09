@@ -243,17 +243,34 @@ const Profile = () => {
 
       <section className="px-5 pb-8">
         <button
-          onClick={async () => {
-            if (!window.confirm(t.logoutConfirm)) return;
-            await supabase.auth.signOut();
-            navigate("/welcome", { replace: true });
-          }}
+          onClick={() => setShowLogoutDialog(true)}
           className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
         >
           <LogOut className="w-4 h-4" />
           {t.logout}
         </button>
       </section>
+
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.logout}</AlertDialogTitle>
+            <AlertDialogDescription>{t.logoutConfirm}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate("/welcome", { replace: true });
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {t.logout}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
