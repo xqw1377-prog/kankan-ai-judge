@@ -60,7 +60,7 @@ const DietRing = ({ meals }: DietRingProps) => {
     daysRef.current = days;
 
     const maxCal = Math.max(2500, ...days.map(d => d.totalCal));
-    const ringRadius = 80;
+    const ringRadius = size * 0.31;
 
     // Background ring
     ctx.beginPath();
