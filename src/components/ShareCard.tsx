@@ -47,7 +47,7 @@ function MacroRing({ value, max, color, label, unit }: { value: number; max: num
   );
 }
 
-const APP_URL = "https://kankan-eye-spy.lovable.app";
+const APP_URL = "https://kankanai.cc";
 
 const ShareCard = forwardRef<HTMLDivElement, ShareCardProps>(
   ({ food, calories, protein_g, fat_g, carbs_g, verdict, roast, ingredients, imageData, score = 60, locale = "zh-CN" }, ref) => {

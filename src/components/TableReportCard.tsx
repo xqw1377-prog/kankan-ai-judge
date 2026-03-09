@@ -38,7 +38,7 @@ const BRAND: Record<Locale, { tagline: string; lab: string; ranking: string; car
   },
 };
 
-const APP_URL = "https://kankan-eye-spy.lovable.app";
+const APP_URL = "https://kankanai.cc";
 
 const TableReportCard = forwardRef<HTMLDivElement, TableReportCardProps>(
   ({ food, totalWeight, claimedWeight, totalCarbs, members, locale = "zh-CN" }, ref) => {
