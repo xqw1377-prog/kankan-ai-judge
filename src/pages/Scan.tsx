@@ -88,7 +88,7 @@ const Scan = () => {
       </button>
 
       {images.length > 0 && (
-        <div className="relative w-64 h-64 rounded-2xl overflow-hidden shadow-card mb-8 border border-border">
+        <div className="relative w-[65vw] max-w-64 aspect-square rounded-2xl overflow-hidden shadow-card mb-8 border border-border">
           <img src={images[currentPreview]} alt="food" className="w-full h-full object-cover transition-opacity duration-300" />
           <div className="absolute left-0 w-full h-0.5 bg-primary shadow-[0_0_10px_hsl(43_72%_52%/0.6)] animate-scan-line" style={{ top: "0%" }} />
           <div className="absolute inset-0 bg-primary/5" />

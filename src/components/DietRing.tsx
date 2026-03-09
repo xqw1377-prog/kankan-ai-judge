@@ -185,8 +185,8 @@ const DietRing = ({ meals }: DietRingProps) => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center relative">
-      <canvas ref={canvasRef} className="mb-2" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+    <div ref={containerRef} className="flex flex-col items-center relative w-full">
+      <canvas ref={canvasRef} className="mb-2 max-w-full" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
 
       {tooltip && (
         <div className="absolute glass rounded-xl shadow-soft p-3 z-20 animate-fade-in" style={{ left: Math.max(10, Math.min(tooltip.x - 80, 100)), top: Math.max(0, tooltip.y), width: 180 }}>

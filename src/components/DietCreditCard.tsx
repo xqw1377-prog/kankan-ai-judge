@@ -82,7 +82,7 @@ const DietCreditCard = ({ score, level, levelDesc, beatText }: DietCreditCardPro
   }, []);
 
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-soft animate-slide-up" style={{ minHeight: 180 }}>
+    <div ref={containerRef} className="relative rounded-2xl overflow-hidden shadow-soft animate-slide-up" style={{ minHeight: 180 }}>
       {/* Dark base */}
       <div className="absolute inset-0 bg-[#0d0f14]" />
 
