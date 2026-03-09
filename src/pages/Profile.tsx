@@ -69,7 +69,7 @@ const Profile = () => {
     );
   }
 
-  const nickname = (profile as any).nickname || (profile.gender === "female" ? "小丽" : "小张");
+  const nickname = (profile as any).nickname || "";
   const avatarUrl = (profile as any).avatar_url;
   const genderLabel = profile.gender === "female" ? t.female : t.male;
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
@@ -162,9 +162,13 @@ const Profile = () => {
                   <button onClick={handleNicknameSave} className="p-1 text-primary"><Check className="w-4 h-4" /></button>
                   <button onClick={() => setEditingNickname(false)} className="p-1 text-muted-foreground"><X className="w-4 h-4" /></button>
                 </div>
-              ) : (
+              ) : nickname ? (
                 <button onClick={() => { setNicknameValue(nickname); setEditingNickname(true); }} className="text-left">
                   <h2 className="font-bold text-lg text-card-foreground">{nickname}</h2>
+                </button>
+              ) : (
+                <button onClick={() => { setNicknameValue(""); setEditingNickname(true); }} className="text-left">
+                  <h2 className="font-bold text-lg text-muted-foreground/50">{t.nicknamePlaceholder}</h2>
                 </button>
               )}
               <p className="text-sm text-muted-foreground">
