@@ -18,6 +18,7 @@ const History = lazy(() => import("./pages/History"));
 const MealDetail = lazy(() => import("./pages/MealDetail"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Login = lazy(() => import("./pages/Login"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
