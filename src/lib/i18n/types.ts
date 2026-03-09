@@ -506,4 +506,6 @@ export interface Dictionary {
   loginWechatScanHint: string;
   loginWechatConfirming: string;
   loginWechatConfirmHint: string;
+  logout: string;
+  logoutConfirm: string;
 }

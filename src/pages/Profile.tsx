@@ -227,7 +227,7 @@ const Profile = () => {
         </div>
       </section>
 
-      <section className="px-5 pb-8">
+      <section className="px-5 pb-4">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.other}</h3>
         <div className="glass rounded-xl shadow-card divide-y divide-border">
           {[t.helpFeedback, t.aboutUs].map(item => (
@@ -237,6 +237,20 @@ const Profile = () => {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="px-5 pb-8">
+        <button
+          onClick={async () => {
+            if (!window.confirm(t.logoutConfirm)) return;
+            await supabase.auth.signOut();
+            navigate("/welcome", { replace: true });
+          }}
+          className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+        >
+          <LogOut className="w-4 h-4" />
+          {t.logout}
+        </button>
       </section>
     </div>
   );
