@@ -62,7 +62,7 @@ const Profile = () => {
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">{t.onboardingTitle1}</p>
-        <button onClick={() => navigate("/welcome")} className="px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold">
+        <button onClick={() => navigate("/login")} className="px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold">
           {t.welcomeStart}
         </button>
       </div>
