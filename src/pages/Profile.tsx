@@ -45,6 +45,7 @@ const Profile = () => {
   const { t, locale, setLocale } = useI18n();
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState("");
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!profile) {
