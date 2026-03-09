@@ -69,7 +69,7 @@ const Profile = () => {
     );
   }
 
-  const nickname = (profile as any).nickname || (profile.gender === "female" ? "小丽" : "小张");
+  const nickname = (profile as any).nickname || "";
   const avatarUrl = (profile as any).avatar_url;
   const genderLabel = profile.gender === "female" ? t.female : t.male;
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
