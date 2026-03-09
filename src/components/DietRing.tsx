@@ -152,6 +152,13 @@ const DietRing = ({ meals }: DietRingProps) => {
 
   useEffect(() => { draw(); }, [draw]);
 
+  // Redraw on resize
+  useEffect(() => {
+    const observer = new ResizeObserver(() => draw());
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [draw]);
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
