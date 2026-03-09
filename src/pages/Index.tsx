@@ -64,7 +64,7 @@ const Index = () => {
 
   if (!profile) return null;
 
-  const nickname = profile.gender === "female" ? "小丽" : "小张";
+  const nickname = (profile as any).nickname || "";
   const hour = new Date().getHours();
   const greeting = hour < 11 ? t.greetingMorning : hour < 14 ? t.greetingNoon : hour < 18 ? t.greetingAfternoon : t.greetingEvening;
 
