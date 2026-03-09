@@ -494,4 +494,6 @@ export const enUS: Dictionary = {
   loginWechatScanHint: "Open WeChat → Scan → Scan the QR code above",
   loginWechatConfirming: "Scanned! Confirm on your phone",
   loginWechatConfirmHint: "Tap 'Confirm Login' in WeChat",
+  logout: "Log Out",
+  logoutConfirm: "Are you sure you want to log out? Your local data will be preserved.",
 };

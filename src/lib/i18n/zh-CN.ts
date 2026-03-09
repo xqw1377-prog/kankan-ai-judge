@@ -494,4 +494,6 @@ export const zhCN: Dictionary = {
   loginWechatScanHint: "打开微信 → 扫一扫 → 扫描上方二维码",
   loginWechatConfirming: "已扫描，请在手机上确认",
   loginWechatConfirmHint: "请在微信中点击「确认登录」",
+  logout: "退出登录",
+  logoutConfirm: "确定要退出登录吗？退出后本地数据不会丢失。",
 };
