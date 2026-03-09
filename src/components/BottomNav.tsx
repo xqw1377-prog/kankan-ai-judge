@@ -13,7 +13,7 @@ const BottomNav = () => {
     { path: "/profile", icon: User, label: t.navProfile },
   ];
 
-  const hiddenPaths = ["/onboarding", "/scan", "/result", "/edit-ingredients", "/welcome", "/meal/", "/audit"];
+  const hiddenPaths = ["/onboarding", "/scan", "/result", "/edit-ingredients", "/welcome", "/meal/", "/audit", "/login", "/reset-password"];
   if (hiddenPaths.some(p => location.pathname.startsWith(p))) return null;
 
   return (
