@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Award, Calendar, Utensils, Globe, Camera, X, Check } from "lucide-react";
+import { ChevronRight, Award, Calendar, Utensils, Globe, Camera, X, Check, LogOut } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import DietRing from "@/components/DietRing";
