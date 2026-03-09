@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, Award, Calendar, Utensils, Globe, Camera, X, Check, LogOut } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import type { User } from "@supabase/supabase-js";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import DietRing from "@/components/DietRing";
