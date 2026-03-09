@@ -1,7 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, Award, Calendar, Utensils, Globe, Camera, X, Check, LogOut } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import type { User } from "@supabase/supabase-js";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import DietRing from "@/components/DietRing";
@@ -46,7 +47,16 @@ const Profile = () => {
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setAuthUser(data.user));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   if (!profile) {
     return (
@@ -89,12 +99,19 @@ const Profile = () => {
       <header className="px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-card-foreground">{t.myPage}</h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate("/login")}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-semibold text-primary border border-primary/20"
-          >
-            {locale === "zh-CN" ? "💬 登录" : "🔑 Login"}
-          </button>
+          {!authUser && (
+            <button
+              onClick={() => navigate("/login")}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-semibold text-primary border border-primary/20"
+            >
+              🔑 {t.loginSignIn}
+            </button>
+          )}
+          {authUser && (
+            <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+              {authUser.email}
+            </span>
+          )}
           <button
             onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-semibold text-muted-foreground"
@@ -241,15 +258,17 @@ const Profile = () => {
         </div>
       </section>
 
-      <section className="px-5 pb-8">
-        <button
-          onClick={() => setShowLogoutDialog(true)}
-          className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-        >
-          <LogOut className="w-4 h-4" />
-          {t.logout}
-        </button>
-      </section>
+      {authUser && (
+        <section className="px-5 pb-8">
+          <button
+            onClick={() => setShowLogoutDialog(true)}
+            className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            {t.logout}
+          </button>
+        </section>
+      )}
 
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <AlertDialogContent>

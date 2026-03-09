@@ -508,4 +508,22 @@ export interface Dictionary {
   loginWechatConfirmHint: string;
   logout: string;
   logoutConfirm: string;
+  loginEmailPlaceholder: string;
+  loginPasswordPlaceholder: string;
+  loginSignIn: string;
+  loginSignUp: string;
+  loginSwitchToSignUp: string;
+  loginSwitchToSignIn: string;
+  loginSignUpSuccess: string;
+  loginSignUpSuccessDesc: string;
+  loginError: string;
+  loginPasswordMinLength: string;
+  loginForgotPassword: string;
+  loginResetPasswordTitle: string;
+  loginResetPasswordDesc: string;
+  loginResetPasswordSent: string;
+  loginResetPasswordSentDesc: string;
+  loginNewPassword: string;
+  loginNewPasswordPlaceholder: string;
+  loginNewPasswordSaved: string;
 }
