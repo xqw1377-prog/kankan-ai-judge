@@ -258,15 +258,17 @@ const Profile = () => {
         </div>
       </section>
 
-      <section className="px-5 pb-8">
-        <button
-          onClick={() => setShowLogoutDialog(true)}
-          className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-        >
-          <LogOut className="w-4 h-4" />
-          {t.logout}
-        </button>
-      </section>
+      {authUser && (
+        <section className="px-5 pb-8">
+          <button
+            onClick={() => setShowLogoutDialog(true)}
+            className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+          >
+            <LogOut className="w-4 h-4" />
+            {t.logout}
+          </button>
+        </section>
+      )}
 
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <AlertDialogContent>
