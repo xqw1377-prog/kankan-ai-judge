@@ -12,54 +12,72 @@ const DietCreditCard = ({ score, level, levelDesc, beatText }: DietCreditCardPro
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>();
 
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Animated gold shimmer on canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    canvas.width = 360 * dpr;
-    canvas.height = 200 * dpr;
-    ctx.scale(dpr, dpr);
 
-    let offset = 0;
-    const draw = () => {
-      ctx.clearRect(0, 0, 360, 200);
+    const setupAndDraw = () => {
+      const w = container.clientWidth;
+      const h = container.clientHeight || 180;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Brushed metal base
-      for (let y = 0; y < 200; y += 2) {
-        const alpha = 0.02 + Math.random() * 0.015;
-        ctx.fillStyle = `rgba(212,175,55,${alpha})`;
-        ctx.fillRect(0, y, 360, 1);
-      }
+      let offset = 0;
+      const draw = () => {
+        ctx.clearRect(0, 0, w, h);
 
-      // Flowing gold light streak
-      const grad = ctx.createLinearGradient(offset - 120, 0, offset + 120, 200);
-      grad.addColorStop(0, "rgba(212,175,55,0)");
-      grad.addColorStop(0.4, "rgba(245,208,96,0.12)");
-      grad.addColorStop(0.5, "rgba(245,208,96,0.2)");
-      grad.addColorStop(0.6, "rgba(245,208,96,0.12)");
-      grad.addColorStop(1, "rgba(212,175,55,0)");
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 360, 200);
+        // Brushed metal base
+        for (let y = 0; y < h; y += 2) {
+          const alpha = 0.02 + Math.random() * 0.015;
+          ctx.fillStyle = `rgba(212,175,55,${alpha})`;
+          ctx.fillRect(0, y, w, 1);
+        }
 
-      // Secondary subtle shimmer
-      const grad2 = ctx.createLinearGradient(offset * 0.6 - 80, 100, offset * 0.6 + 80, 0);
-      grad2.addColorStop(0, "rgba(212,175,55,0)");
-      grad2.addColorStop(0.5, "rgba(255,255,255,0.04)");
-      grad2.addColorStop(1, "rgba(212,175,55,0)");
-      ctx.fillStyle = grad2;
-      ctx.fillRect(0, 0, 360, 200);
+        // Flowing gold light streak
+        const grad = ctx.createLinearGradient(offset - 120, 0, offset + 120, h);
+        grad.addColorStop(0, "rgba(212,175,55,0)");
+        grad.addColorStop(0.4, "rgba(245,208,96,0.12)");
+        grad.addColorStop(0.5, "rgba(245,208,96,0.2)");
+        grad.addColorStop(0.6, "rgba(245,208,96,0.12)");
+        grad.addColorStop(1, "rgba(212,175,55,0)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
 
-      offset = (offset + 0.8) % 480;
+        // Secondary subtle shimmer
+        const grad2 = ctx.createLinearGradient(offset * 0.6 - 80, h / 2, offset * 0.6 + 80, 0);
+        grad2.addColorStop(0, "rgba(212,175,55,0)");
+        grad2.addColorStop(0.5, "rgba(255,255,255,0.04)");
+        grad2.addColorStop(1, "rgba(212,175,55,0)");
+        ctx.fillStyle = grad2;
+        ctx.fillRect(0, 0, w, h);
+
+        offset = (offset + 0.8) % (w + 120);
+        animRef.current = requestAnimationFrame(draw);
+      };
+
       animRef.current = requestAnimationFrame(draw);
     };
 
-    animRef.current = requestAnimationFrame(draw);
+    setupAndDraw();
+
+    const observer = new ResizeObserver(() => {
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+      setupAndDraw();
+    });
+    observer.observe(container);
+
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
+      observer.disconnect();
     };
   }, []);
 
