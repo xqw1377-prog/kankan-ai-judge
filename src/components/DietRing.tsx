@@ -25,18 +25,20 @@ function getDayData(dayMeals: MealRecord[], date: Date): DayData {
 
 const DietRing = ({ meals }: DietRingProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; day: DayData } | null>(null);
   const daysRef = useRef<DayData[]>([]);
   const longPressTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const container = containerRef.current;
+    if (!canvas || !container) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     const dpr = window.devicePixelRatio || 1;
-    const size = 260;
+    const size = Math.min(container.clientWidth, 300);
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;
@@ -58,7 +60,7 @@ const DietRing = ({ meals }: DietRingProps) => {
     daysRef.current = days;
 
     const maxCal = Math.max(2500, ...days.map(d => d.totalCal));
-    const ringRadius = 80;
+    const ringRadius = size * 0.31;
 
     // Background ring
     ctx.beginPath();
@@ -110,7 +112,7 @@ const DietRing = ({ meals }: DietRingProps) => {
       }
 
       const labelAngle = (startAngle + endAngle) / 2;
-      const labelR = ringRadius + 22;
+      const labelR = ringRadius + size * 0.085;
       const lx = cx + Math.cos(labelAngle) * labelR;
       const ly = cy + Math.sin(labelAngle) * labelR;
       const dayLabels = ["一", "二", "三", "四", "五", "六", "日"];
@@ -150,6 +152,13 @@ const DietRing = ({ meals }: DietRingProps) => {
 
   useEffect(() => { draw(); }, [draw]);
 
+  // Redraw on resize
+  useEffect(() => {
+    const observer = new ResizeObserver(() => draw());
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, [draw]);
+
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -176,8 +185,8 @@ const DietRing = ({ meals }: DietRingProps) => {
   }, []);
 
   return (
-    <div className="flex flex-col items-center relative">
-      <canvas ref={canvasRef} className="mb-2" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
+    <div ref={containerRef} className="flex flex-col items-center relative w-full">
+      <canvas ref={canvasRef} className="mb-2 max-w-full" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} />
 
       {tooltip && (
         <div className="absolute glass rounded-xl shadow-soft p-3 z-20 animate-fade-in" style={{ left: Math.max(10, Math.min(tooltip.x - 80, 100)), top: Math.max(0, tooltip.y), width: 180 }}>
