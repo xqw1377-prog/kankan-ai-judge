@@ -44,6 +44,7 @@ const App = () => (
                 <Route path="/meal/:id" element={<MealDetail />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
