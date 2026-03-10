@@ -233,11 +233,11 @@ const Profile = () => {
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.preferences}</h3>
         <div className="glass rounded-xl shadow-card divide-y divide-border">
           {[
-            { label: t.allergenManagement, info: profile.allergies || t.notSet },
-            { label: t.reminderSettings, info: "" },
-            { label: t.privacy, info: "" },
+            { label: t.allergenManagement, info: profile.allergies || t.notSet, action: undefined },
+            { label: t.reminderSettings, info: "", action: undefined },
+            { label: t.privacy, info: "", action: () => navigate("/privacy") },
           ].map(item => (
-            <button key={item.label} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground">
+            <button key={item.label} onClick={item.action} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground">
               <span className="truncate">{item.label}</span>
               <div className="flex items-center gap-1 shrink-0">
                 {item.info && <span className="text-xs text-muted-foreground truncate max-w-[120px]">{item.info}</span>}
