@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useI18n } from "@/lib/i18n";
+import AiConsentDialog, { hasAiConsent } from "@/components/AiConsentDialog";
 
 const Scan = () => {
   const location = useLocation();
