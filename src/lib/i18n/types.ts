@@ -526,4 +526,11 @@ export interface Dictionary {
   loginNewPassword: string;
   loginNewPasswordPlaceholder: string;
   loginNewPasswordSaved: string;
+
+  // AI consent
+  aiConsentTitle: string;
+  aiConsentBody: string;
+  aiConsentAgree: string;
+  aiConsentDecline: string;
+  aiConsentPrivacy: string;
 }

@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useI18n } from "@/lib/i18n";
+import AiConsentDialog, { hasAiConsent } from "@/components/AiConsentDialog";
 
 const Scan = () => {
   const location = useLocation();
@@ -18,6 +19,8 @@ const Scan = () => {
   const [cancelled, setCancelled] = useState(false);
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [currentPreview, setCurrentPreview] = useState(0);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentGranted, setConsentGranted] = useState(hasAiConsent());
   const startedRef = useRef(false);
   const resultReadyRef = useRef<any>(null);
   const minTimeRef = useRef(false);
@@ -70,6 +73,7 @@ const Scan = () => {
 
   useEffect(() => {
     if (images.length === 0) { navigate("/", { replace: true }); return; }
+    if (!consentGranted) { setShowConsent(true); return; }
     analyze();
     const minTimer = setTimeout(() => {
       minTimeRef.current = true;
@@ -77,7 +81,7 @@ const Scan = () => {
     }, 2000);
     const slowTimer = setTimeout(() => setShowSlowHint(true), 5000);
     return () => { clearTimeout(minTimer); clearTimeout(slowTimer); };
-  }, [images.length, navigate, analyze, navigateToResult]);
+  }, [images.length, navigate, analyze, navigateToResult, consentGranted]);
 
   const handleCancel = () => { setCancelled(true); navigate("/", { replace: true }); };
 
@@ -112,6 +116,12 @@ const Scan = () => {
       <button onClick={handleCancel} className="absolute bottom-[max(2rem,env(safe-area-inset-bottom))] text-sm text-muted-foreground underline">
         {t.cancel}
       </button>
+
+      <AiConsentDialog
+        open={showConsent}
+        onAgree={() => { setShowConsent(false); setConsentGranted(true); }}
+        onDecline={() => { setShowConsent(false); navigate("/", { replace: true }); }}
+      />
     </div>
   );
 };
