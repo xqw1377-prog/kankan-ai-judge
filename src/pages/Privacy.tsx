@@ -58,22 +58,23 @@ const Privacy = () => {
             <li>云端数据库：用于安全存储用户数据</li>
           </ul>
 
-          <h2 className="text-base font-bold">6. 用户权利</h2>
+          <h2 className="text-base font-bold">7. 用户权利</h2>
           <p>您有权：</p>
           <ul className="list-disc pl-5 space-y-1 text-sm">
             <li>访问和查看您的个人数据</li>
             <li>修改或更新您的个人资料</li>
             <li>删除您的账户和相关数据</li>
             <li>选择不提供某些可选信息</li>
+            <li>撤回对 AI 数据处理的授权（清除应用数据即可重置授权状态）</li>
           </ul>
 
-          <h2 className="text-base font-bold">7. 儿童隐私</h2>
+          <h2 className="text-base font-bold">8. 儿童隐私</h2>
           <p>本应用不面向13岁以下的儿童。我们不会故意收集13岁以下儿童的个人信息。</p>
 
-          <h2 className="text-base font-bold">8. 隐私政策更新</h2>
+          <h2 className="text-base font-bold">9. 隐私政策更新</h2>
           <p>我们可能会不时更新本隐私政策。更新后的政策将在本页面发布，并更新"最后更新日期"。</p>
 
-          <h2 className="text-base font-bold">9. 联系我们</h2>
+          <h2 className="text-base font-bold">10. 联系我们</h2>
           <p>如果您对本隐私政策有任何疑问，请通过应用内反馈功能与我们联系。</p>
         </div>
       </div>
