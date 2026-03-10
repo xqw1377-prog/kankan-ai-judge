@@ -19,6 +19,8 @@ const Scan = () => {
   const [cancelled, setCancelled] = useState(false);
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [currentPreview, setCurrentPreview] = useState(0);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentGranted, setConsentGranted] = useState(hasAiConsent());
   const startedRef = useRef(false);
   const resultReadyRef = useRef<any>(null);
   const minTimeRef = useRef(false);
