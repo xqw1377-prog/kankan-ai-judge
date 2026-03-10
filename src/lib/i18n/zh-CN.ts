@@ -514,4 +514,10 @@ export const zhCN: Dictionary = {
   loginNewPassword: "设置新密码",
   loginNewPasswordPlaceholder: "请输入新密码",
   loginNewPasswordSaved: "密码已更新，请重新登录",
+
+  aiConsentTitle: "AI 数据使用说明",
+  aiConsentBody: "为了分析您拍摄的食物照片，KanKan 需要将照片数据发送至第三方 AI 服务（Google Gemini）进行识别和营养分析。我们不会将您的照片用于其他目的，分析完成后不会在第三方服务器上保留您的图片数据。",
+  aiConsentAgree: "我已了解，继续使用",
+  aiConsentDecline: "暂不使用",
+  aiConsentPrivacy: "查看隐私政策",
 };

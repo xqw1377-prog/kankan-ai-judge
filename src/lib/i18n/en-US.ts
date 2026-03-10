@@ -514,4 +514,10 @@ export const enUS: Dictionary = {
   loginNewPassword: "Set New Password",
   loginNewPasswordPlaceholder: "Enter new password",
   loginNewPasswordSaved: "Password updated, please sign in again",
+
+  aiConsentTitle: "AI Data Usage Notice",
+  aiConsentBody: "To analyze your food photos, KanKan sends image data to a third-party AI service (Google Gemini) for recognition and nutritional analysis. Your photos will not be used for any other purpose and will not be retained on third-party servers after analysis.",
+  aiConsentAgree: "I understand, continue",
+  aiConsentDecline: "Not now",
+  aiConsentPrivacy: "View Privacy Policy",
 };
