@@ -41,10 +41,20 @@ const Privacy = () => {
           <h2 className="text-base font-bold">4. 信息存储与安全</h2>
           <p>您的数据存储在安全的云端服务器上，我们采取行业标准的安全措施来保护您的个人信息，包括数据加密传输和存储。我们不会将您的个人信息出售或出租给第三方。</p>
 
-          <h2 className="text-base font-bold">5. 第三方服务</h2>
-          <p>本应用使用以下第三方服务进行数据处理：</p>
+          <h2 className="text-base font-bold">5. 第三方 AI 数据披露</h2>
+          <p>本应用使用第三方人工智能（AI）服务来实现核心功能。根据相关法律法规及平台要求，我们在此明确披露：</p>
           <ul className="list-disc pl-5 space-y-1 text-sm">
-            <li>AI 模型服务：用于食物识别和营养分析（仅处理食物照片，不关联个人身份信息）</li>
+            <li><strong>AI 服务提供方</strong>：Google Gemini（由 Google LLC 提供）</li>
+            <li><strong>数据传输内容</strong>：您拍摄或上传的食物照片将被发送至 Google Gemini API 进行食物识别和营养成分分析</li>
+            <li><strong>数据用途</strong>：仅用于识别食物种类、估算营养成分（热量、蛋白质、脂肪、碳水化合物等）</li>
+            <li><strong>数据保留</strong>：照片数据在 AI 分析完成后不会被第三方服务保留或用于模型训练</li>
+            <li><strong>用户授权</strong>：首次使用 AI 分析功能时，应用会通过弹窗明确告知并征得您的同意，您可以随时选择不使用该功能</li>
+          </ul>
+          <p className="text-sm">我们不会将您的个人身份信息（如姓名、设备ID等）与发送给 AI 服务的照片数据关联。</p>
+
+          <h2 className="text-base font-bold">6. 其他第三方服务</h2>
+          <p>本应用还使用以下第三方服务：</p>
+          <ul className="list-disc pl-5 space-y-1 text-sm">
             <li>云端数据库：用于安全存储用户数据</li>
           </ul>
 
