@@ -73,6 +73,7 @@ const Scan = () => {
 
   useEffect(() => {
     if (images.length === 0) { navigate("/", { replace: true }); return; }
+    if (!consentGranted) { setShowConsent(true); return; }
     analyze();
     const minTimer = setTimeout(() => {
       minTimeRef.current = true;
@@ -80,7 +81,7 @@ const Scan = () => {
     }, 2000);
     const slowTimer = setTimeout(() => setShowSlowHint(true), 5000);
     return () => { clearTimeout(minTimer); clearTimeout(slowTimer); };
-  }, [images.length, navigate, analyze, navigateToResult]);
+  }, [images.length, navigate, analyze, navigateToResult, consentGranted]);
 
   const handleCancel = () => { setCancelled(true); navigate("/", { replace: true }); };
 
