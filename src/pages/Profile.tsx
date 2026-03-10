@@ -256,6 +256,13 @@ const Profile = () => {
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </button>
           ))}
+          <button
+            onClick={() => navigate("/privacy")}
+            className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground border-t border-border"
+          >
+            <span>{locale === "zh-CN" ? "隐私政策" : "Privacy Policy"}</span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </button>
         </div>
       </section>
 
