@@ -116,6 +116,12 @@ const Scan = () => {
       <button onClick={handleCancel} className="absolute bottom-[max(2rem,env(safe-area-inset-bottom))] text-sm text-muted-foreground underline">
         {t.cancel}
       </button>
+
+      <AiConsentDialog
+        open={showConsent}
+        onAgree={() => { setShowConsent(false); setConsentGranted(true); }}
+        onDecline={() => { setShowConsent(false); navigate("/", { replace: true }); }}
+      />
     </div>
   );
 };
