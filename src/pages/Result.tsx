@@ -23,6 +23,14 @@ const Result = () => {
   const [savedTarget, setSavedTarget] = useState<AppendTarget | null>(null);
   const [needSignIn, setNeedSignIn] = useState(false);
 
+  // Block tab close / reload while a save is in flight so it can't fail silently.
+  useEffect(() => {
+    if (!saving) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [saving]);
+
   useEffect(() => {
     if (!result) navigate("/", { replace: true });
   }, [result, navigate]);
@@ -75,6 +83,7 @@ const Result = () => {
       const { error: mergeError } = await replaceMeal(appendTo.mealId, (merged as { result: { analysis_id?: string } }).result.analysis_id!);
       setSaving(false);
       if (mergeError) { toast({ title: t.saveMealFailed, variant: "destructive" }); return; }
+      toast({ title: t.mealSavedToast });
       navigate(`/meal/${appendTo.mealId}`, { replace: true });
       return;
     }
@@ -93,16 +102,17 @@ const Result = () => {
       return;
     }
     setSaved(true);
+    toast({ title: t.mealSavedToast });
     setSavedTarget(appendTargetFromMeal(data));
   };
 
   return (
     <div className="h-full flex flex-col bg-background">
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0">
-        <button onClick={() => navigate(-1)} className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground" aria-label={t.backHome}>
+        <button onClick={() => (saving ? toast({ title: t.savingWait }) : navigate(-1))} className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground" aria-label={t.backHome}>
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <button onClick={() => navigate("/")} className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground" aria-label={t.backHome}>
+        <button onClick={() => (saving ? toast({ title: t.savingWait }) : navigate("/"))} className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground" aria-label={t.backHome}>
           <Home className="w-5 h-5" />
         </button>
       </header>
@@ -149,6 +159,7 @@ const Result = () => {
       <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] shrink-0 space-y-3">
         {saved ? (
           <>
+            <p role="status" className="text-center text-sm font-semibold text-primary">{t.mealSavedToast}</p>
             {savedTarget && (
               <button
                 onClick={() => navigate("/scan", { state: { appendTo: savedTarget } })}
@@ -177,10 +188,10 @@ const Result = () => {
             disabled={saving}
             className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-60"
           >
-            {appendTo ? t.appendMergeSave : t.saveToLog}
+            {saving ? t.savingNow : appendTo ? t.appendMergeSave : t.saveToLog}
           </button>
         )}
-        <button onClick={() => navigate("/scan", { replace: true })} className="w-full text-sm text-muted-foreground">
+        <button disabled={saving} onClick={() => navigate("/scan", { replace: true })} className="w-full min-h-11 disabled:opacity-50 text-sm text-muted-foreground">
           {t.retake}
         </button>
       </div>

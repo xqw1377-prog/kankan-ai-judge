@@ -606,4 +606,7 @@ export interface Dictionary {
   deleteMealBtn: string;
   aiConsentRecorded: (version: string, date: string) => string;
   aiConsentNotGiven: string;
+  mealSavedToast: string;
+  savingNow: string;
+  savingWait: string;
 }
