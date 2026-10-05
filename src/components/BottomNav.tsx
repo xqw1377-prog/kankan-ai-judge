@@ -1,6 +1,7 @@
 import { Home, ClipboardList, User, Camera } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
+import { takePhoto } from "@/lib/camera";
 
 const BottomNav = () => {
   const location = useLocation();
@@ -38,7 +39,10 @@ const BottomNav = () => {
     <nav className="shrink-0 flex items-center justify-around glass-strong py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       {leftTabs.map(renderTab)}
       <button
-        onClick={() => navigate("/scan")}
+        onClick={async () => {
+          const data = await takePhoto();
+          if (data) navigate("/scan", { state: { images: [data] } });
+        }}
         aria-label={t.navScan}
         className="flex flex-col items-center gap-0.5 px-4 py-1 transition-colors text-muted-foreground"
       >
