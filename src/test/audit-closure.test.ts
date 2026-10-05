@@ -61,7 +61,7 @@ describe("audit closure source", () => {
     expect(app).toContain("useGuestClaimRecovery");
     expect(app).toContain("guestClaimRetry");
     const login = readFileSync("src/pages/Login.tsx", "utf8");
-    expect(login).toContain(">KK<");
+    expect(login).toContain("/favicon.png");
     expect(login).not.toContain(">K<");
     expect(login).toContain("loginEmailLabel");
     expect(login).toContain("loginPasswordLabel");
