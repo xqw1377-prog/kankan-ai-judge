@@ -1,20 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Award, Calendar, Utensils, Globe, Camera, X, Check, LogOut } from "lucide-react";
+import { ChevronRight, Calendar, Utensils, Globe, Camera, X, Check, LogOut } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import type { User } from "@supabase/supabase-js";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
-import DietRing from "@/components/DietRing";
-import AnimatedScore from "@/components/AnimatedScore";
-import DietCreditCard from "@/components/DietCreditCard";
-import InvestmentReport from "@/components/InvestmentReport";
-import MealSequenceCoach from "@/components/MealSequenceCoach";
 import { useI18n } from "@/lib/i18n";
 import { hasAiConsent, revokeAiConsent } from "@/components/AiConsentDialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useDaySummary } from "@/hooks/useDaySummary";
 import { isProfileComplete } from "@/lib/nutrition";
 
 function calcStreak(dates: string[]): number {
@@ -32,7 +26,6 @@ function calcStreak(dates: string[]): number {
 const Profile = () => {
   const navigate = useNavigate();
   const { profile, authReady, profileReady, saveProfile, userId } = useProfile();
-  const summary = useDaySummary(userId);
   const { meals } = useMeals();
   const { t, locale, setLocale } = useI18n();
   const [editingNickname, setEditingNickname] = useState(false);
@@ -70,7 +63,6 @@ const Profile = () => {
   const goalKey = profile?.goal;
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
   const streak = calcStreak(meals.map(m => m.recorded_at));
-  const score = summary?.score;
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,12 +123,6 @@ const Profile = () => {
               {t.fillProfile}
             </button>
           </div>
-        </section>
-      )}
-
-      {typeof score === "number" && (
-        <section className="px-5 mb-6">
-          <DietCreditCard score={score} level={t.todayScore} levelDesc={t.dietCreditBeat} beatText={t.dietCreditBeat} />
         </section>
       )}
 
@@ -201,25 +187,7 @@ const Profile = () => {
       </section>
 
       <section className="px-5 mb-6">
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.dietRing}</h3>
-        <div className="glass rounded-2xl p-5 shadow-card flex justify-center">
-          <DietRing meals={meals} />
-        </div>
-      </section>
-
-      <section className="px-5 mb-6">
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.healthAssets}</h3>
-        {typeof score === "number" && (
-          <div className="glass rounded-2xl p-5 shadow-card mb-3">
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-primary" />
-                <span className="text-sm font-semibold text-card-foreground">{t.todayScore}</span>
-              </div>
-              <AnimatedScore target={score} />
-            </div>
-          </div>
-        )}
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.recordStats}</h3>
         <div className="grid grid-cols-3 gap-3">
           {[
             { icon: Calendar, value: streak, label: t.consecutiveDays },
@@ -233,16 +201,6 @@ const Profile = () => {
             </div>
           ))}
         </div>
-      </section>
-
-      <section className="px-5 mb-6">
-        <details className="glass rounded-2xl p-4">
-          <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">实验性指标（未验证，默认收起）</summary>
-          <div className="mt-4 space-y-4">
-            <MealSequenceCoach meals={meals} />
-            <InvestmentReport meals={meals} score={score ?? 0} />
-          </div>
-        </details>
       </section>
 
       <section className="px-5 pb-4">
