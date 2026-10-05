@@ -42,7 +42,9 @@ serve(async (req) => {
     });
     if (error) throw error;
     const row = data as { status?: string; meal?: Record<string, unknown> } | null;
-    if (row?.status === "already_consumed") return json(409, { error: "这餐已经记过了" }, corsHeaders);
+    if (row?.status === "already_consumed") {
+      return json(409, { error: "这餐已经记过了", code: "ANALYSIS_ALREADY_CONSUMED" }, corsHeaders);
+    }
     if (row?.status === "missing" || row?.status === "missing_meal" || !row?.meal) {
       return json(404, { error: "分析结果不存在" }, corsHeaders);
     }

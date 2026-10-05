@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { hasUserBearer } from "../../supabase/functions/_shared/bearer";
 import { validateAnalysis, validateIngredientList } from "../../supabase/functions/_shared/analysisContract";
-import { hydrateProfile, profileFromServer } from "@/lib/localData";
+import { GUEST_SCOPE, hydrateProfile, profileFromServer, readMeals, writeMeals } from "@/lib/localData";
 import { calculateNutrition } from "@/lib/nutrition";
 
 const sane = {
@@ -31,6 +31,11 @@ describe("analysis contract", () => {
     expect(validateIngredientList([{ name: "米饭", grams: 0 }]).ok).toBe(false);
     expect(validateIngredientList([{ name: "米饭", grams: 2001 }]).ok).toBe(false);
     expect(validateIngredientList(Array.from({ length: 31 }, () => ({ name: "米饭", grams: 10 }))).ok).toBe(false);
+    expect(validateIngredientList([
+      { name: "米饭", grams: 1500 },
+      { name: "青菜", grams: 1500 },
+      { name: "肉", grams: 1500 },
+    ]).ok).toBe(false);
   });
 
   it("accepts one sane meal", () => {
@@ -51,6 +56,14 @@ describe("profile unknown truth", () => {
     expect(profile.goal).toBeUndefined();
     expect(profile.targets).toBeNull();
     expect(calculateNutrition({})).toBeNull();
+    const withAllergy = hydrateProfile({
+      onboarding_completed: true,
+      details_skipped: true,
+      allergies: "花生",
+    });
+    expect(withAllergy.allergies).toBe("花生");
+    expect(withAllergy.gender).toBeUndefined();
+    expect(withAllergy.targets).toBeNull();
   });
 
   it("does not turn null server fields into male, light, or maintain", () => {
@@ -113,8 +126,52 @@ describe("edge auth", () => {
     expect(confirm).toContain("consume_analysis_into_meal");
     expect(confirm).toContain("already_consumed");
     expect(confirm).toContain("409");
+    expect(confirm).toContain("ANALYSIS_ALREADY_CONSUMED");
     const audit = readFileSync("supabase/functions/audit-standalone/index.ts", "utf8");
     expect(audit).not.toContain("Global Dietary Audit System");
     expect(audit).not.toContain("全球膳食审计系统");
+    expect(audit).not.toContain("BPI公式");
+    const coach = readFileSync("src/components/MealSequenceCoach.tsx", "utf8");
+    expect(coach).not.toContain("+20%");
+    expect(coach).not.toContain("代谢引擎");
+    expect(readFileSync("src/components/PostMealAudit.tsx", "utf8")).not.toContain("训练个人体质");
+    const zh = readFileSync("src/lib/i18n/zh-CN.ts", "utf8");
+    expect(zh).not.toContain("陷入宕机");
+    expect(zh).not.toContain("代谢加速 10%");
+    expect(zh).not.toContain("高效专注时长已存入");
+    expect(zh).not.toContain("性能将下降");
+    expect(readFileSync("src/lib/i18n/en-US.ts", "utf8")).not.toContain("Metabolism +10%");
+  });
+
+  it("keeps the model gateway behind the provider adapter", () => {
+    const analyze = readFileSync("supabase/functions/analyze-food/index.ts", "utf8");
+    const provider = readFileSync("supabase/functions/_shared/analysisProvider.ts", "utf8");
+    expect(analyze).not.toContain("ai.gateway.lovable.dev");
+    expect(analyze).not.toContain("userContext");
+    expect(analyze).toContain("serverProfileNote");
+    expect(provider).toContain("ai.gateway.lovable.dev");
+    expect(provider).not.toContain("imageBase64");
+  });
+});
+
+describe("guest data stays local", () => {
+  it("does not copy a guest meal into a signed-in scope", () => {
+    writeMeals(GUEST_SCOPE, [{
+      id: "guest-meal",
+      food_name: "游客午饭",
+      meal_type: "lunch",
+      calories: 100,
+      protein_g: 1,
+      fat_g: 1,
+      carbs_g: 1,
+      ingredients: [],
+      verdict: "",
+      suggestion: "",
+      recorded_at: new Date().toISOString(),
+      sequence_score: null,
+    }]);
+    writeMeals("signed-in-user", []);
+    expect(readMeals("signed-in-user")).toEqual([]);
+    expect(readMeals(GUEST_SCOPE).map((meal) => meal.food_name)).toContain("游客午饭");
   });
 });

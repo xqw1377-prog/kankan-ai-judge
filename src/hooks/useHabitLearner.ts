@@ -52,7 +52,7 @@ export function useHabitLearner() {
       corrected_grams: correctedGrams ?? existing?.corrected_grams ?? null,
       preferred_cook_method: cookMethod || existing?.preferred_cook_method || null,
       occurrence_count: nextCount,
-      auto_apply: nextCount >= 3,
+      auto_apply: false,
     };
     const next = existing
       ? patterns.map((pattern) => pattern.original_name === originalName ? nextPattern : pattern)

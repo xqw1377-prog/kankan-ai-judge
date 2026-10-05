@@ -61,8 +61,8 @@ const MealDetail = () => {
 
         {allergenWarnings.length > 0 && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 animate-fade-in">
-            <p className="text-sm font-semibold text-destructive">⚠️ 检测到可能的过敏食材：{allergenWarnings.join("、")}</p>
-            <p className="text-xs text-destructive/70 mt-1">您在画像中标记了对以上食材过敏，请谨慎食用</p>
+            <p className="text-sm font-semibold text-destructive">图片中可能包含你标记的过敏食材：{allergenWarnings.join("、")}</p>
+            <p className="text-xs text-destructive/70 mt-1">图片识别不能替代配料表或餐厅确认。</p>
           </div>
         )}
 

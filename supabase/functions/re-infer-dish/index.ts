@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
 import { validateAnalysis, validateIngredientList } from "../_shared/analysisContract.ts";
+import { ANALYSIS_PROVIDER, completeToolCall, VISUAL_UNCERTAINTY } from "../_shared/analysisProvider.ts";
 import { storeAnalysis } from "../_shared/storeAnalysis.ts";
 
 const corsHeaders = {
@@ -24,11 +25,6 @@ serve(async (req) => {
     const listed = validateIngredientList(ingredients);
     if (listed.ok === false) return json(400, { error: listed.error }, corsHeaders);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
     const isEnglish = language === "en-US";
     const ingredientList = listed.value.map((item) => `${item.name} ${item.grams}g`).join(", ");
 
@@ -40,19 +36,14 @@ serve(async (req) => {
       ? `Based on these ingredients, what dish is this most likely? Recalculate nutrition.\n\nIngredients: ${ingredientList}`
       : `根据以下食材，推断这最可能是什么菜，并重新计算营养数据。\n\n食材清单：${ingredientList}`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
-        ],
-        tools: [
+    const model = "google/gemini-2.5-flash-lite";
+    const completed = await completeToolCall({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage },
+      ],
+      tools: [
           {
             type: "function",
             function: {
@@ -74,29 +65,21 @@ serve(async (req) => {
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "dish_inference" } },
-      }),
+      toolChoice: { type: "function", function: { name: "dish_inference" } },
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
-      throw new Error(`AI gateway error: ${response.status}`);
-    }
+    if (completed.ok === false) return json(completed.status, { error: completed.error }, corsHeaders);
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-
-    if (toolCall?.function?.arguments) {
-      const result = JSON.parse(toolCall.function.arguments);
-      const checked = validateAnalysis({ ...result, ingredients: listed.value });
-      if (!checked.ok) return json(422, { error: "没能识别这餐" }, corsHeaders);
-      const analysisId = await storeAnalysis(auth.userId, checked.value);
-      if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
-      return json(200, { ...checked.value, analysis_id: analysisId }, corsHeaders);
-    }
-
-    return json(422, { error: "没能识别这餐" }, corsHeaders);
+    const result = JSON.parse(completed.arguments);
+    const checked = validateAnalysis({ ...result, ingredients: listed.value });
+    if (!checked.ok) return json(422, { error: "没能识别这餐" }, corsHeaders);
+    const analysisId = await storeAnalysis(auth.userId, checked.value, {
+      provider: ANALYSIS_PROVIDER,
+      model,
+      uncertainty: VISUAL_UNCERTAINTY,
+    });
+    if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
+    return json(200, { ...checked.value, analysis_id: analysisId }, corsHeaders);
   } catch (e) {
     console.error("re-infer-dish error:", e);
     return new Response(

@@ -113,7 +113,7 @@ const Index = () => {
               </>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {locale === "zh-CN" ? `今天记下了 ${todayMeals.length} 餐。` : `${todayMeals.length} meals logged today.`}
+                {locale === "zh-CN" ? `今天记下了 ${todayMeals.length} 餐。${t.noPersonalTarget}` : `${todayMeals.length} meals logged today. ${t.noPersonalTarget}`}
               </p>
             )}
           </div>

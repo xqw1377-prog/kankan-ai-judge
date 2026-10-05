@@ -12,8 +12,14 @@ export interface AnalysisDraft {
   suggestion?: string;
 }
 
-/** Persists the model result for this user. The client does not choose the numbers. */
-export async function storeAnalysis(userId: string, draft: AnalysisDraft): Promise<string | null> {
+export interface AnalysisMeta {
+  provider: string;
+  model: string;
+  uncertainty: string;
+}
+
+/** Persists a validated model result. The client does not choose the numbers. */
+export async function storeAnalysis(userId: string, draft: AnalysisDraft, meta: AnalysisMeta): Promise<string | null> {
   const checked = validateAnalysis(draft);
   if (!checked.ok) return null;
   const db = serviceDb();
@@ -28,6 +34,10 @@ export async function storeAnalysis(userId: string, draft: AnalysisDraft): Promi
     ingredients: checked.value.ingredients,
     verdict: checked.value.verdict,
     suggestion: checked.value.suggestion,
+    provider: meta.provider,
+    model: meta.model,
+    validation_status: "passed",
+    uncertainty: meta.uncertainty,
   }).select("id").single();
   if (error || !data?.id) return null;
   return String(data.id);

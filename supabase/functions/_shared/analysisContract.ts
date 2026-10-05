@@ -3,6 +3,7 @@ export const ANALYSIS_LIMITS = {
   ingredientCountMax: 30,
   ingredientNameMax: 40,
   gramsMax: 2000,
+  totalGramsMax: 4000,
   caloriesMax: 5000,
   macroMax: 500,
 } as const;
@@ -56,6 +57,8 @@ export function validateIngredientList(input: unknown): ContractResult<ValidIngr
     }
     ingredients.push({ name, grams });
   }
+  const total = ingredients.reduce((sum, item) => sum + item.grams, 0);
+  if (total > ANALYSIS_LIMITS.totalGramsMax) return { ok: false, error: "食材总重不正确" };
   return { ok: true, value: ingredients };
 }
 

@@ -75,16 +75,19 @@ function knownNumber(value: unknown, min: number, max: number): number | undefin
 
 export function hydrateProfile(raw: Partial<StoredProfile> & { device_id?: string }): StoredProfile {
   const skipped = raw.details_skipped === true;
-  const profileData: UserProfile = skipped ? {} : {
+  const optional = {
+    diet_preference: typeof raw.diet_preference === "string" ? raw.diet_preference : undefined,
+    cooking_source: typeof raw.cooking_source === "string" ? raw.cooking_source : undefined,
+    allergies: typeof raw.allergies === "string" ? raw.allergies : undefined,
+  };
+  const profileData: UserProfile = skipped ? optional : {
     gender: raw.gender === "female" || raw.gender === "male" ? raw.gender : undefined,
     age: knownNumber(raw.age, 10, 100),
     height_cm: knownNumber(raw.height_cm, 100, 230),
     weight_kg: knownNumber(raw.weight_kg, 30, 250),
     activity_level: raw.activity_level,
     goal: raw.goal,
-    diet_preference: raw.diet_preference,
-    cooking_source: raw.cooking_source,
-    allergies: raw.allergies,
+    ...optional,
   };
   return {
     ...profileData,

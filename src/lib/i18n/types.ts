@@ -539,6 +539,7 @@ export interface Dictionary {
   analysisUnavailable: string;
   analysisUnrecognized: string;
   saveMealFailed: string;
+  noPersonalTarget: string;
   chartEmpty: string;
   notFoundTitle: string;
   notFoundBody: string;

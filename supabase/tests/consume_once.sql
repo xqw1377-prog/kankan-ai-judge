@@ -82,6 +82,23 @@ BEGIN
   IF replay_status IS DISTINCT FROM 'already_consumed' THEN
     RAISE EXCEPTION 'a consumed analysis cannot be saved again, got %', replay_status;
   END IF;
+
+  INSERT INTO public.meal_records (user_id, food_name, calories)
+  VALUES ('11111111-1111-1111-1111-111111111111', '另一餐', 100);
+  SELECT id INTO saved_id FROM public.meal_records WHERE food_name = '另一餐';
+  SELECT public.consume_analysis_into_meal(
+    '11111111-1111-1111-1111-111111111111',
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+    'dinner',
+    saved_id
+  ) ->> 'status' INTO replay_status;
+  IF replay_status IS DISTINCT FROM 'already_consumed' THEN
+    RAISE EXCEPTION 'a consumed analysis cannot replace a second meal, got %', replay_status;
+  END IF;
+  SELECT food_name INTO replaced_name FROM public.meal_records WHERE id = saved_id;
+  IF replaced_name IS DISTINCT FROM '另一餐' THEN
+    RAISE EXCEPTION 'the second meal should stay unchanged, saw %', replaced_name;
+  END IF;
 END $$;
 
 SET ROLE kankan_app;

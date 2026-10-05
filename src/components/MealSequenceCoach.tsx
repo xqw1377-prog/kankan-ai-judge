@@ -49,12 +49,12 @@ function generateTips(meals: MealRecord[], isZh: boolean): string[] {
 
   const breakfasts = last7.filter(m => new Date(m.recorded_at).getHours() >= 5 && new Date(m.recorded_at).getHours() < 10);
   if (breakfasts.length < 3) {
-    tips.push(isZh ? "🌅 本周早餐不足3次，建议每天7-8点进食，启动代谢引擎" : "🌅 Less than 3 breakfasts this week — try eating by 7-8 AM to kickstart metabolism");
+    tips.push(isZh ? "本周 5 点到 10 点的记录少于 3 次。" : "Fewer than 3 records between 5 and 10 this week.");
   }
 
   const lateNight = last7.filter(m => new Date(m.recorded_at).getHours() >= 21);
   if (lateNight.length > 0) {
-    tips.push(isZh ? "🌙 检测到夜间进食记录，21点后进食会增加脂肪存储风险" : "🌙 Late-night eating detected — eating after 9 PM increases fat storage risk");
+    tips.push(isZh ? "有 21 点以后的记录。" : "There is a record after 21:00.");
   }
 
   // Sequence score trend tip
@@ -62,14 +62,14 @@ function generateTips(meals: MealRecord[], isZh: boolean): string[] {
   if (scored.length >= 2) {
     const avgScore = scored.reduce((s, m) => s + (m.sequence_score || 0), 0) / scored.length;
     if (avgScore < 50) {
-      tips.push(isZh ? "🔄 近期进食顺序评分偏低，记住：蔬菜→蛋白质→主食，血糖更稳定" : "🔄 Recent sequence scores are low — remember: Veggies → Protein → Carbs for stable blood sugar");
+      tips.push(isZh ? "识别出的食材排列不是测到的进食顺序。" : "The recognized ingredient order is not a measured eating order.");
     } else if (avgScore >= 80) {
-      tips.push(isZh ? "🏆 进食顺序表现优秀！身体资产持续增值，午后专注力+20%" : "🏆 Excellent eating order! Body assets appreciating, afternoon focus +20%");
+      tips.push(isZh ? "识别出的食材排列不是测到的进食顺序。" : "The recognized ingredient order is not a measured eating order.");
     }
   }
 
   if (tips.length === 0) {
-    tips.push(isZh ? "✨ 饮食时序表现良好！保持规律进食，身体资产持续增值" : "✨ Great meal timing! Keep it up — consistent timing maximizes body asset growth");
+    tips.push(isZh ? "这些只是记录时间，不是代谢或专注力的测量。" : "These are record times, not a metabolism or focus measurement.");
   }
 
   return tips.slice(0, 3);
@@ -110,6 +110,7 @@ export default function MealSequenceCoach({ meals }: Props) {
 
         {/* Score Ring */}
         <div className="flex items-center gap-5">
+          {scoredMeals.length > 0 && (
           <div className="relative w-20 h-20 flex-shrink-0">
             <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
               <circle cx="40" cy="40" r="34" fill="none" stroke="hsl(var(--border))" strokeWidth="5" />
@@ -129,14 +130,15 @@ export default function MealSequenceCoach({ meals }: Props) {
               <span className="text-[8px] font-mono text-muted-foreground tracking-wider">{scoreLabel}</span>
             </div>
           </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-card-foreground mb-1">
-              {isZh ? "进食顺序评分" : "Eating Order Score"}
+              {isZh ? "吃前可以先菜、再蛋白、后主食" : "Before eating: vegetables, then protein, then starch"}
             </p>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               {isZh
-                ? "基于每餐食材顺序评估：蔬菜→蛋白质→主食为最优路径"
-                : "Per-meal ingredient order: Veggies → Protein → Carbs is optimal"}
+                ? "照片里的食材排列不是测到的进食顺序，这里不打进食顺序分。"
+                : "Ingredient order in a photo is not a measured eating order, so this screen does not score it."}
             </p>
           </div>
         </div>

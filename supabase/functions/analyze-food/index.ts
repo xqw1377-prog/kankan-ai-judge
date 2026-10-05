@@ -2,6 +2,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
 import { parseImages, toImageContents } from "../_shared/images.ts";
 import { validateAnalysis } from "../_shared/analysisContract.ts";
+import { ANALYSIS_PROVIDER, completeToolCall, VISUAL_UNCERTAINTY } from "../_shared/analysisProvider.ts";
+import { serverProfileNote } from "../_shared/profileContext.ts";
 import { storeAnalysis } from "../_shared/storeAnalysis.ts";
 
 const corsHeaders = {
@@ -25,21 +27,9 @@ serve(async (req) => {
     const parsed = parseImages(body);
     if (!parsed.ok) return json(parsed.status, { error: parsed.error }, corsHeaders);
     const imageContents = toImageContents(parsed.images);
-    const { userContext, language = "zh-CN" } = body;
+    const language = body.language === "en-US" ? "en-US" : "zh-CN";
     const isEnglish = language === "en-US";
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    let contextStr = "";
-    if (userContext) {
-      if (userContext.goal) contextStr += `用户目标：${userContext.goal}。`;
-      if (userContext.allergies) contextStr += `过敏/忌口：${userContext.allergies}。`;
-      if (userContext.diet_preference) contextStr += `饮食偏好：${userContext.diet_preference}。`;
-      if (userContext.cooking_source) contextStr += `饮食来源：${userContext.cooking_source}。`;
-    }
+    const contextStr = await serverProfileNote(auth.supabase, auth.userId);
 
     const isMulti = imageContents.length > 1;
 
@@ -98,106 +88,77 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
         ? `分析这组同一顿饭的 ${imageContents.length} 张照片的营养信息。请综合全景和特写去重后给出准确结果。`
         : "分析这张食物照片的营养信息。");
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
+    const model = "google/gemini-3-flash-preview";
+    const completed = await completeToolCall({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: [
+            ...imageContents,
+            { type: "text", text: userMessage },
+          ],
         },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: [
-                ...imageContents,
-                { type: "text", text: userMessage },
-              ],
-            },
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "food_analysis",
-                description: "Return comprehensive food nutrition analysis",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    food: { type: "string", description: "食物名称，2-8个字" },
-                    ingredients: {
-                      type: "array",
-                      items: {
-                        type: "object",
-                        properties: {
-                          name: { type: "string", description: "食材名称" },
-                          grams: { type: "number", description: "估算克重" },
-                        },
-                        required: ["name", "grams"],
-                        additionalProperties: false,
-                      },
-                      description: "食材清单（已去重）",
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "food_analysis",
+            description: "Return comprehensive food nutrition analysis",
+            parameters: {
+              type: "object",
+              properties: {
+                food: { type: "string", description: "食物名称，2-8个字" },
+                ingredients: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      name: { type: "string", description: "食材名称" },
+                      grams: { type: "number", description: "估算克重" },
                     },
-                    calories: { type: "number", description: "总热量 kcal" },
-                    protein_g: { type: "number", description: "蛋白质克数" },
-                    fat_g: { type: "number", description: "脂肪克数" },
-                    carbs_g: { type: "number", description: "碳水化合物克数" },
-                    verdict: { type: "string", description: "营养判决，一句话评价，30-60字" },
-                    suggestion: { type: "string", description: "修复建议，具体可执行的饮食调整建议，30-80字，用【】包裹推荐的具体食物" },
-                    cooking_scene: { type: "string", enum: ["takeout", "homemade"], description: "饮食场景：takeout=外卖/外食, homemade=自炊" },
-                    roast: { type: "string", description: "毒舌吐槽，幽默调侃，20-40字" },
+                    required: ["name", "grams"],
+                    additionalProperties: false,
                   },
-                  required: ["food", "ingredients", "calories", "protein_g", "fat_g", "carbs_g", "verdict", "suggestion", "cooking_scene", "roast"],
-                  additionalProperties: false,
+                  description: "食材清单（已去重）",
                 },
+                calories: { type: "number", description: "总热量 kcal" },
+                protein_g: { type: "number", description: "蛋白质克数" },
+                fat_g: { type: "number", description: "脂肪克数" },
+                carbs_g: { type: "number", description: "碳水化合物克数" },
+                verdict: { type: "string", description: "营养判决，一句话评价，30-60字" },
+                suggestion: { type: "string", description: "修复建议，具体可执行的饮食调整建议，30-80字，用【】包裹推荐的具体食物" },
+                cooking_scene: { type: "string", enum: ["takeout", "homemade"], description: "饮食场景：takeout=外卖/外食, homemade=自炊" },
+                roast: { type: "string", description: "毒舌吐槽，幽默调侃，20-40字" },
               },
+              required: ["food", "ingredients", "calories", "protein_g", "fat_g", "carbs_g", "verdict", "suggestion", "cooking_scene", "roast"],
+              additionalProperties: false,
             },
-          ],
-          tool_choice: {
-            type: "function",
-            function: { name: "food_analysis" },
           },
-        }),
-      }
-    );
+        },
+      ],
+      toolChoice: { type: "function", function: { name: "food_analysis" } },
+    });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "请求太频繁，请稍后再试" }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI 额度已用完，请充值" }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
-      throw new Error(`AI gateway error: ${response.status}`);
-    }
+    if (completed.ok === false) return json(completed.status, { error: completed.error }, corsHeaders);
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-
-    if (toolCall?.function?.arguments) {
-      const result = JSON.parse(toolCall.function.arguments);
-      const checked = validateAnalysis(result);
-      if (!checked.ok) return json(422, { error: "没能识别这餐" }, corsHeaders);
-      const analysisId = await storeAnalysis(auth.userId, checked.value);
-      if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
-      return json(200, {
-        ...checked.value,
-        cooking_scene: result.cooking_scene,
-        roast: result.roast,
-        analysis_id: analysisId,
-      }, corsHeaders);
-    }
-
-    return json(422, { error: "没能识别这餐" }, corsHeaders);
+    const result = JSON.parse(completed.arguments);
+    const checked = validateAnalysis(result);
+    if (!checked.ok) return json(422, { error: "没能识别这餐" }, corsHeaders);
+    const analysisId = await storeAnalysis(auth.userId, checked.value, {
+      provider: ANALYSIS_PROVIDER,
+      model,
+      uncertainty: VISUAL_UNCERTAINTY,
+    });
+    if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
+    return json(200, {
+      ...checked.value,
+      cooking_scene: result.cooking_scene,
+      roast: result.roast,
+      analysis_id: analysisId,
+    }, corsHeaders);
   } catch (e) {
     console.error("analyze-food error:", e);
     return new Response(
