@@ -19,5 +19,8 @@ While GitHub draft PR #5 (G0-R2B Truth Closure) is open — Cursor is fixing mer
 
 Then product backlog (post-merge only, avoid Cursor conflicts): profile page not blocking, login-page KK gold butterfly icon, minimum font sizes, Consent versioning, app centered shell.
 
+## Proposed — SEQ-1 Meal Sequence Engine (not started; waits for PR #5 merge + scope-freeze lift)
+- Spec uploaded by user (KANKAN SEQ-1). Replaces old sequenceScore with a pre-meal ordering engine: metabolic phase axis (veg → protein → starch → sweets) + digestive-comfort axis within phase; record execution.
+
 ## Phase 2 — G0-UX1 Mobile Product Closure (after Phase 1 passes)
 - UX1-01..12 per the uploaded plan
