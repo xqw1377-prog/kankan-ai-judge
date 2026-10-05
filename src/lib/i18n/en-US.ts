@@ -577,7 +577,7 @@ export const enUS: Dictionary = {
   scanLimitReached: (max) => `This round is capped at ${max} photos. Analyze now or replace the oldest; for a big table, shoot in rounds and use "Add another dish" to merge.`,
   scanReplaceOldest: "Replace oldest",
   loadingText: "Loading…",
-  routeErrorTitle: "This page didn"t load",
+  routeErrorTitle: "This page didn't load",
   routeErrorBody: "Please reload. After an app update this is usually a stale cache.",
   routeErrorReload: "Reload",
   analysisFailedTitle: "Couldn"t finish the estimate",
