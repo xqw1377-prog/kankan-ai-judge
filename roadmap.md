@@ -9,15 +9,9 @@ Updated 2026-10-05. Scope freeze lifted by commander's UX-CORE-1 and 大桌多�
 - 大桌多菜 + 同餐续拍: 5-photo cap with limit prompt, 同餐再拍 merge via re-infer-dish. Published.
 - Bottom camera entry fixed (capture flow).
 
-## Open — product backlog (post-merge, not blocking)
-- [ ] Login page KK gold butterfly icon
-- [ ] Minimum font-size baseline (audit findings)
-- [ ] Consent versioning (store version with consent)
-- [ ] App centered shell (desktop width cap)
-- [ ] A8: privacy/AI consent wording matches real data flow (AI provider + retention review)
-
-## Open — Phase 2 G0-UX1 Mobile Product Closure
-- [ ] UX1-01..12 per the uploaded plan (unify all camera entries to /scan, home camera dual-role, min analysis delay UX)
+## Done — 收口 (2026-10-06)
+- Product backlog A1–A5 (KK butterfly login, font floor, consent version+time, centered shell, privacy matches real flow)
+- UX1-01..12 (UX1-03 dev-only ref warnings from editor tagger remain; none in production build)
 
 ## Waiting on user
 - [ ] SEQ-1 Meal Sequence Engine — spec approved (DESIGN PASS), waits for 开工信号
