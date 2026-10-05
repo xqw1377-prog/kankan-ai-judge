@@ -28,8 +28,9 @@ const Scan = () => {
   const [consentGranted, setConsentGranted] = useState(hasAiConsent());
   const [failure, setFailure] = useState<"missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | null>(null);
   const [imageError, setImageError] = useState("");
+  type Outcome = { ok: true; result: ReturnType<typeof toFoodAnalysis> } | { ok: false; code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image"; message?: string };
   const startedRef = useRef(false);
-  const resultReadyRef = useRef<{ ok: boolean; code?: string; result?: unknown; message?: string } | null>(null);
+  const resultReadyRef = useRef<Outcome | null>(null);
   const minTimeRef = useRef(false);
 
   useEffect(() => {
