@@ -284,7 +284,7 @@ const History = () => {
           </div>
           <p className="text-sm text-muted-foreground text-center">{t.historyNoMealsYet}</p>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/scan")}
             className="px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-2"
           >
             <Camera className="w-4 h-4" /> {t.takePhoto}

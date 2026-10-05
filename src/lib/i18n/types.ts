@@ -572,4 +572,15 @@ export interface Dictionary {
   aiConsentDecline: string;
   aiConsentPrivacy: string;
   aiConsentRevoke: string;
+  scanStartAnalysis: (n: number) => string;
+  scanTakeAnother: string;
+  scanTakePhotoBtn: string;
+  scanAddFromAlbum: string;
+  scanCaptureHint: (max: number) => string;
+  resultEditShort: string;
+  useThisResult: string;
+  newEstimate: string;
+  roughCalories: string;
+  todayProgress: string;
+  mealsLogged: (n: number) => string;
 }

@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { X } from "lucide-react";
+import { X, Camera, ImagePlus, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useI18n } from "@/lib/i18n";
@@ -11,143 +11,126 @@ import { GUEST_FREE_LIMIT } from "@/lib/guestQuota";
 import { inspectImages } from "@/lib/imageGuard";
 import { readInvokeFailure } from "@/lib/invokeFailure";
 import { scanAttemptKey } from "@/lib/scanAttempt";
+import { takePhoto, pickPhoto } from "@/lib/camera";
 
+const MAX_PHOTOS = 5;
+type FailCode = "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit";
+
+/** /scan is the single capture flow: capture/pick → preview → add more → analyze → Result. */
 const Scan = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { t, locale } = useI18n();
 
-  const rawImageData = location.state?.imageData as string | undefined;
-  const rawImages = location.state?.images as string[] | undefined;
-  const images = useMemo(
-    () => (rawImages && rawImages.length > 0 ? rawImages : rawImageData ? [rawImageData] : []),
-    [rawImages, rawImageData],
-  );
+  const initial: string[] = (() => {
+    const raw = location.state?.images as string[] | undefined;
+    const one = location.state?.imageData as string | undefined;
+    return raw && raw.length > 0 ? raw.slice(0, MAX_PHOTOS) : one ? [one] : [];
+  })();
 
-  const [cancelled, setCancelled] = useState(false);
-  const [showSlowHint, setShowSlowHint] = useState(false);
+  const [images, setImages] = useState<string[]>(initial);
+  const [phase, setPhase] = useState<"capture" | "analyzing">(initial.length > 0 ? "analyzing" : "capture");
+  const [slowLevel, setSlowLevel] = useState(0);
   const [currentPreview, setCurrentPreview] = useState(0);
   const [showConsent, setShowConsent] = useState(false);
   const [consentGranted, setConsentGranted] = useState(hasAiConsent());
-  const [failure, setFailure] = useState<"missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit" | null>(null);
+  const [failure, setFailure] = useState<FailCode | null>(null);
   const [imageError, setImageError] = useState("");
-  type Outcome = { ok: true; result: ReturnType<typeof toFoodAnalysis> } | { ok: false; code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit"; message?: string };
-  const startedRef = useRef(false);
-  const resultReadyRef = useRef<Outcome | null>(null);
-  const minTimeRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const runningRef = useRef(false);
 
   useEffect(() => {
-    if (images.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentPreview((prev) => (prev + 1) % images.length);
-    }, 1200);
-    return () => clearInterval(interval);
-  }, [images.length]);
+    if (phase !== "analyzing" || images.length <= 1) return;
+    const id = setInterval(() => setCurrentPreview((p) => (p + 1) % images.length), 1200);
+    return () => clearInterval(id);
+  }, [phase, images.length]);
 
-  const finish = useCallback((outcome: Outcome) => {
-    if (cancelled) return;
-    if (!outcome.ok) {
-      const failed = outcome as { code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit"; message?: string };
-      if (failed.message) setImageError(failed.message);
-      setFailure(failed.code);
-      return;
-    }
-    if (!outcome.result) {
-      setFailure("unrecognized");
-      return;
-    }
-    navigate("/result", {
-      state: { images, imageData: images[0], result: outcome.result },
-      replace: true,
-    });
-  }, [images, navigate, cancelled]);
+  const fail = (code: FailCode, message?: string) => {
+    if (cancelledRef.current) return;
+    if (message) setImageError(message);
+    setFailure(code);
+  };
 
   const analyze = useCallback(async () => {
-    if (images.length === 0 || startedRef.current) return;
-    startedRef.current = true;
+    if (images.length === 0 || runningRef.current) return;
+    runningRef.current = true;
     setFailure(null);
-
-    const checked = inspectImages(images);
-    if (!checked.ok) {
-      const outcome = { ok: false as const, code: "image" as const, message: (checked as { error: string }).error };
-      if (minTimeRef.current) finish(outcome);
-      else resultReadyRef.current = outcome;
-      return;
-    }
-
-    const session = await ensureAnalysisSession(supabase.auth);
-    if (session === "signin") {
-      const outcome = { ok: false as const, code: "signin" as const };
-      if (minTimeRef.current) finish(outcome);
-      else resultReadyRef.current = outcome;
-      return;
-    }
-
-    const userContext = profile ? {
-      goal: profile.goal,
-      allergies: profile.allergies,
-      diet_preference: profile.diet_preference,
-    } : {};
-
-    let outcome: Outcome;
+    setSlowLevel(0);
+    const t3 = setTimeout(() => setSlowLevel(1), 3000);
+    const t6 = setTimeout(() => setSlowLevel(2), 6000);
     try {
-      const { data: sessionAfter } = await supabase.auth.getSession();
-      const anonymous = sessionAfter.session?.user?.is_anonymous === true;
-      const idempotencyKey = anonymous ? await scanAttemptKey(images) : null;
-      const body = {
-        ...(images.length === 1 ? { imageBase64: images[0] } : { imagesBase64: images }),
-        userContext,
-        language: locale,
-        ...(idempotencyKey ? { idempotencyKey } : {}),
-      };
-      const { data, error } = await supabase.functions.invoke("analyze-food", { body });
-      const failure = await readInvokeFailure(data, error);
-      const message = failure.message;
-      if (error || failure.code || message) {
-        const code = failure.code === GUEST_FREE_LIMIT
-          ? "guest_limit" as const
-          : /LOVABLE_API_KEY|not configured|api[_ ]?key/i.test(message)
-            ? "missing_key" as const
-            : /没能识别|无法识别|不是食物|unrecognized/i.test(message)
-              ? "unrecognized" as const
-              : "unavailable" as const;
-        outcome = { ok: false, code };
-      } else {
-        const result = toFoodAnalysis(data);
-        outcome = result ? { ok: true, result } : { ok: false, code: "unrecognized" };
-      }
-    } catch {
-      outcome = { ok: false, code: "unavailable" };
-    }
-    if (cancelled) return;
-    if (minTimeRef.current) finish(outcome);
-    else resultReadyRef.current = outcome;
-  }, [images, cancelled, profile, finish, locale]);
+      const checked = inspectImages(images);
+      if (!checked.ok) return fail("image", (checked as { error: string }).error);
 
+      const session = await ensureAnalysisSession(supabase.auth);
+      if (session === "signin") return fail("signin");
+
+      const userContext = profile ? {
+        goal: profile.goal,
+        allergies: profile.allergies,
+        diet_preference: profile.diet_preference,
+      } : {};
+      try {
+        const { data: sessionAfter } = await supabase.auth.getSession();
+        const anonymous = sessionAfter.session?.user?.is_anonymous === true;
+        const idempotencyKey = anonymous ? await scanAttemptKey(images) : null;
+        const body = {
+          ...(images.length === 1 ? { imageBase64: images[0] } : { imagesBase64: images }),
+          userContext,
+          language: locale,
+          ...(idempotencyKey ? { idempotencyKey } : {}),
+        };
+        const { data, error } = await supabase.functions.invoke("analyze-food", { body });
+        const f = await readInvokeFailure(data, error);
+        const message = f.message;
+        if (error || f.code || message) {
+          const code: FailCode = f.code === GUEST_FREE_LIMIT
+            ? "guest_limit"
+            : /LOVABLE_API_KEY|not configured|api[_ ]?key/i.test(message)
+              ? "missing_key"
+              : /没能识别|无法识别|不是食物|unrecognized/i.test(message)
+                ? "unrecognized"
+                : "unavailable";
+          return fail(code);
+        }
+        const result = toFoodAnalysis(data);
+        if (!result) return fail("unrecognized");
+        if (cancelledRef.current) return;
+        navigate("/result", { state: { images, imageData: images[0], result }, replace: true });
+      } catch {
+        fail("unavailable");
+      }
+    } finally {
+      clearTimeout(t3);
+      clearTimeout(t6);
+      runningRef.current = false;
+    }
+  }, [images, profile, locale, navigate]);
+
+  // Auto-start when an entry point already handed over photos.
+  const autoStartedRef = useRef(false);
   useEffect(() => {
-    if (images.length === 0) {
-      navigate("/", { replace: true });
-      return;
-    }
-    if (!consentGranted) {
-      setShowConsent(true);
-      return;
-    }
+    if (phase !== "analyzing" || autoStartedRef.current) return;
+    if (!consentGranted) { setShowConsent(true); return; }
+    autoStartedRef.current = true;
     analyze();
-    const minTimer = setTimeout(() => {
-      minTimeRef.current = true;
-      if (resultReadyRef.current) finish(resultReadyRef.current);
-    }, 2000);
-    const slowTimer = setTimeout(() => setShowSlowHint(true), 5000);
-    return () => {
-      clearTimeout(minTimer);
-      clearTimeout(slowTimer);
-    };
-  }, [images.length, navigate, analyze, finish, consentGranted]);
+  }, [phase, consentGranted, analyze]);
+
+  const startAnalysis = () => {
+    if (images.length === 0) return;
+    autoStartedRef.current = false;
+    setPhase("analyzing");
+  };
+
+  const addPhoto = async (fromCamera: boolean) => {
+    if (images.length >= MAX_PHOTOS) return;
+    const data = fromCamera ? await takePhoto() : await pickPhoto();
+    if (data) setImages((prev) => (prev.length < MAX_PHOTOS ? [...prev, data] : prev));
+  };
 
   const handleCancel = () => {
-    setCancelled(true);
+    cancelledRef.current = true;
     navigate("/", { replace: true });
   };
 
@@ -161,37 +144,89 @@ const Scan = () => {
           ? t.analysisUnavailable
           : t.analysisUnrecognized;
 
-  const retry = () => {
-    startedRef.current = false;
-    resultReadyRef.current = null;
-    minTimeRef.current = false;
-    setFailure(null);
-    setShowSlowHint(false);
-    analyze();
-    setTimeout(() => {
-      minTimeRef.current = true;
-      if (resultReadyRef.current) finish(resultReadyRef.current);
-    }, 400);
-  };
+  const closeBtn = (
+    <button onClick={handleCancel} aria-label={t.cancel} className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 p-2 text-muted-foreground">
+      <X className="w-5 h-5" />
+    </button>
+  );
 
-  return (
-    <div className="h-full flex flex-col items-center justify-center bg-background relative px-6">
-      <button onClick={handleCancel} className="absolute top-[max(1rem,env(safe-area-inset-top))] right-4 p-2 text-muted-foreground">
-        <X className="w-5 h-5" />
-      </button>
+  if (phase === "capture") {
+    return (
+      <div className="h-full flex flex-col bg-background relative px-6 pt-[max(4rem,calc(env(safe-area-inset-top)+3rem))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        {closeBtn}
+        <h1 className="text-xl font-bold text-card-foreground">{t.takePhoto}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t.scanCaptureHint(MAX_PHOTOS)}</p>
 
-      {images.length > 0 && (
-        <div className="relative w-[65vw] max-w-64 aspect-square rounded-2xl overflow-hidden shadow-card mb-8 border border-border">
-          <img src={images[currentPreview]} alt="food" className="w-full h-full object-cover transition-opacity duration-300" />
-          {!failure && <div className="absolute left-0 w-full h-0.5 bg-primary shadow-[0_0_10px_hsl(43_72%_52%/0.6)] animate-scan-line" style={{ top: "0%" }} />}
-          <div className="absolute inset-0 bg-primary/5" />
-          {images.length > 1 && (
-            <div className="absolute top-3 left-3 glass text-xs font-bold px-2.5 py-1 rounded-full text-card-foreground">
-              {currentPreview + 1}/{images.length}
+        <div className="flex-1 flex flex-col justify-center">
+          {images.length === 0 ? (
+            <button
+              onClick={() => addPhoto(true)}
+              className="mx-auto w-24 h-24 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-soft active:scale-95 transition-transform"
+              aria-label={t.scanTakeAnother}
+            >
+              <Camera className="w-10 h-10" />
+            </button>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {images.map((src, i) => (
+                <div key={i} className="relative aspect-square rounded-xl overflow-hidden border border-border">
+                  <img src={src} alt={`photo-${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                    aria-label={t.delete}
+                    className="absolute top-1 right-1 w-7 h-7 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
-      )}
+
+        <div className="space-y-3">
+          {images.length > 0 && (
+            <button
+              onClick={startAnalysis}
+              className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-5 h-5" /> {t.scanStartAnalysis(images.length)}
+            </button>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => addPhoto(true)}
+              disabled={images.length >= MAX_PHOTOS}
+              className="py-3 rounded-xl border border-border text-sm font-semibold text-card-foreground flex items-center justify-center gap-2 disabled:opacity-40"
+            >
+              <Camera className="w-4 h-4" /> {images.length === 0 ? t.scanTakePhotoBtn : t.scanTakeAnother}
+            </button>
+            <button
+              onClick={() => addPhoto(false)}
+              disabled={images.length >= MAX_PHOTOS}
+              className="py-3 rounded-xl border border-border text-sm font-semibold text-card-foreground flex items-center justify-center gap-2 disabled:opacity-40"
+            >
+              <ImagePlus className="w-4 h-4" /> {t.scanAddFromAlbum}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full flex flex-col items-center justify-center bg-background relative px-6">
+      {closeBtn}
+
+      <div className="relative w-[65vw] max-w-64 aspect-square rounded-2xl overflow-hidden shadow-card mb-8 border border-border">
+        <img src={images[currentPreview] ?? images[0]} alt="food" className="w-full h-full object-cover" />
+        {!failure && <div className="absolute left-0 w-full h-0.5 bg-primary animate-scan-line" style={{ top: "0%" }} />}
+        {images.length > 1 && (
+          <div className="absolute top-3 left-3 glass text-xs font-bold px-2.5 py-1 rounded-full text-card-foreground">
+            {currentPreview + 1}/{images.length}
+          </div>
+        )}
+      </div>
 
       {failure ? (
         <div className="flex flex-col items-center gap-4 max-w-sm text-center">
@@ -202,18 +237,19 @@ const Scan = () => {
             <p className="text-sm text-muted-foreground leading-relaxed">{failureText}</p>
           )}
           {failure === "guest_limit" ? (
-            <button
-              onClick={() => navigate("/login", { state: { upgrade: true } })}
-              className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
-            >
+            <button onClick={() => navigate("/login", { state: { upgrade: true } })} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
               {t.loginSignUp}
             </button>
           ) : failure === "signin" ? (
             <button onClick={() => navigate("/login")} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
               {t.loginSignIn}
             </button>
+          ) : failure === "image" ? (
+            <button onClick={() => { setFailure(null); setPhase("capture"); }} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
+              {t.scanTakeAnother}
+            </button>
           ) : (
-            <button onClick={retry} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
+            <button onClick={() => analyze()} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
               {t.retry}
             </button>
           )}
@@ -227,8 +263,8 @@ const Scan = () => {
           <p className="text-base font-semibold text-card-foreground">
             {images.length > 1 ? t.scanAnalyzingMulti(images.length) : t.scanAnalyzing}
           </p>
-          <p className="text-sm text-muted-foreground">{t.scanRecognizing}</p>
-          {showSlowHint && <p className="text-xs text-muted-foreground animate-fade-in mt-2">{t.scanSlowHint}</p>}
+          {slowLevel >= 1 && <p className="text-sm text-muted-foreground animate-fade-in">{t.scanRecognizing}</p>}
+          {slowLevel >= 2 && <p className="text-xs text-muted-foreground animate-fade-in">{t.scanSlowHint}</p>}
         </div>
       )}
 
@@ -241,7 +277,7 @@ const Scan = () => {
       <AiConsentDialog
         open={showConsent}
         onAgree={() => { setShowConsent(false); setConsentGranted(true); }}
-        onDecline={() => { setShowConsent(false); navigate("/", { replace: true }); }}
+        onDecline={() => { setShowConsent(false); setPhase("capture"); }}
       />
     </div>
   );
