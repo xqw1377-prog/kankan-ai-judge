@@ -13,7 +13,6 @@ import { lazyWithRetry } from "@/lib/lazyWithRetry";
 const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
 const Index = lazyWithRetry(() => import("./pages/Index"));
 const Scan = lazyWithRetry(() => import("./pages/Scan"));
-const Audit = lazyWithRetry(() => import("./pages/Audit"));
 const Result = lazyWithRetry(() => import("./pages/Result"));
 const EditIngredients = lazyWithRetry(() => import("./pages/EditIngredients"));
 const History = lazyWithRetry(() => import("./pages/History"));
@@ -48,7 +47,7 @@ const App = () => (
               <Route path="/onboarding" element={<Page><Onboarding /></Page>} />
               <Route path="/" element={<Page><Index /></Page>} />
               <Route path="/scan" element={<Page><Scan /></Page>} />
-              <Route path="/audit" element={<Page><Audit /></Page>} />
+              <Route path="/audit" element={<Navigate to="/" replace />} />
               <Route path="/result" element={<Page><Result /></Page>} />
               <Route path="/edit-ingredients" element={<Page><EditIngredients /></Page>} />
               <Route path="/history" element={<Page><History /></Page>} />

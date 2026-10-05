@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, X, ImagePlus, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -8,8 +8,6 @@ import { getMealTypeLabel } from "@/lib/nutrition";
 import { useDaySummary } from "@/hooks/useDaySummary";
 import { useI18n } from "@/lib/i18n";
 import { takePhoto, pickPhoto } from "@/lib/camera";
-import { homeGate } from "@/lib/homeGate";
-import { isGuestMode } from "@/lib/localData";
 import { useAuthUserId } from "@/hooks/useAuthUser";
 
 const MAX_PHOTOS = 5;
@@ -22,16 +20,16 @@ const Index = () => {
   const summary = useDaySummary(isAnonymous ? null : userId, todayMeals.length);
   const { t, locale, setLocale } = useI18n();
   const [photos, setPhotos] = useState<string[]>([]);
-  const guest = isGuestMode();
 
-  useEffect(() => {
-    if (!ready) return;
-    if (homeGate({ hasSession: !!userId, isGuest: isGuestMode() }) === "login") {
-      navigate("/login", { replace: true });
-    }
-  }, [ready, userId, navigate]);
+  const signedIn = ready && !!userId && !isAnonymous;
+  const requireSignIn = () => {
+    if (signedIn) return false;
+    navigate("/login");
+    return true;
+  };
 
   const handleCapture = async () => {
+    if (requireSignIn()) return;
     if (photos.length > 0) {
       navigate("/scan", { state: { images: photos } });
       return;
@@ -41,6 +39,7 @@ const Index = () => {
   };
 
   const handleAddMore = async () => {
+    if (requireSignIn()) return;
     if (photos.length >= MAX_PHOTOS) return;
     const data = await pickPhoto();
     if (data) setPhotos(prev => prev.length < MAX_PHOTOS ? [...prev, data] : prev);
@@ -50,7 +49,7 @@ const Index = () => {
     setPhotos(prev => prev.filter((_, i) => i !== idx));
   };
 
-  if (!guest && (!ready || !userId)) {
+  if (!ready) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
