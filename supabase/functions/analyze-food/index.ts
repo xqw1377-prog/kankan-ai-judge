@@ -183,20 +183,22 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
 
     if (toolCall?.function?.arguments) {
       const result = JSON.parse(toolCall.function.arguments);
+      const foodName = String(result?.food ?? "").trim();
+      const calories = Number(result?.calories) || 0;
+      const protein = Number(result?.protein_g) || 0;
+      const fat = Number(result?.fat_g) || 0;
+      const carbs = Number(result?.carbs_g) || 0;
+      const unnamed = !foodName || /^(未知食物|unknown|unknown food)$/i.test(foodName);
+      const hasMacros = calories > 0 || protein > 0 || fat > 0 || carbs > 0;
+      if (unnamed || !hasMacros) {
+        return json(422, { error: "没能识别这餐" }, corsHeaders);
+      }
       return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(
-      JSON.stringify({
-        food: "未知食物", ingredients: [],
-        calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0,
-        verdict: "AI 无法识别，请重试。", suggestion: "",
-        cooking_scene: "takeout", roast: "",
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return json(422, { error: "没能识别这餐" }, corsHeaders);
   } catch (e) {
     console.error("analyze-food error:", e);
     return new Response(

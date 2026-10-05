@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { inspectImage, inspectImages, MAX_IMAGES } from "@/lib/imageGuard";
-import { isPlaceholderAnalysis } from "@/lib/foodAnalysis";
+import { isPlaceholderAnalysis, mealResultLines } from "@/lib/foodAnalysis";
 import { homeGate } from "@/lib/homeGate";
+import { scoreToday } from "@/lib/nutrition";
 
 function dataUrl(mime: string, bytes: number) {
   const raw = "A".repeat(bytes);
@@ -30,6 +31,32 @@ describe("analysis placeholder", () => {
       carbs_g: 0,
       verdict: "AI error",
     })).toBe(true);
+  });
+});
+
+describe("meal result", () => {
+  it("keeps the default result to three lines", () => {
+    const [seen, problem, action] = mealResultLines({
+      food: "红烧肉盖饭",
+      ingredients: [{ name: "红烧肉" }, { name: "米饭" }],
+      verdict: "油脂偏高。下一句不该出现。",
+      suggestion: "先吃【青菜】。然后再加肉。",
+    });
+    expect([seen, problem, action]).toEqual([
+      "红烧肉、米饭",
+      "油脂偏高。",
+      "先吃【青菜】。",
+    ]);
+  });
+});
+
+describe("saved meal score", () => {
+  it("scores only from logged totals", () => {
+    const totals = { calories: 500, protein_g: 30, fat_g: 15, carbs_g: 50 };
+    const targets = { calories: 2000, protein_g: 120, fat_g: 60, carbs_g: 200 };
+    expect(scoreToday({ calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0 }, targets)).toBe(0);
+    expect(scoreToday(totals, targets)).toBe(scoreToday(totals, targets));
+    expect(scoreToday(totals, targets)).toBeGreaterThan(0);
   });
 });
 

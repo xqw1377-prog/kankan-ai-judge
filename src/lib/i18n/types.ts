@@ -543,6 +543,10 @@ export interface Dictionary {
   defaultTargetNote: string;
   fillProfile: string;
   viewHistory: string;
+  resultSeen: string;
+  resultProblem: string;
+  resultAction: string;
+  saveToLog: string;
 
   // AI consent
   aiConsentTitle: string;

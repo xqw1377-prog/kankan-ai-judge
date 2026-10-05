@@ -531,6 +531,10 @@ export const enUS: Dictionary = {
   defaultTargetNote: "Daily targets are still the defaults. Add body details in Profile.",
   fillProfile: "Fill in",
   viewHistory: "View log",
+  resultSeen: "Seen",
+  resultProblem: "Problem",
+  resultAction: "This bite",
+  saveToLog: "Save to log",
 
   aiConsentTitle: "AI Data Usage Notice",
   aiConsentBody: "To analyze your food photos, KanKan sends image data to a third-party AI service (Google Gemini) for recognition and nutritional analysis. Your photos will not be used for any other purpose and will not be retained on third-party servers after analysis.",

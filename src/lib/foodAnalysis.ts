@@ -55,6 +55,31 @@ export function isPlaceholderAnalysis(data: unknown): boolean {
   return false;
 }
 
+function firstSentence(text: string, fallback: string): string {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (!cleaned) return fallback;
+  const match = cleaned.match(/^.*?[。！？.!?]/);
+  return (match ? match[0] : cleaned).trim();
+}
+
+/** Default result: what was seen, one problem, one eating action. */
+export function mealResultLines(input: {
+  food?: string;
+  ingredients?: Array<{ name?: string }>;
+  verdict?: string;
+  suggestion?: string;
+}): [string, string, string] {
+  const names = (input.ingredients ?? [])
+    .map((item) => item?.name?.trim())
+    .filter((name): name is string => Boolean(name));
+  const seen = names.length > 0 ? names.slice(0, 6).join("、") : (input.food?.trim() || "这一餐");
+  return [
+    seen,
+    firstSentence(input.verdict ?? "", "这次没有看出明确的问题。"),
+    firstSentence(input.suggestion ?? "", "按平时的一份吃就好。"),
+  ];
+}
+
 export function toFoodAnalysis(data: unknown): FoodAnalysis | null {
   if (isPlaceholderAnalysis(data)) return null;
   const row = data as Record<string, unknown>;

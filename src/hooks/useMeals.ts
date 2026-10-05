@@ -97,11 +97,13 @@ export function useMeals() {
       ingredients: meal.ingredients || [],
       id: crypto.randomUUID(),
       recorded_at: new Date().toISOString(),
-      pendingSync: Boolean(userId),
+      pendingSync: false,
     };
-    apply([local, ...readMeals(scope)]);
 
-    if (!userId) return { data: asMeal(local), error: null };
+    if (!userId) {
+      apply([local, ...readMeals(scope)]);
+      return { data: asMeal(local), error: null };
+    }
 
     try {
       const { data, error } = await supabase
@@ -123,13 +125,13 @@ export function useMeals() {
         .single();
       if (!error && data) {
         const saved = fromRemote(data as Record<string, unknown>);
-        apply(readMeals(scope).map((item) => item.id === local.id ? saved : item));
+        apply([saved, ...readMeals(scope).filter((item) => item.id !== saved.id)]);
         return { data: asMeal(saved), error: null };
       }
-    } catch {
-      // The meal stays on this device until a later signed-in sync.
+      return { data: null, error: error ?? { message: "save failed" } };
+    } catch (error) {
+      return { data: null, error };
     }
-    return { data: asMeal(local), error: null };
   }, [apply, scope, userId]);
 
   const deleteMeal = useCallback(async (id: string) => {

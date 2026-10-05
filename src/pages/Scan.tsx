@@ -94,7 +94,11 @@ const Scan = () => {
         ? (data as { error: string }).error
         : error?.message || "";
       if (error || (data && typeof data === "object" && "error" in data && (data as { error?: string }).error)) {
-        const code = /LOVABLE_API_KEY|not configured|api[_ ]?key/i.test(message) ? "missing_key" as const : "unavailable" as const;
+        const code = /LOVABLE_API_KEY|not configured|api[_ ]?key/i.test(message)
+          ? "missing_key" as const
+          : /没能识别|无法识别|不是食物|unrecognized/i.test(message)
+            ? "unrecognized" as const
+            : "unavailable" as const;
         outcome = { ok: false, code };
       } else {
         const result = toFoodAnalysis(data);

@@ -531,6 +531,10 @@ export const zhCN: Dictionary = {
   defaultTargetNote: "每日目标仍是默认值，可在「我的」里填写身体数据。",
   fillProfile: "去填写",
   viewHistory: "查看记录",
+  resultSeen: "看到",
+  resultProblem: "问题",
+  resultAction: "这一口",
+  saveToLog: "记到记录",
 
   aiConsentTitle: "AI 数据使用说明",
   aiConsentBody: "为了分析您拍摄的食物照片，KanKan 需要将照片数据发送至第三方 AI 服务（Google Gemini）进行识别和营养分析。我们不会将您的照片用于其他目的，分析完成后不会在第三方服务器上保留您的图片数据。",
