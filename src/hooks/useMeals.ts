@@ -60,6 +60,33 @@ function todayOf(meals: MealRecord[]) {
   return meals.filter((meal) => new Date(meal.recorded_at).toDateString() === today);
 }
 
+async function functionFailure(error: unknown, data: unknown): Promise<{ status: number; message: string }> {
+  let message = "";
+  if (data && typeof data === "object" && "error" in data && typeof (data as { error?: unknown }).error === "string") {
+    message = (data as { error: string }).error;
+  }
+  const context = error && typeof error === "object" && "context" in error
+    ? (error as { context?: unknown }).context
+    : undefined;
+  const status = context instanceof Response ? context.status : 0;
+  if (!message && context instanceof Response) {
+    try {
+      const body = await context.clone().json() as { error?: unknown };
+      if (typeof body?.error === "string") message = body.error;
+    } catch {
+      // Non-JSON function errors stay on the client message.
+    }
+  }
+  if (!message && error && typeof error === "object" && "message" in error) {
+    message = String((error as { message?: unknown }).message ?? "");
+  }
+  return { status, message };
+}
+
+function consumedError(status: number, message: string) {
+  return status === 409 || message.includes("已经记过");
+}
+
 export function useMeals() {
   const { ready, userId } = useAuthUserId();
   const scope = userId ?? GUEST_SCOPE;
@@ -103,7 +130,11 @@ export function useMeals() {
         body: mealConfirmBody(analysisId, getMealTypeByTime()),
       });
       const meal = data && typeof data === "object" ? (data as { meal?: Record<string, unknown>; error?: string }).meal : undefined;
-      if (error || !meal || (data && typeof data === "object" && (data as { error?: string }).error)) {
+      const failure = await functionFailure(error, data);
+      if (consumedError(failure.status, failure.message)) {
+        return { data: null, error: { message: "already_consumed" } };
+      }
+      if (error || !meal || failure.message) {
         return { data: null, error: error ?? { message: "save failed" } };
       }
       const saved = fromRemote(meal);
@@ -136,6 +167,8 @@ export function useMeals() {
         body: mealReplaceBody(mealId, analysisId),
       });
       const meal = data && typeof data === "object" ? (data as { meal?: Record<string, unknown> }).meal : undefined;
+      const failure = await functionFailure(error, data);
+      if (consumedError(failure.status, failure.message)) return { error: { message: "already_consumed" } };
       if (error || !meal) return { error: error ?? { message: "save failed" } };
       const saved = fromRemote(meal);
       apply(readMeals(scope).map((item) => item.id === saved.id ? saved : item));

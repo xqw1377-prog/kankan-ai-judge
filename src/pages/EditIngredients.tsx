@@ -206,6 +206,10 @@ const EditIngredients = () => {
       return;
     }
     const { error } = await replaceMeal(mealId, analysisId);
+    if (error && typeof error === "object" && "message" in error && (error as { message?: string }).message === "already_consumed") {
+      toast({ title: t.mealAlreadySaved });
+      return;
+    }
     if (error) {
       toast({ title: t.saveMealFailed, variant: "destructive" });
       return;

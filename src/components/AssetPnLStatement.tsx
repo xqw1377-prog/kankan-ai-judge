@@ -10,8 +10,8 @@ interface Props {
   suggestion: string;
   isWarning: boolean;
   isGreen: boolean;
-  meals: any[];
-  profile: any;
+  meals: Array<{ recorded_at: string; calories: number }>;
+  profile?: { targets?: { calories: number } | null; target_calories?: number } | null;
 }
 
 function renderSuggestionBold(text: string) {
@@ -94,10 +94,10 @@ export default function AssetPnLStatement({ calories, protein_g, fat_g, carbs_g,
       date.setDate(date.getDate() - d);
       const dateStr = date.toDateString();
       const dayLabel = `${date.getMonth() + 1}/${date.getDate()}`;
-      const dayMeals = meals.filter((m: any) => new Date(m.recorded_at).toDateString() === dateStr);
-      if (dayMeals.length === 0) { days.push({ label: dayLabel, score: 0 }); continue; }
-      const totalCal = dayMeals.reduce((s: number, m: any) => s + m.calories, 0);
-      const targetCal = profile?.target_calories || 2000;
+      const dayMeals = meals.filter((m) => new Date(m.recorded_at).toDateString() === dateStr);
+      const targetCal = profile?.targets?.calories || profile?.target_calories || 0;
+      if (dayMeals.length === 0 || targetCal <= 0) { days.push({ label: dayLabel, score: 0 }); continue; }
+      const totalCal = dayMeals.reduce((s: number, m) => s + m.calories, 0);
       const ratio = totalCal / targetCal;
       const score = Math.max(0, Math.min(100, Math.round(ratio <= 1 ? ratio * 100 : Math.max(0, 200 - ratio * 100))));
       days.push({ label: dayLabel, score });

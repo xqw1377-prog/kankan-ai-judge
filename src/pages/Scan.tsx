@@ -26,11 +26,14 @@ const Scan = () => {
   const [currentPreview, setCurrentPreview] = useState(0);
   const [showConsent, setShowConsent] = useState(false);
   const [consentGranted, setConsentGranted] = useState(hasAiConsent());
+  type ScanOutcome =
+    | { ok: true; result: NonNullable<ReturnType<typeof toFoodAnalysis>> }
+    | { ok: false; code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image"; message?: string };
+
   const [failure, setFailure] = useState<"missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | null>(null);
   const [imageError, setImageError] = useState("");
-  type Outcome = { ok: true; result: ReturnType<typeof toFoodAnalysis> } | { ok: false; code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image"; message?: string };
   const startedRef = useRef(false);
-  const resultReadyRef = useRef<Outcome | null>(null);
+  const resultReadyRef = useRef<ScanOutcome | null>(null);
   const minTimeRef = useRef(false);
 
   useEffect(() => {
@@ -41,12 +44,11 @@ const Scan = () => {
     return () => clearInterval(interval);
   }, [images.length]);
 
-  const finish = useCallback((outcome: Outcome) => {
+  const finish = useCallback((outcome: ScanOutcome) => {
     if (cancelled) return;
-    if (!outcome.ok) {
-      const failed = outcome as { code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image"; message?: string };
-      if (failed.message) setImageError(failed.message);
-      setFailure(failed.code);
+    if (outcome.ok === false) {
+      if (outcome.message) setImageError(outcome.message);
+      setFailure(outcome.code);
       return;
     }
     if (!outcome.result) {
@@ -65,8 +67,8 @@ const Scan = () => {
     setFailure(null);
 
     const checked = inspectImages(images);
-    if (!checked.ok) {
-      const outcome = { ok: false as const, code: "image" as const, message: (checked as { error: string }).error };
+    if (checked.ok === false) {
+      const outcome = { ok: false as const, code: "image" as const, message: checked.error };
       if (minTimeRef.current) finish(outcome);
       else resultReadyRef.current = outcome;
       return;
@@ -86,7 +88,7 @@ const Scan = () => {
       diet_preference: profile.diet_preference,
     } : {};
 
-    let outcome: Outcome;
+    let outcome: ScanOutcome;
     try {
       const body = images.length === 1
         ? { imageBase64: images[0], userContext, language: locale }

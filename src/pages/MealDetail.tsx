@@ -17,8 +17,8 @@ const MealDetail = () => {
 
   const userAllergies = profile?.allergies?.split(/[,，、\s]+/).filter(Boolean) || [];
   const allergenWarnings = meal?.ingredients
-    .filter((item: any) => userAllergies.some((a: string) => item.name?.includes(a)))
-    .map((item: any) => item.name) || [];
+    .filter((item) => userAllergies.some((a: string) => item.name?.includes(a)))
+    .map((item) => item.name) || [];
 
   if (!meal) {
     return (
@@ -70,7 +70,7 @@ const MealDetail = () => {
           <section className="mb-5">
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">食材清单</h3>
             <div className="glass rounded-xl p-4 shadow-card">
-              {meal.ingredients.map((item: any, i: number) => (
+              {meal.ingredients.map((item, i: number) => (
                 <div key={i} className="flex justify-between py-1.5 border-b border-border last:border-0">
                   <span className="text-sm flex items-center gap-1 text-card-foreground">
                     {allergenWarnings.includes(item.name) && <span className="text-destructive">⚠️</span>}
@@ -89,7 +89,7 @@ const MealDetail = () => {
         <section className="mb-5">
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">营养素分析</h3>
           <div className="glass rounded-xl p-4 shadow-card space-y-3">
-            {profile?.targetsFromServer && profile.targets.calories > 0 ? (
+            {profile?.targetsFromServer && profile.targets && profile.targets.calories > 0 ? (
               <>
                 <NutritionBar label="能量" current={meal.calories} target={profile.targets.calories} unit="kcal" />
                 <NutritionBar label="蛋白" current={meal.protein_g} target={profile.targets.protein_g} unit="g" />

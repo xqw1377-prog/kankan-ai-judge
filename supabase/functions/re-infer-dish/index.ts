@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
+import { validateAnalysis, validateIngredientList } from "../_shared/analysisContract.ts";
 import { storeAnalysis } from "../_shared/storeAnalysis.ts";
 
 const corsHeaders = {
@@ -20,12 +21,8 @@ serve(async (req) => {
     const limited = await enforceAiRateLimit(auth.supabase, auth.userId, corsHeaders);
     if (limited) return limited;
 
-    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-      return new Response(JSON.stringify({ error: "No ingredients provided" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const listed = validateIngredientList(ingredients);
+    if (listed.ok === false) return json(400, { error: listed.error }, corsHeaders);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -33,7 +30,7 @@ serve(async (req) => {
     }
 
     const isEnglish = language === "en-US";
-    const ingredientList = ingredients.map((i: any) => `${i.name} ${i.grams}g`).join(", ");
+    const ingredientList = listed.value.map((item) => `${item.name} ${item.grams}g`).join(", ");
 
     const systemPrompt = isEnglish
       ? `You are a professional food analyst. Given a list of ingredients with weights, infer the most likely dish name and recalculate accurate nutrition data. Be precise and practical.`
@@ -92,26 +89,11 @@ serve(async (req) => {
 
     if (toolCall?.function?.arguments) {
       const result = JSON.parse(toolCall.function.arguments);
-      const foodName = String(result?.food ?? "").trim();
-      const calories = Number(result?.calories) || 0;
-      const protein = Number(result?.protein_g) || 0;
-      const fat = Number(result?.fat_g) || 0;
-      const carbs = Number(result?.carbs_g) || 0;
-      if (!foodName || /^(未知菜品|未知食物|unknown)$/i.test(foodName) || (calories <= 0 && protein <= 0 && fat <= 0 && carbs <= 0)) {
-        return json(422, { error: "没能识别这餐" }, corsHeaders);
-      }
-      const analysisId = await storeAnalysis(auth.userId, {
-        food: foodName,
-        calories,
-        protein_g: protein,
-        fat_g: fat,
-        carbs_g: carbs,
-        ingredients,
-        verdict: result.verdict,
-        suggestion: result.suggestion,
-      });
+      const checked = validateAnalysis({ ...result, ingredients: listed.value });
+      if (!checked.ok) return json(422, { error: "没能识别这餐" }, corsHeaders);
+      const analysisId = await storeAnalysis(auth.userId, checked.value);
       if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
-      return json(200, { ...result, analysis_id: analysisId }, corsHeaders);
+      return json(200, { ...checked.value, analysis_id: analysisId }, corsHeaders);
     }
 
     return json(422, { error: "没能识别这餐" }, corsHeaders);

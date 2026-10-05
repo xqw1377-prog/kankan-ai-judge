@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n";
+import type { Dictionary } from "@/lib/i18n/types";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -163,7 +164,7 @@ const COLORS: Record<DigestDifficulty, { main: string; bg: string; glow: string;
 
 // ── Combined Digestive Flow + Order ───────────────────────────────────────────
 
-function DigestiveFlow({ dishes, entered, t }: { dishes: OrderedDish[]; entered: boolean; t: any }) {
+function DigestiveFlow({ dishes, entered, t }: { dishes: OrderedDish[]; entered: boolean; t: Dictionary }) {
   if (dishes.length === 0) return null;
 
   const hasBlockage = dishes.length > 0 && dishes[dishes.length - 1]?.difficulty === "hard";

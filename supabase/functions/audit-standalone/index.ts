@@ -36,7 +36,7 @@ serve(async (req) => {
     }
 
     const systemPrompt = isEn
-      ? `You are "KANKAN AUDIT" — a professional nutritional auditor using the GDAS (Global Dietary Audit System) framework. Analyze the meal photos and return a structured audit report.
+      ? `You are Kankan. Estimate this meal from the photos. This is an AI estimate, not a lab result, a medical review, or an existing international nutrition standard. Return a structured estimate.
 
 You must:
 1. Identify each ingredient with estimated weight (grams)
@@ -53,7 +53,7 @@ Rules:
 - BPI formula: 50 + (protein×0.6) + (fiber×1.2) - (GL×0.4) - (fat×0.15), clamped 0-100
 - Use the provided tool to return structured results
 - ALL output MUST be in English`
-      : `你是"KANKAN审计官"——使用GDAS（全球膳食审计系统）框架的专业营养审计师。分析食物照片并返回结构化审计报告。
+      : `你是 Kankan。根据照片估算这餐。这是 AI 估算，不是实验室结果、医学复核，也不是已有的国际营养标准。返回结构化估算。
 
 你必须：
 1. 识别每种食材及估算克重
@@ -71,8 +71,8 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
 - 使用指定工具返回结果`;
 
     const userMessage = isEn
-      ? `Audit these ${imageContents.length} meal photo(s). Provide a full GDAS nutritional audit.`
-      : `审计这${imageContents.length}张食物照片，提供完整的GDAS营养审计报告。`;
+      ? `Estimate these ${imageContents.length} meal photo(s). This is an AI estimate, not a verified audit.`
+      : `估算这${imageContents.length}张食物照片。这是 AI 估算，不是已验证的审计。`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -90,7 +90,7 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
           type: "function",
           function: {
             name: "audit_report",
-            description: "Return structured GDAS audit report",
+            description: "Return a structured AI meal estimate",
             parameters: {
               type: "object",
               properties: {

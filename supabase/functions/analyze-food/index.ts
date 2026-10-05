@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
 import { parseImages, toImageContents } from "../_shared/images.ts";
+import { validateAnalysis } from "../_shared/analysisContract.ts";
 import { storeAnalysis } from "../_shared/storeAnalysis.ts";
 
 const corsHeaders = {
@@ -184,28 +185,16 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
 
     if (toolCall?.function?.arguments) {
       const result = JSON.parse(toolCall.function.arguments);
-      const foodName = String(result?.food ?? "").trim();
-      const calories = Number(result?.calories) || 0;
-      const protein = Number(result?.protein_g) || 0;
-      const fat = Number(result?.fat_g) || 0;
-      const carbs = Number(result?.carbs_g) || 0;
-      const unnamed = !foodName || /^(未知食物|unknown|unknown food)$/i.test(foodName);
-      const hasMacros = calories > 0 || protein > 0 || fat > 0 || carbs > 0;
-      if (unnamed || !hasMacros) {
-        return json(422, { error: "没能识别这餐" }, corsHeaders);
-      }
-      const analysisId = await storeAnalysis(auth.userId, {
-        food: foodName,
-        calories,
-        protein_g: protein,
-        fat_g: fat,
-        carbs_g: carbs,
-        ingredients: result.ingredients,
-        verdict: result.verdict,
-        suggestion: result.suggestion,
-      });
+      const checked = validateAnalysis(result);
+      if (!checked.ok) return json(422, { error: "没能识别这餐" }, corsHeaders);
+      const analysisId = await storeAnalysis(auth.userId, checked.value);
       if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
-      return json(200, { ...result, analysis_id: analysisId }, corsHeaders);
+      return json(200, {
+        ...checked.value,
+        cooking_scene: result.cooking_scene,
+        roast: result.roast,
+        analysis_id: analysisId,
+      }, corsHeaders);
     }
 
     return json(422, { error: "没能识别这餐" }, corsHeaders);

@@ -70,9 +70,14 @@ const Profile = () => {
     );
   }
 
-  const nickname = (profile as any).nickname || "";
-  const avatarUrl = (profile as any).avatar_url;
-  const genderLabel = profile.gender === "female" ? t.female : t.male;
+  const nickname = profile.nickname || "";
+  const avatarUrl = profile.avatar_url;
+  const genderLabel = profile.gender === "female" ? t.female : profile.gender === "male" ? t.male : t.notFilled;
+  const ageLabel = profile.age ? `${profile.age}${t.ageSuffix}` : t.notFilled;
+  const sizeLabel = profile.height_cm && profile.weight_kg
+    ? `${profile.height_cm}cm / ${profile.weight_kg}kg`
+    : t.notFilled;
+  const goalLabel = profile.goal ? t.goalLabels[profile.goal] : t.notFilled;
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
   const streak = calcStreak(meals.map(m => m.recorded_at));
   const score = summary?.score;
@@ -83,14 +88,14 @@ const Profile = () => {
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result as string;
-      await saveProfile({ avatar_url: dataUrl } as any);
+      await saveProfile({ avatar_url: dataUrl });
     };
     reader.readAsDataURL(file);
   };
 
   const handleNicknameSave = async () => {
     if (nicknameValue.trim()) {
-      await saveProfile({ nickname: nicknameValue.trim() } as any);
+      await saveProfile({ nickname: nicknameValue.trim() });
     }
     setEditingNickname(false);
   };
@@ -174,10 +179,10 @@ const Profile = () => {
                 </button>
               )}
               <p className="text-sm text-muted-foreground">
-                {profile.age}{t.ageSuffix} · {genderLabel} · {profile.height_cm}cm / {profile.weight_kg}kg
+                {ageLabel} · {genderLabel} · {sizeLabel}
               </p>
               <p className="text-sm text-primary font-semibold mt-0.5">
-                {t.goal}：{t.goalLabels[profile.goal || "maintain"]}
+                {t.goal}：{goalLabel || t.notFilled}
               </p>
             </div>
           </div>

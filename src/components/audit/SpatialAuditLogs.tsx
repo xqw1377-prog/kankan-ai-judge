@@ -26,7 +26,7 @@ const SpatialAuditLogs = ({ integrityScore, hasData, auditing }: SpatialAuditLog
         </div>
         <div className="flex items-center gap-1.5">
           <FlaskConical className="w-3 h-3 text-primary/40" />
-          <span className="text-[9px] font-mono text-muted-foreground">GDAS v1.0</span>
+          <span className="text-[9px] font-mono text-muted-foreground">Kankan 估算</span>
         </div>
       </div>
 

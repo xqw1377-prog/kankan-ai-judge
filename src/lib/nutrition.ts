@@ -33,10 +33,19 @@ const GOAL_ADJUSTMENTS = {
   maintain: 0,
 };
 
-export function calculateNutrition(profile: UserProfile): NutritionTargets {
-  const { gender = "male", age = 28, height_cm = 170, weight_kg = 65, activity_level = "light", goal = "maintain" } = profile;
+export function calculateNutrition(profile: UserProfile): NutritionTargets | null {
+  const gender = profile.gender === "male" || profile.gender === "female" ? profile.gender : null;
+  const activity = profile.activity_level && profile.activity_level in ACTIVITY_MULTIPLIERS ? profile.activity_level : null;
+  const goal = profile.goal && profile.goal in GOAL_ADJUSTMENTS ? profile.goal : null;
+  const age = Number(profile.age);
+  const height_cm = Number(profile.height_cm);
+  const weight_kg = Number(profile.weight_kg);
+  if (!gender || !activity || !goal) return null;
+  if (!Number.isFinite(age) || age < 10 || age > 100) return null;
+  if (!Number.isFinite(height_cm) || height_cm < 100 || height_cm > 230) return null;
+  if (!Number.isFinite(weight_kg) || weight_kg < 30 || weight_kg > 250) return null;
 
-  // Mifflin-St Jeor
+  // Mifflin-St Jeor. Called only after the six body fields are real.
   let bmr: number;
   if (gender === "male") {
     bmr = 10 * weight_kg + 6.25 * height_cm - 5 * age + 5;
@@ -44,7 +53,7 @@ export function calculateNutrition(profile: UserProfile): NutritionTargets {
     bmr = 10 * weight_kg + 6.25 * height_cm - 5 * age - 161;
   }
 
-  const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[activity_level]);
+  const tdee = Math.round(bmr * ACTIVITY_MULTIPLIERS[activity]);
   const calories = Math.max(1200, tdee + GOAL_ADJUSTMENTS[goal]);
 
   // Macro split
