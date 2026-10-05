@@ -50,10 +50,8 @@ describe("analysis session", () => {
     const signInAnonymously = vi.fn();
     const result = await ensureAnalysisSession({
       getSession: async () => ({ data: { session: { user: { id: "already" } } } }),
-      signInAnonymously,
     });
     expect(result).toBe("ready");
-    expect(signInAnonymously).not.toHaveBeenCalled();
   });
 
   it("asks for sign-in when there is no session or only an anonymous one", async () => {
