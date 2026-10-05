@@ -5,8 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { clearGuestMode, markGuestMode } from "@/lib/localData";
-import { adoptGuestLocalData } from "@/lib/guestHandoff";
-import { readClaimToken, rememberClaimToken, retryStoredGuestClaim } from "@/lib/guestClaim";
+import { adoptVerifiedUpgrade, noteVerificationHandoff, readUpgradeHandoff } from "@/lib/guestHandoff";
+import { handoffExistingAccountSignIn } from "@/lib/guestClaim";
 import { profileSaveBody } from "@/lib/serverWrites";
 
 export default function Login() {
@@ -20,36 +20,46 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [pendingVerification, setPendingVerification] = useState(
+    () => readUpgradeHandoff()?.state === "pending_verification",
+  );
 
   const handleSignIn = async () => {
     if (!email || !password) return;
     setLoading(true);
-    const { data: before } = await supabase.auth.getSession();
-    let claimToken = readClaimToken();
-    if (before.session?.user?.is_anonymous) {
-      const issued = await supabase.functions.invoke("claim-guest-meal", { body: { action: "issue" } });
-      const token = issued.data && typeof issued.data === "object" ? (issued.data as { token?: unknown }).token : null;
-      if (typeof token === "string") {
-        claimToken = token;
-        rememberClaimToken(token);
-      }
-    }
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    setLoading(false);
-    if (error) {
-      toast({ title: t.loginError, description: error.message, variant: "destructive" });
-      return;
-    }
-    const claimResult = claimToken
-      ? await retryStoredGuestClaim(async (token) => {
+    const outcome = await handoffExistingAccountSignIn({
+      getSession: async () => {
+        const { data } = await supabase.auth.getSession();
+        return {
+          userId: data.session?.user?.id ?? null,
+          isAnonymous: data.session?.user?.is_anonymous === true,
+        };
+      },
+      issueToken: async () => {
+        const issued = await supabase.functions.invoke("claim-guest-meal", { body: { action: "issue" } });
+        const token = issued.data && typeof issued.data === "object" ? (issued.data as { token?: unknown }).token : null;
+        return typeof token === "string" ? token : null;
+      },
+      signIn: async () => {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        return { userId: data.user?.id ?? null, error: error?.message ?? null };
+      },
+      claim: async (token) => {
         const result = await supabase.functions.invoke("claim-guest-meal", { body: { action: "claim", token } });
         const status = result.data && typeof result.data === "object" ? (result.data as { status?: unknown }).status : "";
         return { error: result.error, status };
-      })
-      : "none";
-    const claimed = claimResult !== "failed";
-    if (claimed && data.user) adoptGuestLocalData(data.user.id, { includeProfile: false });
-    else if (claimed) clearGuestMode();
+      },
+    });
+    setLoading(false);
+    if (outcome.status === "issue_failed") {
+      toast({ title: t.loginError, description: t.guestClaimIssueFailed, variant: "destructive" });
+      return;
+    }
+    if (outcome.status === "signin_failed") {
+      toast({ title: t.loginError, description: outcome.message, variant: "destructive" });
+      return;
+    }
+    const claimed = outcome.status === "claimed" || outcome.status === "signed_in";
     toast({
       title: claimed ? t.loginSuccess : t.guestClaimPending,
       description: claimed ? t.loginWelcomeBack : t.guestClaimPendingDesc,
@@ -65,26 +75,29 @@ export default function Login() {
     }
     setLoading(true);
     const { data: sessionData } = await supabase.auth.getSession();
-    if (sessionData.session?.user?.is_anonymous) {
+    const anonymousUser = sessionData.session?.user;
+    if (anonymousUser?.is_anonymous) {
       const { data, error } = await supabase.auth.updateUser({ email, password });
       setLoading(false);
       if (error) {
         toast({ title: t.loginError, description: error.message, variant: "destructive" });
         return;
       }
-      if (data.user?.is_anonymous) {
-        toast({ title: t.loginSignUpSuccess, description: t.loginSignUpSuccessDesc });
+      if (!data.user || data.user.id !== anonymousUser.id) {
+        toast({ title: t.loginError, description: t.guestClaimIssueFailed, variant: "destructive" });
         return;
       }
-      if (data.user) {
-        const carried = adoptGuestLocalData(data.user.id, { includeProfile: true });
-        if (carried.profile) {
-          await supabase.functions.invoke("save-profile", {
-            body: profileSaveBody({ ...carried.profile } as Record<string, unknown>),
-          });
-        }
-      } else {
-        clearGuestMode();
+      noteVerificationHandoff(anonymousUser.id);
+      if (data.user.is_anonymous) {
+        setPendingVerification(true);
+        toast({ title: t.loginVerificationPending, description: t.loginVerificationPendingDesc });
+        return;
+      }
+      const adopted = adoptVerifiedUpgrade({ userId: data.user.id, isAnonymous: false });
+      if (adopted.status === "adopted" && !adopted.already && adopted.profile) {
+        await supabase.functions.invoke("save-profile", {
+          body: profileSaveBody({ ...adopted.profile } as Record<string, unknown>),
+        });
       }
       toast({ title: t.loginSignUpSuccess, description: t.loginWelcomeBack });
       navigate("/", { replace: true });
@@ -161,6 +174,9 @@ export default function Login() {
             </h2>
             {upgrade && mode === "signup" && (
               <p className="text-xs text-muted-foreground text-center mt-1">{t.guestFreeLimit}</p>
+            )}
+            {pendingVerification && (
+              <p className="text-sm text-card-foreground text-center mt-2">{t.loginVerificationPendingDesc}</p>
             )}
             {mode === "forgot" && (
               <p className="text-xs text-muted-foreground/60 mb-4 text-center">{t.loginResetPasswordDesc}</p>

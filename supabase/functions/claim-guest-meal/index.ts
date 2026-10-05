@@ -31,8 +31,9 @@ serve(async (req) => {
       const { data, error } = await db.rpc("claim_guest_meals", { p_owner_id: auth.userId, p_token: token });
       if (error) return json(500, { error: "没能认领试用记录" }, corsHeaders);
       const status = data && typeof data === "object" ? (data as { status?: string }).status : "";
-      if (status !== "claimed") return json(403, { error: "认领凭证无效" }, corsHeaders);
-      return json(200, data as Record<string, unknown>, corsHeaders);
+      if (status === "claimed") return json(200, data as Record<string, unknown>, corsHeaders);
+      if (status === "denied") return json(403, { error: "认领凭证属于另一个账号", status: "denied" }, corsHeaders);
+      return json(403, { error: "认领凭证无效", status: status || "invalid" }, corsHeaders);
     }
 
     return json(400, { error: "未知操作" }, corsHeaders);

@@ -559,6 +559,9 @@ export interface Dictionary {
   guestClaimPending: string;
   guestClaimPendingDesc: string;
   guestClaimRetry: string;
+  guestClaimIssueFailed: string;
+  loginVerificationPending: string;
+  loginVerificationPendingDesc: string;
   profileSaveFailed: string;
 
   // AI consent

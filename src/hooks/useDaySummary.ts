@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { localDayWindow } from "@/lib/serverWrites";
+import { subscribeGuestClaim } from "@/lib/guestClaimSync";
 
 export interface DaySummary {
   score: number | null;
@@ -17,6 +18,7 @@ export function localDayStamp(now = new Date()) {
 export function useDaySummary(userId: string | null, refreshKey = 0) {
   const [summary, setSummary] = useState<DaySummary | null>(null);
   const [dayStamp, setDayStamp] = useState(() => localDayStamp());
+  const [claimTick, setClaimTick] = useState(0);
 
   useEffect(() => {
     const tick = () => {
@@ -30,6 +32,10 @@ export function useDaySummary(userId: string | null, refreshKey = 0) {
       document.removeEventListener("visibilitychange", tick);
     };
   }, []);
+
+  useEffect(() => subscribeGuestClaim(() => {
+    setClaimTick((current) => current + 1);
+  }), []);
 
   useEffect(() => {
     if (!userId) {
@@ -49,7 +55,7 @@ export function useDaySummary(userId: string | null, refreshKey = 0) {
       });
     })();
     return () => { cancelled = true; };
-  }, [userId, refreshKey, dayStamp]);
+  }, [userId, refreshKey, dayStamp, claimTick]);
 
   return summary;
 }

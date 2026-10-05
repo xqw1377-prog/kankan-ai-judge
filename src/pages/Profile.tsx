@@ -15,6 +15,7 @@ import { useI18n } from "@/lib/i18n";
 import { hasAiConsent, revokeAiConsent } from "@/components/AiConsentDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useDaySummary } from "@/hooks/useDaySummary";
+import { isProfileComplete } from "@/lib/nutrition";
 
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
@@ -65,7 +66,7 @@ const Profile = () => {
     genderLabel,
     profile?.height_cm && profile?.weight_kg ? `${profile.height_cm}cm / ${profile.weight_kg}kg` : "",
   ].filter(Boolean);
-  const profileIncomplete = !profile?.gender || !profile?.age || !profile?.height_cm || !profile?.weight_kg || !profile?.goal;
+  const profileIncomplete = !isProfileComplete(profile);
   const goalKey = profile?.goal;
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
   const streak = calcStreak(meals.map(m => m.recorded_at));

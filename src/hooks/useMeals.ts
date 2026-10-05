@@ -4,6 +4,7 @@ import { mergeMeals, readMeals, writeMeals, GUEST_SCOPE, type StoredMeal } from 
 import { useAuthUserId } from "@/hooks/useAuthUser";
 import { getMealTypeByTime } from "@/lib/nutrition";
 import { mealConfirmBody, mealDeleteBody, mealReplaceBody } from "@/lib/serverWrites";
+import { subscribeGuestClaim } from "@/lib/guestClaimSync";
 
 export interface MealRecord {
   id: string;
@@ -120,6 +121,10 @@ export function useMeals() {
   useEffect(() => {
     fetchMeals();
   }, [fetchMeals]);
+
+  useEffect(() => subscribeGuestClaim(() => {
+    void fetchMeals();
+  }), [fetchMeals]);
 
   const saveMeal = useCallback(async (analysisId: string) => {
     if (!userId) return { data: null, error: { message: "signin" } };

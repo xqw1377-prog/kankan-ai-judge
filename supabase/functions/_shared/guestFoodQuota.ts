@@ -79,25 +79,71 @@ function duplicateGuestSlot(error: { code?: string; message?: string }) {
   return error.code === "23505" || /duplicate key|ai_usage_one_guest_success/i.test(error.message ?? "");
 }
 
+export interface GuestLease {
+  status: "reserved" | "reclaimed" | "taken" | "error";
+  leaseId: string | null;
+  generation: number | null;
+}
+
+function leasePayload(data: unknown): { status?: unknown; lease_id?: unknown; generation?: unknown } | null {
+  if (typeof data === "string") {
+    try {
+      return JSON.parse(data) as { status?: unknown; lease_id?: unknown; generation?: unknown };
+    } catch {
+      return null;
+    }
+  }
+  if (!data || typeof data !== "object") return null;
+  return data as { status?: unknown; lease_id?: unknown; generation?: unknown };
+}
+
 /** Insert or reclaim the one guest_success row before the model call. */
 export async function reserveGuestFoodSlot(
   supabase: SupabaseClient,
   userId: string,
-): Promise<"reserved" | "reclaimed" | "taken" | "error"> {
+): Promise<GuestLease> {
+  const failed: GuestLease = { status: "error", leaseId: null, generation: null };
   const { data, error } = await supabase.rpc("reserve_guest_food_slot", { p_user_id: userId });
-  if (error || typeof data !== "string") return "error";
-  if (data === "reserved" || data === "reclaimed" || data === "taken") return data;
-  return "error";
+  const row = error ? null : leasePayload(data);
+  if (!row) return failed;
+  const status = row.status;
+  if (status !== "reserved" && status !== "reclaimed" && status !== "taken") return failed;
+  const leaseId = typeof row.lease_id === "string" && row.lease_id ? row.lease_id : null;
+  const generation = typeof row.generation === "number"
+    ? row.generation
+    : typeof row.generation === "string" && row.generation
+      ? Number(row.generation)
+      : null;
+  if ((status === "reserved" || status === "reclaimed") && !leaseId) return failed;
+  return {
+    status,
+    leaseId,
+    generation: generation != null && Number.isFinite(generation) ? generation : null,
+  };
 }
 
-/** Drop a reservation that never stored an analysis, so the trial can be retried. */
-export async function releaseGuestFoodSlot(supabase: SupabaseClient, userId: string): Promise<void> {
-  await supabase.rpc("release_guest_food_slot", { p_user_id: userId });
+/** Drop this lease only. A newer lease is left alone. */
+export async function releaseGuestFoodSlot(
+  supabase: SupabaseClient,
+  userId: string,
+  leaseId: string,
+): Promise<void> {
+  if (!leaseId) return;
+  await supabase.rpc("release_guest_food_slot", { p_user_id: userId, p_lease_id: leaseId });
 }
 
-/** The stored analysis is the completed trial. A crash after this must not look like a fresh lease. */
-export async function completeGuestFoodSlot(supabase: SupabaseClient, userId: string): Promise<void> {
-  await supabase.rpc("complete_guest_food_slot", { p_user_id: userId });
+/** Complete this lease only. A stale holder cannot complete a newer lease. */
+export async function completeGuestFoodSlot(
+  supabase: SupabaseClient,
+  userId: string,
+  leaseId: string,
+): Promise<boolean> {
+  if (!leaseId) return false;
+  const { data, error } = await supabase.rpc("complete_guest_food_slot", {
+    p_user_id: userId,
+    p_lease_id: leaseId,
+  });
+  return !error && data === true;
 }
 
 /** Exact idempotency-key match only. A different photo does not replay an older analysis. */
