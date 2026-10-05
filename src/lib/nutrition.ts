@@ -57,6 +57,30 @@ export function calculateNutrition(profile: UserProfile): NutritionTargets {
   return { tdee, calories, protein_g, fat_g, carbs_g };
 }
 
+/** 0–100 closeness of today's logged intake to the profile targets. 0 when nothing was logged. */
+export function scoreToday(
+  totals: { calories: number; protein_g: number; fat_g: number; carbs_g: number },
+  targets: { calories: number; protein_g: number; fat_g: number; carbs_g: number },
+): number {
+  const eaten = totals.calories + totals.protein_g + totals.fat_g + totals.carbs_g;
+  if (eaten <= 0) return 0;
+
+  const closeness = (current: number, target: number) => {
+    if (target <= 0 || current <= 0) return 0;
+    const ratio = current / target;
+    if (ratio <= 1) return ratio;
+    return Math.max(0, 1 - (ratio - 1));
+  };
+
+  const parts = [
+    closeness(totals.calories, targets.calories),
+    closeness(totals.protein_g, targets.protein_g),
+    closeness(totals.fat_g, targets.fat_g),
+    closeness(totals.carbs_g, targets.carbs_g),
+  ];
+  return Math.round((parts.reduce((sum, part) => sum + part, 0) / parts.length) * 100);
+}
+
 export function getMealTypeByTime(): "breakfast" | "lunch" | "dinner" | "snack" {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 10) return "breakfast";

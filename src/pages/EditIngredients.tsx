@@ -124,6 +124,11 @@ const EditIngredients = () => {
 
   const handleReInfer = useCallback(async () => {
     if (reInferring || ingredients.length === 0) return;
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      toast({ title: "需要先登录才能重新估算", variant: "destructive" });
+      return;
+    }
     setReInferring(true);
     try {
       const { data, error } = await supabase.functions.invoke("re-infer-dish", {

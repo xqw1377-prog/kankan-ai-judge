@@ -29,11 +29,9 @@ function classifyDigestion(ing: Ingredient): { lane: Lane; speed: number } {
   const proteinRatio = ing.protein / total;
 
   // Simple sugars/refined carbs → fast digestion
-  if (carbRatio > 0.6 && fatRatio < 0.2) return { lane: "fast", speed: 0.8 + Math.random() * 0.2 };
-  // High fat/protein → slow digestion
-  if (fatRatio > 0.4 || proteinRatio > 0.5) return { lane: "slow", speed: 0.2 + Math.random() * 0.3 };
-  // Mixed → medium
-  return { lane: "medium", speed: 0.4 + Math.random() * 0.3 };
+  if (carbRatio > 0.6 && fatRatio < 0.2) return { lane: "fast", speed: Math.min(1, 0.7 + carbRatio * 0.2) };
+  if (fatRatio > 0.4 || proteinRatio > 0.5) return { lane: "slow", speed: Math.max(0.15, 0.45 - fatRatio * 0.25) };
+  return { lane: "medium", speed: 0.5 };
 }
 
 function getIngredientIcon(name: string): string {

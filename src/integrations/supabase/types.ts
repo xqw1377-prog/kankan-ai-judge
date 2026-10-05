@@ -20,9 +20,10 @@ export type Database = {
           corrected_grams: number | null
           corrected_name: string | null
           created_at: string
-          device_id: string
+          device_id: string | null
           id: string
           occurrence_count: number
+          user_id: string | null
           original_name: string
           preferred_cook_method: string | null
           updated_at: string
@@ -32,10 +33,11 @@ export type Database = {
           corrected_grams?: number | null
           corrected_name?: string | null
           created_at?: string
-          device_id: string
+          device_id?: string | null
           id?: string
           occurrence_count?: number
           original_name: string
+          user_id?: string | null
           preferred_cook_method?: string | null
           updated_at?: string
         }
@@ -44,10 +46,11 @@ export type Database = {
           corrected_grams?: number | null
           corrected_name?: string | null
           created_at?: string
-          device_id?: string
+          device_id?: string | null
           id?: string
           occurrence_count?: number
           original_name?: string
+          user_id?: string | null
           preferred_cook_method?: string | null
           updated_at?: string
         }
@@ -58,7 +61,8 @@ export type Database = {
           actual_feeling: string
           created_at: string
           damage_adjustment: number | null
-          device_id: string
+          device_id: string | null
+          user_id: string | null
           food_name: string
           id: string
           ingredients: Json | null
@@ -70,7 +74,8 @@ export type Database = {
           actual_feeling: string
           created_at?: string
           damage_adjustment?: number | null
-          device_id: string
+          device_id?: string | null
+          user_id?: string | null
           food_name: string
           id?: string
           ingredients?: Json | null
@@ -82,7 +87,8 @@ export type Database = {
           actual_feeling?: string
           created_at?: string
           damage_adjustment?: number | null
-          device_id?: string
+          device_id?: string | null
+          user_id?: string | null
           food_name?: string
           id?: string
           ingredients?: Json | null
@@ -97,7 +103,8 @@ export type Database = {
           calories: number
           carbs_g: number
           created_at: string
-          device_id: string
+          device_id: string | null
+          user_id: string | null
           fat_g: number
           food_name: string
           id: string
@@ -115,7 +122,8 @@ export type Database = {
           calories?: number
           carbs_g?: number
           created_at?: string
-          device_id: string
+          device_id?: string | null
+          user_id?: string | null
           fat_g?: number
           food_name: string
           id?: string
@@ -133,7 +141,8 @@ export type Database = {
           calories?: number
           carbs_g?: number
           created_at?: string
-          device_id?: string
+          device_id?: string | null
+          user_id?: string | null
           fat_g?: number
           food_name?: string
           id?: string
@@ -157,7 +166,8 @@ export type Database = {
           avatar_url: string | null
           cooking_source: string | null
           created_at: string
-          device_id: string
+          device_id: string | null
+          user_id: string | null
           diet_preference: string | null
           gender: string | null
           goal: string | null
@@ -181,7 +191,8 @@ export type Database = {
           avatar_url?: string | null
           cooking_source?: string | null
           created_at?: string
-          device_id: string
+          device_id?: string | null
+          user_id?: string | null
           diet_preference?: string | null
           gender?: string | null
           goal?: string | null
@@ -205,7 +216,8 @@ export type Database = {
           avatar_url?: string | null
           cooking_source?: string | null
           created_at?: string
-          device_id?: string
+          device_id?: string | null
+          user_id?: string | null
           diet_preference?: string | null
           gender?: string | null
           goal?: string | null

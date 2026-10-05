@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { enforceAiRateLimit, requireUser } from "../_shared/guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +14,10 @@ serve(async (req) => {
 
   try {
     const { ingredients, language = "zh-CN" } = await req.json();
+    const auth = await requireUser(req, corsHeaders);
+    if (auth instanceof Response) return auth;
+    const limited = await enforceAiRateLimit(auth.supabase, auth.userId, corsHeaders);
+    if (limited) return limited;
 
     if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
       return new Response(JSON.stringify({ error: "No ingredients provided" }), {

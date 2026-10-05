@@ -4,11 +4,6 @@ import { useI18n } from "@/lib/i18n";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 
-const computeBpi = (meal: { protein_g: number; fat_g: number; carbs_g: number }) => {
-  const raw = 50 + meal.protein_g * 0.6 - meal.carbs_g * 0.15 - meal.fat_g * 0.15;
-  return Math.max(0, Math.min(100, Math.round(raw)));
-};
-
 interface GoalRing {
   label: string;
   pct: number;
@@ -23,7 +18,7 @@ const MiniTrendChart = () => {
 
   const dailyData = useMemo(() => {
     const now = new Date();
-    const days: { label: string; rate: number; bpi: number }[] = [];
+    const days: { label: string; rate: number }[] = [];
     for (let d = 6; d >= 0; d--) {
       const date = new Date(now);
       date.setDate(date.getDate() - d);
@@ -31,15 +26,14 @@ const MiniTrendChart = () => {
       const dayLabel = `${date.getMonth() + 1}/${date.getDate()}`;
       const dayMeals = meals.filter((m) => new Date(m.recorded_at).toDateString() === dateStr);
       if (dayMeals.length === 0) {
-        days.push({ label: dayLabel, rate: 0, bpi: 0 });
+        days.push({ label: dayLabel, rate: 0 });
         continue;
       }
       const totalCal = dayMeals.reduce((s, m) => s + m.calories, 0);
       const targetCal = (profile as any)?.target_calories || 2000;
       const ratio = totalCal / targetCal;
       const rate = Math.max(0, Math.min(100, Math.round(ratio <= 1 ? ratio * 100 : Math.max(0, 200 - ratio * 100))));
-      const avgBpi = Math.round(dayMeals.reduce((s, m) => s + computeBpi(m), 0) / dayMeals.length);
-      days.push({ label: dayLabel, rate, bpi: avgBpi });
+      days.push({ label: dayLabel, rate });
     }
     return days;
   }, [meals, profile]);

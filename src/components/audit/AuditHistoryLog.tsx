@@ -4,18 +4,6 @@ import { Clock, ChevronRight, Utensils, TrendingUp } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useMeals } from "@/hooks/useMeals";
 
-const computeBpi = (meal: { protein_g: number; fat_g: number; carbs_g: number }) => {
-  // Simplified BPI: protein boosts, carbs (as proxy GL) & fat penalize
-  const raw = 50 + meal.protein_g * 0.6 + 0 - meal.carbs_g * 0.15 - meal.fat_g * 0.15;
-  return Math.max(0, Math.min(100, Math.round(raw)));
-};
-
-const bpiColor = (score: number) => {
-  if (score >= 70) return "text-primary";
-  if (score >= 45) return "text-yellow-400";
-  return "text-destructive";
-};
-
 const AuditHistoryLog = () => {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -54,7 +42,6 @@ const AuditHistoryLog = () => {
         {/* List */}
         <div className="space-y-1">
           {recentMeals.map((meal) => {
-            const bpi = computeBpi(meal);
             const date = new Date(meal.recorded_at);
             const dateStr = `${String(date.getMonth() + 1).padStart(2, "0")}/${String(date.getDate()).padStart(2, "0")}`;
             const foodAbbr = meal.food_name.length > 8 ? meal.food_name.slice(0, 8) + "…" : meal.food_name;
@@ -76,8 +63,8 @@ const AuditHistoryLog = () => {
 
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="text-right">
-                    <p className={`text-sm font-bold font-mono tabular-nums ${bpiColor(bpi)}`}>{bpi}</p>
-                    <p className="text-[8px] font-mono text-muted-foreground/50 tracking-wider">BPI</p>
+                    <p className="text-sm font-bold font-mono tabular-nums text-card-foreground">{meal.calories}</p>
+                    <p className="text-[8px] font-mono text-muted-foreground/50 tracking-wider">kcal</p>
                   </div>
                   <TrendingUp className="w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-primary/60 transition-colors" />
                 </div>

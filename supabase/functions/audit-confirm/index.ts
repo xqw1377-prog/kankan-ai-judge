@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { json, requireUser } from "../_shared/guard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,24 +13,20 @@ serve(async (req) => {
   }
 
   try {
-    const payload = await req.json();
-    const { food_name, meal_type, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion, device_id, sequence_score } = payload;
+    const auth = await requireUser(req, corsHeaders);
+    if (auth instanceof Response) return auth;
 
-    if (!food_name || !device_id) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const payload = await req.json();
+    const { food_name, meal_type, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion, sequence_score } = payload;
+
+    if (!food_name) {
+      return json(400, { error: "缺少食物名称" }, corsHeaders);
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
-
-    // Log the audit confirmation as a record
-    const { data, error } = await supabase.from("meal_records").insert({
-      device_id,
+    // Write as the signed-in user. RLS rejects any other user_id.
+    // Do not use the service role here: it would bypass RLS for anonymous callers.
+    const { data, error } = await auth.supabase.from("meal_records").insert({
+      user_id: auth.userId,
       food_name,
       meal_type,
       calories: calories || 0,
@@ -45,14 +41,9 @@ serve(async (req) => {
 
     if (error) throw error;
 
-    return new Response(JSON.stringify({ success: true, id: data?.id }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json(200, { success: true, id: data?.id }, corsHeaders);
   } catch (e) {
     console.error("audit-confirm error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return json(500, { error: e instanceof Error ? e.message : "Unknown error" }, corsHeaders);
   }
 });

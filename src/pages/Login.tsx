@@ -4,6 +4,7 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
+import { markGuestMode } from "@/lib/localData";
 
 export default function Login() {
   const { t } = useI18n();
@@ -185,7 +186,12 @@ export default function Login() {
 
       {/* Bottom: skip + terms */}
       <div className="pb-[max(2rem,env(safe-area-inset-bottom))] px-6 text-center relative z-10 space-y-3">
-        <button onClick={() => navigate("/", { replace: true })}
+        <button
+          type="button"
+          onClick={() => {
+            markGuestMode();
+            navigate("/", { replace: true });
+          }}
           className="text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors font-mono">
           {t.loginSkip}
         </button>

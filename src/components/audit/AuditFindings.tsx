@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { Microscope } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import GLGauge from "./GLGauge";
@@ -21,24 +20,8 @@ interface AuditFindingsProps {
   auditing?: boolean;
 }
 
-const rand = (min: number, max: number) => Math.round(min + Math.random() * (max - min));
-
 const AuditFindings = ({ ingredients, hasImage, auditing }: AuditFindingsProps) => {
   const { t } = useI18n();
-  const [jumpValues, setJumpValues] = useState({ gl: 0, protein: 0, fat: 0, fiber: 0 });
-
-  useEffect(() => {
-    if (!auditing) return;
-    const interval = setInterval(() => {
-      setJumpValues({
-        gl: rand(5, 50),
-        protein: rand(10, 70),
-        fat: rand(10, 60),
-        fiber: rand(5, 40),
-      });
-    }, 150);
-    return () => clearInterval(interval);
-  }, [auditing]);
 
   const totalGl = ingredients.reduce((s, i) => s + i.gl, 0);
   const totalProtein = ingredients.reduce((s, i) => s + i.protein, 0);
@@ -50,10 +33,10 @@ const AuditFindings = ({ ingredients, hasImage, auditing }: AuditFindingsProps) 
   const fatPct = Math.round((totalFat / totalMacro) * 100);
   const fiberPct = Math.round((totalFiber / totalMacro) * 100);
 
-  const displayGl = auditing ? jumpValues.gl : totalGl;
-  const displayProtein = auditing ? jumpValues.protein : proteinPct;
-  const displayFat = auditing ? jumpValues.fat : fatPct;
-  const displayFiber = auditing ? jumpValues.fiber : fiberPct;
+  const displayGl = auditing ? 0 : totalGl;
+  const displayProtein = auditing ? 0 : proteinPct;
+  const displayFat = auditing ? 0 : fatPct;
+  const displayFiber = auditing ? 0 : fiberPct;
 
   if (!hasImage && !auditing) {
     return (

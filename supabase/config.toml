@@ -1,13 +1,13 @@
 project_id = "rordwmxjrozstuiivghu"
 
 [functions.analyze-food]
-verify_jwt = false
+verify_jwt = true
 
 [functions.audit-standalone]
-verify_jwt = false
+verify_jwt = true
 
 [functions.audit-confirm]
-verify_jwt = false
+verify_jwt = true
 
 [functions.re-infer-dish]
-verify_jwt = false
+verify_jwt = true

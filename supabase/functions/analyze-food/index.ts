@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
+import { parseImages, toImageContents } from "../_shared/images.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,42 +8,23 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function buildImageContent(base64: string) {
-  const match = base64.match(/^data:(image\/[\w+]+);base64,(.+)$/);
-  const mimeType = match ? match[1] : "image/jpeg";
-  const base64Data = match ? match[2] : base64;
-  return { type: "image_url" as const, image_url: { url: `data:${mimeType};base64,${base64Data}` } };
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { imageBase64, imageUrl, imagesBase64, userContext, language = "zh-CN" } = await req.json();
+    const body = await req.json();
+    const auth = await requireUser(req, corsHeaders);
+    if (auth instanceof Response) return auth;
+    const limited = await enforceAiRateLimit(auth.supabase, auth.userId, corsHeaders);
+    if (limited) return limited;
+
+    const parsed = parseImages(body);
+    if (!parsed.ok) return json(parsed.status, { error: parsed.error }, corsHeaders);
+    const imageContents = toImageContents(parsed.images);
+    const { userContext, language = "zh-CN" } = body;
     const isEnglish = language === "en-US";
-
-    // Build image content array - support single or multi
-    const imageContents: { type: "image_url"; image_url: { url: string } }[] = [];
-
-    if (imagesBase64 && Array.isArray(imagesBase64) && imagesBase64.length > 0) {
-      // Multi-image mode
-      for (const img of imagesBase64.slice(0, 5)) {
-        imageContents.push(buildImageContent(img));
-      }
-    } else if (imageBase64) {
-      imageContents.push(buildImageContent(imageBase64));
-    } else if (imageUrl) {
-      imageContents.push({ type: "image_url", image_url: { url: imageUrl } });
-    }
-
-    if (imageContents.length === 0) {
-      return new Response(JSON.stringify({ error: "No image provided" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

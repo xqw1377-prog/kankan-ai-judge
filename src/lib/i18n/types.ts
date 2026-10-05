@@ -527,6 +527,23 @@ export interface Dictionary {
   loginNewPasswordPlaceholder: string;
   loginNewPasswordSaved: string;
 
+  uploadPhoto: string;
+  todayScore: string;
+  todayEmpty: string;
+  profileSetupTitle: string;
+  profileSetupHint: string;
+  analysisMissingKey: string;
+  analysisUnavailable: string;
+  analysisUnrecognized: string;
+  saveMealFailed: string;
+  chartEmpty: string;
+  notFoundTitle: string;
+  notFoundBody: string;
+  backHome: string;
+  defaultTargetNote: string;
+  fillProfile: string;
+  viewHistory: string;
+
   // AI consent
   aiConsentTitle: string;
   aiConsentBody: string;

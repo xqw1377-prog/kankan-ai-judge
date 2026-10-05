@@ -10,6 +10,9 @@ interface InvestmentReportCardProps {
   suggestions: string[];
   locale?: Locale;
   totalMeals: number;
+  recordedProtein?: number;
+  recordedCarbs?: number;
+  recordedFat?: number;
 }
 
 const BRAND: Record<Locale, {
@@ -63,6 +66,9 @@ const RED = "#EF5350";
 const APP_URL = "https://kankan-eye-spy.lovable.app";
 
 function MiniSparkline({ data }: { data: number[] }) {
+  if (data.length < 2) {
+    return <p style={{ fontSize: 10, color: DIM, padding: "8px 12px" }}>暂无已保存餐食曲线</p>;
+  }
   const w = 300, h = 60;
   const min = Math.min(...data) - 3;
   const max = Math.max(...data) + 3;
@@ -90,24 +96,18 @@ function MiniSparkline({ data }: { data: number[] }) {
 }
 
 const InvestmentReportCard = forwardRef<HTMLDivElement, InvestmentReportCardProps>(
-  ({ avgGI, giVolatility, balanceScore, giData, suggestions, locale = "zh-CN", totalMeals }, ref) => {
+  ({ avgGI, giVolatility, balanceScore, giData, suggestions, locale = "zh-CN", totalMeals, recordedProtein, recordedCarbs, recordedFat }, ref) => {
     const brand = BRAND[locale];
     const now = new Date();
     const dateStr = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, "0")}.${String(now.getDate()).padStart(2, "0")}`;
 
-    // Mock balance sheet data
-    const proteinVal = Math.round(totalMeals * 22);
-    const fiberVal = Math.round(totalMeals * 4.5);
-    const sodiumVal = Math.round(totalMeals * 420);
-    const sugarVal = Math.round(totalMeals * 8);
-    const satFatVal = Math.round(totalMeals * 5.2);
+    const proteinVal = recordedProtein == null ? null : Math.round(recordedProtein);
+    const fiberVal = recordedCarbs == null ? null : Math.round(recordedCarbs * 0.08);
+    const sodiumVal = null;
+    const sugarVal = recordedCarbs == null ? null : Math.round(recordedCarbs * 0.15);
+    const satFatVal = recordedFat == null ? null : Math.round(recordedFat * 0.35);
 
-    // Mock correction records
-    const corrections = [
-      { pct: "3.2", action: locale === "zh-CN" ? "调整烹饪方式：炸→蒸" : "Cooking: Fried→Steamed" },
-      { pct: "1.8", action: locale === "zh-CN" ? "修正克重：鸡胸肉 200g→150g" : "Weight: Chicken 200g→150g" },
-      { pct: "2.5", action: locale === "zh-CN" ? "新增食材：西兰花 100g" : "Added: Broccoli 100g" },
-    ];
+    const corrections: { pct: string; action: string }[] = [];
 
     const sectionLabel = { fontSize: 8, color: DIM, fontWeight: 700 as const, letterSpacing: 1, textTransform: "uppercase" as const, marginBottom: 8 };
 
@@ -181,8 +181,8 @@ const InvestmentReportCard = forwardRef<HTMLDivElement, InvestmentReportCardProp
             <div style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: CARD_BG, border: CARD_BORDER }}>
               <p style={{ fontSize: 7, color: "rgba(212,175,55,0.5)", fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>📈 {brand.assets}</p>
               {[
-                { label: brand.protein, value: `${proteinVal}g` },
-                { label: brand.fiber, value: `${fiberVal}g` },
+                { label: brand.protein, value: proteinVal == null ? "—" : `${proteinVal}g` },
+                { label: brand.fiber, value: fiberVal == null ? "—" : `${fiberVal}g` },
               ].map(a => (
                 <div key={a.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                   <span style={{ fontSize: 9, color: "rgba(200,210,220,0.6)" }}>{a.label}</span>
@@ -194,9 +194,9 @@ const InvestmentReportCard = forwardRef<HTMLDivElement, InvestmentReportCardProp
             <div style={{ flex: 1, padding: "10px 12px", borderRadius: 10, background: CARD_BG, border: CARD_BORDER }}>
               <p style={{ fontSize: 7, color: "rgba(239,83,80,0.5)", fontWeight: 700, letterSpacing: 1, marginBottom: 6 }}>📉 {brand.liabilities}</p>
               {[
-                { label: brand.sodium, value: `${sodiumVal}mg`, bad: sodiumVal > 2000 },
-                { label: brand.sugar, value: `${sugarVal}g`, bad: sugarVal > 50 },
-                { label: brand.satFat, value: `${satFatVal}g`, bad: satFatVal > 20 },
+                { label: brand.sodium, value: sodiumVal == null ? "—" : `${sodiumVal}mg`, bad: false },
+                { label: brand.sugar, value: sugarVal == null ? "—" : `${sugarVal}g`, bad: (sugarVal ?? 0) > 50 },
+                { label: brand.satFat, value: satFatVal == null ? "—" : `${satFatVal}g`, bad: (satFatVal ?? 0) > 20 },
               ].map(l => (
                 <div key={l.label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
                   <span style={{ fontSize: 9, color: "rgba(200,210,220,0.6)" }}>{l.label}</span>

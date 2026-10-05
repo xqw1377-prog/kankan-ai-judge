@@ -5,7 +5,6 @@ import { useI18n } from "@/lib/i18n";
 import { toast } from "@/hooks/use-toast";
 import InputPanel from "@/components/audit/InputPanel";
 import AuditFindings, { type DetectedIngredient } from "@/components/audit/AuditFindings";
-import SpatialAuditLogs from "@/components/audit/SpatialAuditLogs";
 import AuditHistoryLog from "@/components/audit/AuditHistoryLog";
 import ManagementAdvice from "@/components/audit/ManagementAdvice";
 import MiniTrendChart from "@/components/audit/MiniTrendChart";
@@ -13,15 +12,9 @@ import UploadDialog from "@/components/audit/UploadDialog";
 import HealthAlertBanner from "@/components/audit/HealthAlertBanner";
 import { useProfile } from "@/hooks/useProfile";
 import { Progress } from "@/components/ui/progress";
+import { inspectImages } from "@/lib/imageGuard";
 
-const MOCK_INGREDIENTS: DetectedIngredient[] = [
-  { name: "Chicken Breast", grams: 150, gi: 0, gl: 0, oilG: 3.2, protein: 31, fat: 3.6, fiber: 0 },
-  { name: "Broccoli", grams: 80, gi: 15, gl: 1.2, oilG: 1.5, protein: 2.8, fat: 0.4, fiber: 2.6 },
-  { name: "White Rice", grams: 200, gi: 73, gl: 29.2, oilG: 0, protein: 4.4, fat: 0.4, fiber: 0.6 },
-  { name: "Tomato", grams: 60, gi: 15, gl: 0.6, oilG: 0.8, protein: 0.9, fat: 0.2, fiber: 1.2 },
-];
-
-// Audit API now uses Cloud edge function
+// Audit API uses the signed-in user's JWT. Failures stay empty.
 
 const Audit = () => {
   const { t } = useI18n();
@@ -38,7 +31,6 @@ const Audit = () => {
   const [engineOffline, setEngineOffline] = useState(false);
   const [showVerified, setShowVerified] = useState(false);
   const [recommendations, setRecommendations] = useState<string[]>([]);
-  const [bpiScore, setBpiScore] = useState(0);
 
   const hasImage = images.length > 0;
   const displayIngredients = auditComplete ? ingredients : [];
@@ -51,8 +43,8 @@ const Audit = () => {
     const totalGl = ingredients.reduce((s, i) => s + i.gl, 0);
     const targetFat = (profile as any)?.target_fat_g || 60;
     // Warning if fat > 2x target or GL > 40 or BPI < 35
-    return totalFat > targetFat * 2 || totalGl > 40 || bpiScore < 35;
-  }, [auditComplete, ingredients, profile, bpiScore]);
+    return totalFat > targetFat * 2 || totalGl > 40;
+  }, [auditComplete, ingredients, profile]);
 
   const AUDIT_PHASES = [
     t.auditPixelPhases[0] || "Initializing GDAS engine...",
@@ -114,6 +106,17 @@ const Audit = () => {
       toast({ title: t.noImageUploaded, variant: "destructive" });
       return;
     }
+    const checked = inspectImages(images);
+    if (!checked.ok) {
+      toast({ title: checked.error, variant: "destructive" });
+      return;
+    }
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      toast({ title: "估算会调用云端分析，需要先登录。", variant: "destructive" });
+      return;
+    }
+
     setAuditing(true);
     setAuditComplete(false);
     setShowVerified(false);
@@ -140,7 +143,7 @@ const Audit = () => {
     if (apiResult.status === "fulfilled") {
       const data = apiResult.value;
       setEngineOffline(false);
-      let parsedIngredients: DetectedIngredient[] = MOCK_INGREDIENTS;
+      let parsedIngredients: DetectedIngredient[] = [];
       if (data?.ingredients && Array.isArray(data.ingredients)) {
         parsedIngredients = data.ingredients.map((item: any) => ({
           name: item.name || "Unknown",
@@ -153,51 +156,33 @@ const Audit = () => {
           fiber: item.fiber ?? 0,
         }));
       }
-      setIngredients(parsedIngredients);
-
-      // Compute BPI from real nutritional data
-      const totalProtein = parsedIngredients.reduce((s, i) => s + i.protein, 0);
-      const totalFiber = parsedIngredients.reduce((s, i) => s + i.fiber, 0);
-      const totalGl = parsedIngredients.reduce((s, i) => s + i.gl, 0);
-      const totalFat = parsedIngredients.reduce((s, i) => s + i.fat, 0);
-      // BPI: protein & fiber boost score, GL & excess fat penalize
-      const rawBpi = 50 + (totalProtein * 0.6) + (totalFiber * 1.2) - (totalGl * 0.4) - (totalFat * 0.15);
-      const computedBpi = data?.bpi_score ?? Math.max(0, Math.min(100, Math.round(rawBpi)));
-      setBpiScore(computedBpi);
-
-      // Parse recommendations from backend
-      if (data?.recommendations && Array.isArray(data.recommendations)) {
-        setRecommendations(data.recommendations);
-      } else if (data?.suggestion) {
-        setRecommendations([data.suggestion]);
+      if (parsedIngredients.length === 0) {
+        setEngineOffline(true);
+        setIngredients([]);
+        setRecommendations([]);
+        toast({ title: t.auditEngineOffline, variant: "destructive" });
       } else {
-        setRecommendations([
-          "检测到炎症风险中等，建议减少精制碳水摄入",
-          "蛋白质摄入充足，继续保持当前水平",
-          "建议增加深色蔬菜比例以提升膳食纤维缓冲",
-        ]);
+        setIngredients(parsedIngredients);
+        if (data?.recommendations && Array.isArray(data.recommendations)) {
+          setRecommendations(data.recommendations);
+        } else if (data?.suggestion) {
+          setRecommendations([data.suggestion]);
+        } else {
+          setRecommendations([]);
+        }
+        setAuditComplete(true);
+        toast({ title: t.auditComplete });
+        setTimeout(() => setShowVerified(true), 400);
       }
-      toast({ title: t.auditComplete });
     } else {
       setEngineOffline(true);
-      setIngredients(MOCK_INGREDIENTS);
-      setBpiScore(65);
-      setRecommendations([
-        "检测到炎症风险中等，建议减少精制碳水摄入",
-        "蛋白质摄入充足，继续保持当前水平",
-        "建议增加深色蔬菜比例以提升膳食纤维缓冲",
-      ]);
+      setIngredients([]);
+      setRecommendations([]);
       toast({ title: t.auditEngineOffline, variant: "destructive" });
     }
 
-    setAuditComplete(true);
     setAuditing(false);
-    setTimeout(() => setShowVerified(true), 400);
-    // Post-audit data storage feedback
-    setTimeout(() => {
-      toast({ title: "📦 " + t.auditDataCompressed, duration: 4000 });
-    }, 1200);
-  }, [hasImage, images, t]);
+  }, [hasImage, images, profile, t]);
 
   const handleDialogFiles = useCallback((files: FileList) => {
     Array.from(files).forEach((file) => {
@@ -346,7 +331,7 @@ const Audit = () => {
       )}
 
       {/* Management Advice - below scan animation */}
-      <ManagementAdvice recommendations={recommendations} visible={auditComplete} bpiScore={bpiScore} />
+      <ManagementAdvice recommendations={recommendations} visible={auditComplete} />
 
       {/* Dual-wing body */}
       <div className="flex-1 flex flex-col lg:flex-row gap-4 p-4 pb-4 overflow-y-auto">
@@ -373,9 +358,6 @@ const Audit = () => {
       <AuditHistoryLog />
 
       {/* Bottom: Spatial Audit Logs */}
-      <div className="shrink-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-        <SpatialAuditLogs integrityScore={bpiScore} hasData={auditComplete} auditing={auditing} />
-      </div>
     </div>
   );
 };

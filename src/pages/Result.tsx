@@ -1,5 +1,4 @@
 import { useRef, useState, useCallback, useMemo, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Home, Share2, Download, X, UtensilsCrossed, Package, Images, Archive, TrendingUp, Activity, ShieldCheck, Zap } from "lucide-react";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel } from "@/components/ui/alert-dialog";
@@ -20,6 +19,7 @@ import { useHabitLearner } from "@/hooks/useHabitLearner";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { computeSequenceScore as calcSeqScore } from "@/lib/sequenceScore";
+import { isPlaceholderAnalysis } from "@/lib/foodAnalysis";
 import html2canvas from "html2canvas";
 
 function renderSuggestionWithBold(text: string) {
@@ -199,19 +199,12 @@ const Result = () => {
       sequence_score: seqScore,
     };
 
-    // 1. Send to Cloud audit-confirm edge function
-    try {
-      const deviceId = (await import("@/lib/device")).getDeviceId();
-      await supabase.functions.invoke("audit-confirm", {
-        body: { ...finalPayload, device_id: deviceId },
-      });
-    } catch {
-      console.warn("Audit confirm edge function unreachable, saving locally only");
+    const { data: savedData, error: saveError } = await saveMeal(finalPayload);
+    if (saveError || !savedData?.id) {
+      toast({ title: t.saveMealFailed, variant: "destructive" });
+      return;
     }
-
-    // 2. Persist to database
-    const { data: savedData } = await saveMeal(finalPayload);
-    if (savedData?.id) setSavedMealId(savedData.id);
+    setSavedMealId(savedData.id);
 
     // 3. Record habit patterns for learning
     for (const ing of editableIngredients) {
@@ -313,9 +306,28 @@ const Result = () => {
     }
   }, [shareImage, food, handleDownload]);
 
+  useEffect(() => {
+    if (!result) navigate("/", { replace: true });
+  }, [result, navigate]);
+
   if (!result) {
-    navigate("/", { replace: true });
-    return null;
+    return (
+      <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+        {t.backHome}
+      </div>
+    );
+  }
+
+  if (isPlaceholderAnalysis(result)) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-base font-semibold text-card-foreground">没能完成估算</p>
+        <p className="text-sm text-muted-foreground leading-relaxed">{t.analysisUnrecognized}</p>
+        <button onClick={() => navigate("/", { replace: true })} className="text-sm text-primary underline">
+          {t.backHome}
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -329,7 +341,34 @@ const Result = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-4 relative z-10">
-        {/* Brain Battery Dashboard */}
+        <div className="text-center mb-5">
+          {heroImage && (
+            <img src={heroImage} alt={food || "餐食"} className="w-full max-h-56 object-cover rounded-2xl mb-4" />
+          )}
+          <h1 className="text-2xl font-bold text-card-foreground">{food || "这餐"}</h1>
+          <p className="text-sm text-muted-foreground mt-2">
+            {editableIngredients.length > 0
+              ? editableIngredients.map((item) => `${item.name}${item.grams ? ` ${item.grams}g` : ""}`).join("、")
+              : "照片里看到这一餐"}
+          </p>
+          <p className="text-sm font-semibold text-card-foreground mt-3">
+            {liveTotals.calories} kcal · 蛋白 {Math.round(liveTotals.protein_g)}g · 脂肪 {Math.round(liveTotals.fat_g)}g · 碳水 {Math.round(liveTotals.carbs_g)}g
+          </p>
+        </div>
+
+        <section className="mb-4 glass rounded-2xl p-4">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">主要问题</h2>
+          <p className="text-base text-card-foreground leading-relaxed">{verdict || "这次没有看出明确的问题。"}</p>
+        </section>
+
+        <section className="mb-6 glass rounded-2xl p-4">
+          <h2 className="text-sm font-semibold text-muted-foreground mb-2">这一口可以怎么吃</h2>
+          <p className="text-base text-card-foreground leading-relaxed">{suggestion ? renderSuggestionWithBold(suggestion) : "按你平时的一份来吃就好。"}</p>
+        </section>
+
+        <details className="mb-6 glass rounded-2xl p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">实验性指标（未验证，默认收起）</summary>
+          <p className="text-xs text-muted-foreground mt-2 mb-4">BPI、大脑电池、宕机时间和决策效率百分比都是实验展示，不是测量结果。</p>
         <BrainBattery
           calories={liveTotals.calories}
           fat_g={liveTotals.fat_g}
@@ -514,19 +553,7 @@ const Result = () => {
           </div>
         </section>
 
-        <PerformanceTracker
-          calories={liveTotals.calories}
-          protein_g={liveTotals.protein_g}
-          fat_g={liveTotals.fat_g}
-          carbs_g={liveTotals.carbs_g}
-          targetCalories={profile?.targets?.calories || 2100}
-          weight={profile?.weight_kg || 70}
-          gi_value={gi_value}
-          todayMeals={[
-            ...(todayMeals || []).map(m => ({ name: m.food_name, carbs_g: m.carbs_g })),
-            { name: food, carbs_g: liveTotals.carbs_g },
-          ]}
-        />
+        <PerformanceTracker meals={meals} />
 
         {suggestion && (
           <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.2s" }}>
@@ -556,10 +583,10 @@ const Result = () => {
           </section>
         )}
 
-        {/* Invite tablemates */}
-        <section className="mb-5 animate-slide-up" style={{ animationDelay: "0.25s" }}>
+        <section className="mb-5">
           <InviteButton food={food} imageData={imageData} calories={calories} />
         </section>
+        </details>
       </div>
 
       <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] shrink-0 relative z-10 space-y-2">
@@ -598,6 +625,11 @@ const Result = () => {
             {confirmed ? t.auditConfirmed : t.signAndArchive}
           </button>
         </div>
+        {confirmed && (
+          <button onClick={() => navigate("/history")} className="w-full text-sm font-semibold text-primary py-1">
+            {t.viewHistory}
+          </button>
+        )}
       </div>
 
       {/* Suboptimal sequence confirmation dialog */}

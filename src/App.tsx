@@ -3,25 +3,37 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
+import { Suspense, type ReactNode } from "react";
 import { I18nProvider } from "@/lib/i18n";
 import BottomNav from "@/components/BottomNav";
+import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
+import { lazyWithRetry } from "@/lib/lazyWithRetry";
 
-const Onboarding = lazy(() => import("./pages/Onboarding"));
-const Index = lazy(() => import("./pages/Index"));
-const Scan = lazy(() => import("./pages/Scan"));
-const Audit = lazy(() => import("./pages/Audit"));
-const Result = lazy(() => import("./pages/Result"));
-const EditIngredients = lazy(() => import("./pages/EditIngredients"));
-const History = lazy(() => import("./pages/History"));
-const MealDetail = lazy(() => import("./pages/MealDetail"));
-const Profile = lazy(() => import("./pages/Profile"));
-const Login = lazy(() => import("./pages/Login"));
-const ResetPassword = lazy(() => import("./pages/ResetPassword"));
-const Privacy = lazy(() => import("./pages/Privacy"));
-const NotFound = lazy(() => import("./pages/NotFound"));
+const Onboarding = lazyWithRetry(() => import("./pages/Onboarding"));
+const Index = lazyWithRetry(() => import("./pages/Index"));
+const Scan = lazyWithRetry(() => import("./pages/Scan"));
+const Audit = lazyWithRetry(() => import("./pages/Audit"));
+const Result = lazyWithRetry(() => import("./pages/Result"));
+const EditIngredients = lazyWithRetry(() => import("./pages/EditIngredients"));
+const History = lazyWithRetry(() => import("./pages/History"));
+const MealDetail = lazyWithRetry(() => import("./pages/MealDetail"));
+const Profile = lazyWithRetry(() => import("./pages/Profile"));
+const Login = lazyWithRetry(() => import("./pages/Login"));
+const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
+const Privacy = lazyWithRetry(() => import("./pages/Privacy"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+function Page({ children }: { children: ReactNode }) {
+  return (
+    <RouteErrorBoundary>
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center text-muted-foreground">加载中…</div>}>
+        {children}
+      </Suspense>
+    </RouteErrorBoundary>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -31,23 +43,21 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <div className="h-full flex flex-col">
-            <Suspense fallback={<div className="h-full flex items-center justify-center text-muted-foreground">Loading…</div>}>
-              <Routes>
-                <Route path="/onboarding" element={<Onboarding />} />
-                <Route path="/" element={<Index />} />
-                <Route path="/scan" element={<Scan />} />
-                <Route path="/audit" element={<Audit />} />
-                <Route path="/result" element={<Result />} />
-                <Route path="/edit-ingredients" element={<EditIngredients />} />
-                <Route path="/history" element={<History />} />
-                <Route path="/meal/:id" element={<MealDetail />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/privacy" element={<Privacy />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <Routes>
+              <Route path="/onboarding" element={<Page><Onboarding /></Page>} />
+              <Route path="/" element={<Page><Index /></Page>} />
+              <Route path="/scan" element={<Page><Scan /></Page>} />
+              <Route path="/audit" element={<Page><Audit /></Page>} />
+              <Route path="/result" element={<Page><Result /></Page>} />
+              <Route path="/edit-ingredients" element={<Page><EditIngredients /></Page>} />
+              <Route path="/history" element={<Page><History /></Page>} />
+              <Route path="/meal/:id" element={<Page><MealDetail /></Page>} />
+              <Route path="/profile" element={<Page><Profile /></Page>} />
+              <Route path="/login" element={<Page><Login /></Page>} />
+              <Route path="/reset-password" element={<Page><ResetPassword /></Page>} />
+              <Route path="/privacy" element={<Page><Privacy /></Page>} />
+              <Route path="*" element={<Page><NotFound /></Page>} />
+            </Routes>
             <BottomNav />
           </div>
         </BrowserRouter>

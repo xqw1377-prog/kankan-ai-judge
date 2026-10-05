@@ -27,11 +27,6 @@ function getMonthRange(offset: number) {
   return { start, end };
 }
 
-function computeBpi(meal: { protein_g: number; carbs_g: number; fat_g: number }): number {
-  const raw = 50 + meal.protein_g * 0.6 - meal.carbs_g * 0.15 - meal.fat_g * 0.15;
-  return Math.max(0, Math.min(100, Math.round(raw)));
-}
-
 const History = () => {
   const navigate = useNavigate();
   const { meals, loading } = useMeals();
@@ -77,7 +72,7 @@ const History = () => {
     const totalFat = filteredMeals.reduce((s, m) => s + m.fat_g, 0);
     const totalCarbs = filteredMeals.reduce((s, m) => s + m.carbs_g, 0);
     const avgProtein = Math.round(totalProtein / filteredMeals.length);
-    const avgBpi = Math.round(filteredMeals.reduce((s, m) => s + computeBpi(m), 0) / filteredMeals.length);
+    const avgCarbs = Math.round(totalCarbs / filteredMeals.length);
 
     // Compare to previous period
     let prevAvgCal: number | null = null;
@@ -102,7 +97,7 @@ const History = () => {
 
     const calTrend = prevAvgCal !== null ? avgCal - prevAvgCal : 0;
 
-    return { totalCal, avgCal, avgProtein, avgBpi, calTrend, mealCount: filteredMeals.length, totalProtein, totalFat, totalCarbs, prevTotalProtein, prevTotalFat, prevTotalCarbs };
+    return { totalCal, avgCal, avgProtein, avgCarbs, calTrend, mealCount: filteredMeals.length, totalProtein, totalFat, totalCarbs, prevTotalProtein, prevTotalFat, prevTotalCarbs };
   }, [filteredMeals, meals, filter, weekOffset, monthOffset]);
 
   // Group by date
@@ -216,10 +211,9 @@ const History = () => {
                   unit: "g",
                 },
                 {
-                  label: isZh ? "均评分" : "Avg BPI",
-                  value: trendStats.avgBpi,
-                  unit: "",
-                  isBpi: true,
+                  label: isZh ? "均碳水" : "Avg Carb",
+                  value: trendStats.avgCarbs,
+                  unit: "g",
                 },
               ].map((item, i) => (
                 <div key={i} className="text-center">
@@ -234,17 +228,6 @@ const History = () => {
                     }`}>
                       {item.trend > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
                       {item.trend > 0 ? "+" : ""}{item.trend}
-                    </div>
-                  )}
-                  {"isBpi" in item && (
-                    <div className="mt-1 mx-auto h-1 rounded-full overflow-hidden bg-secondary/50 w-10">
-                      <div
-                        className="h-full rounded-full transition-all duration-700"
-                        style={{
-                          width: `${item.value}%`,
-                          background: item.value >= 75 ? "hsl(var(--success))" : item.value >= 50 ? "hsl(var(--primary))" : "hsl(var(--warning))",
-                        }}
-                      />
                     </div>
                   )}
                 </div>

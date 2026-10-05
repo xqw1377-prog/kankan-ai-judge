@@ -6,7 +6,6 @@ type RiskLevel = "safe" | "caution" | "danger";
 interface ManagementAdviceProps {
   recommendations: string[];
   visible: boolean;
-  bpiScore: number;
 }
 
 const ACTION_TAGS_ZH = [
@@ -50,13 +49,16 @@ const riskStyles: Record<RiskLevel, { bg: string; border: string; text: string; 
   },
 };
 
-const ManagementAdvice = ({ recommendations, visible, bpiScore }: ManagementAdviceProps) => {
+const ManagementAdvice = ({ recommendations, visible }: ManagementAdviceProps) => {
   const { t } = useI18n();
 
   if (!visible || recommendations.length === 0) return null;
 
-  // Overall risk from BPI
-  const overallRisk: RiskLevel = bpiScore >= 60 ? "safe" : bpiScore >= 35 ? "caution" : "danger";
+  const overallRisk: RiskLevel = recommendations.some((rec) => detectRiskLevel(rec) === "danger")
+    ? "danger"
+    : recommendations.some((rec) => detectRiskLevel(rec) === "caution")
+      ? "caution"
+      : "safe";
   const overallStyle = riskStyles[overallRisk];
 
   // Pick action tags based on risk

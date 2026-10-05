@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-import { getDeviceId } from "@/lib/device";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription } from "@/components/ui/alert-dialog";
 
 interface Props {
@@ -37,13 +36,13 @@ export default function PostMealAudit({ mealId, foodName, triggered, delayMs, in
     if (!mealId) return;
 
     try {
-      const deviceId = getDeviceId();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
       const predicted = predictedFeeling || "ok";
       const isCorrect = predicted === feeling;
 
-      // 1. Store feedback in meal_feedbacks table
-      await (supabase.from("meal_feedbacks" as any) as any).insert({
-        device_id: deviceId,
+      await supabase.from("meal_feedbacks").insert({
+        user_id: session.user.id,
         meal_id: mealId,
         food_name: foodName,
         predicted_feeling: predicted,
@@ -81,7 +80,8 @@ export default function PostMealAudit({ mealId, foodName, triggered, delayMs, in
       await supabase
         .from("meal_records")
         .update({ verdict: updatedVerdict })
-        .eq("id", mealId);
+        .eq("id", mealId)
+        .eq("user_id", session.user.id);
     } catch (err) {
       console.warn("Post-meal audit save failed:", err);
     }

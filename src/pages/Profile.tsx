@@ -42,7 +42,7 @@ function calcStreak(dates: string[]): number {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { profile, saveProfile } = useProfile();
+  const { profile, loading, saveProfile } = useProfile();
   const { meals } = useMeals();
   const { t, locale, setLocale } = useI18n();
   const [editingNickname, setEditingNickname] = useState(false);
@@ -59,10 +59,25 @@ const Profile = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!profile) {
+  if (loading) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <h1 className="text-lg font-bold text-card-foreground">{t.profileSetupTitle}</h1>
+        <p className="text-sm text-muted-foreground leading-relaxed">{t.profileSetupHint}</p>
+        <button
+          onClick={() => navigate("/onboarding")}
+          className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
+        >
+          {t.fillProfile}
+        </button>
       </div>
     );
   }
@@ -224,9 +239,13 @@ const Profile = () => {
         </div>
       </section>
 
-      {/* Investment Report */}
       <section className="px-5 mb-6">
-        <InvestmentReport meals={meals} score={score} />
+        <details className="glass rounded-2xl p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">实验性指标（未验证，默认收起）</summary>
+          <div className="mt-4">
+            <InvestmentReport meals={meals} score={score} />
+          </div>
+        </details>
       </section>
 
       <section className="px-5 mb-3">
