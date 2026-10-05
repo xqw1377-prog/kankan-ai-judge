@@ -1,0 +1,1 @@
+- `/scan` owns the whole capture flow (capture/pick → preview → analyze → Result); every camera entry navigates to `/scan` with no photos. Why: one capture contract, no broken entry points.
