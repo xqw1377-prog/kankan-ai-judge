@@ -138,6 +138,7 @@ export interface Dictionary {
   reminderSettings: string;
   privacy: string;
   notSet: string;
+  notFilled: string;
   other: string;
   helpFeedback: string;
   aboutUs: string;
@@ -550,6 +551,7 @@ export interface Dictionary {
   resultAction: string;
   resultMore: string;
   saveToLog: string;
+  mealAlreadySaved: string;
   saveNeedsSignIn: string;
   profileSaveFailed: string;
 

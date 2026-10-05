@@ -68,6 +68,11 @@ const Result = () => {
       toast({ title: t.saveNeedsSignIn, variant: "destructive" });
       return;
     }
+    if (message === "already_consumed") {
+      setSaved(true);
+      toast({ title: t.mealAlreadySaved });
+      return;
+    }
     if (error || !data?.id) {
       toast({ title: t.saveMealFailed, variant: "destructive" });
       return;

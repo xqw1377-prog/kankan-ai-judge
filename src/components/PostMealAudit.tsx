@@ -7,7 +7,7 @@ interface Props {
   triggered: boolean;
   delayMs?: number;
   /** Ingredients snapshot for learning */
-  ingredients?: Array<{ name: string; grams: number; cookMethod?: string; [key: string]: any }>;
+  ingredients?: Array<{ name: string; grams: number; cookMethod?: string }>;
   /** Predicted performance state */
   predictedFeeling?: "great" | "ok" | "crash";
 }
@@ -26,7 +26,7 @@ export default function PostMealAudit({ mealId, foodName, triggered, delayMs }: 
     return () => clearTimeout(timer);
   }, [triggered, submitted, mealId, delay]);
 
-  const handleSelect = useCallback(() => {
+  const handleSelect = useCallback((_feeling: Feeling) => {
     setSubmitted(true);
     setShow(false);
   }, []);
@@ -70,7 +70,7 @@ export default function PostMealAudit({ mealId, foodName, triggered, delayMs }: 
         </div>
 
         <p className="text-[8px] font-mono text-muted-foreground/40 text-center mt-3">
-          🧬 您的反馈将训练个人体质模型，偏差数据自动修正损耗系数
+          这只是主观感受，不会写入身体数据，也不会计算性能分数。
         </p>
       </AlertDialogContent>
     </AlertDialog>

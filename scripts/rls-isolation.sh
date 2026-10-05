@@ -37,4 +37,6 @@ for migration in supabase/migrations/*.sql; do
 done
 
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/meal_isolation.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/consume_once.sql
 echo "RLS isolation passed"
+echo "analysis single-consumption passed"

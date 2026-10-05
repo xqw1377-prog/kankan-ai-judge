@@ -58,12 +58,15 @@ export function useProfile() {
     },
   ) => {
     if (!userId) {
+      const skipped = "details_skipped" in updates
+        ? updates.details_skipped === true
+        : profile?.details_skipped === true;
       const merged = hydrateProfile({
         ...profile,
         ...updates,
         device_id: profile?.device_id || "",
         onboarding_completed: updates.onboarding_completed ?? profile?.onboarding_completed ?? true,
-        details_skipped: updates.details_skipped ?? false,
+        details_skipped: skipped,
       });
       const next: FullProfile = { ...profile, ...merged };
       writeProfile(scope, next);
@@ -79,7 +82,9 @@ export function useProfile() {
       const failed = error || (data && typeof data === "object" && (data as { error?: string }).error) || !row;
       if (failed || !row) return { data: null, error: error ?? { message: "save failed" } };
       const remote = profileFromServer(row) as FullProfile;
-      remote.details_skipped = updates.details_skipped ?? profile?.details_skipped ?? false;
+      remote.details_skipped = "details_skipped" in updates
+        ? updates.details_skipped === true
+        : profile?.details_skipped === true;
       remote.id = typeof row.id === "string" ? row.id : undefined;
       writeProfile(scope, remote);
       setProfile(remote);

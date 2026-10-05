@@ -31,48 +31,22 @@ serve(async (req) => {
     }
 
     if (!payload.analysis_id) return json(400, { error: "缺少分析结果" }, corsHeaders);
-    const { data: analysis, error: readError } = await db
-      .from("meal_analyses")
-      .select("*")
-      .eq("id", payload.analysis_id)
-      .eq("user_id", auth.userId)
-      .maybeSingle();
-    if (readError) throw readError;
-    if (!analysis) return json(404, { error: "分析结果不存在" }, corsHeaders);
-
-    if (action === "replace") {
-      if (!payload.meal_id) return json(400, { error: "缺少餐食" }, corsHeaders);
-      const { data, error } = await db.from("meal_records").update({
-        food_name: analysis.food_name,
-        calories: analysis.calories,
-        protein_g: analysis.protein_g,
-        fat_g: analysis.fat_g,
-        carbs_g: analysis.carbs_g,
-        ingredients: analysis.ingredients,
-        verdict: analysis.verdict,
-        suggestion: analysis.suggestion,
-      }).eq("id", payload.meal_id).eq("user_id", auth.userId).select().single();
-      if (error) throw error;
-      await db.from("meal_analyses").update({ consumed_at: new Date().toISOString() }).eq("id", analysis.id).eq("user_id", auth.userId);
-      return json(200, { success: true, meal: data }, corsHeaders);
-    }
+    if (action === "replace" && !payload.meal_id) return json(400, { error: "缺少餐食" }, corsHeaders);
 
     const mealType = MEAL_TYPES.has(payload.meal_type) ? payload.meal_type : "snack";
-    const { data, error } = await db.from("meal_records").insert({
-      user_id: auth.userId,
-      food_name: analysis.food_name,
-      meal_type: mealType,
-      calories: analysis.calories,
-      protein_g: analysis.protein_g,
-      fat_g: analysis.fat_g,
-      carbs_g: analysis.carbs_g,
-      ingredients: analysis.ingredients,
-      verdict: analysis.verdict,
-      suggestion: analysis.suggestion,
-    }).select().single();
+    const { data, error } = await db.rpc("consume_analysis_into_meal", {
+      p_user_id: auth.userId,
+      p_analysis_id: payload.analysis_id,
+      p_meal_type: mealType,
+      p_replace_meal_id: action === "replace" ? payload.meal_id : null,
+    });
     if (error) throw error;
-    await db.from("meal_analyses").update({ consumed_at: new Date().toISOString() }).eq("id", analysis.id).eq("user_id", auth.userId);
-    return json(200, { success: true, meal: data }, corsHeaders);
+    const row = data as { status?: string; meal?: Record<string, unknown> } | null;
+    if (row?.status === "already_consumed") return json(409, { error: "这餐已经记过了" }, corsHeaders);
+    if (row?.status === "missing" || row?.status === "missing_meal" || !row?.meal) {
+      return json(404, { error: "分析结果不存在" }, corsHeaders);
+    }
+    return json(200, { success: true, meal: row.meal }, corsHeaders);
   } catch (e) {
     console.error("audit-confirm error:", e);
     return json(500, { error: e instanceof Error ? e.message : "Unknown error" }, corsHeaders);

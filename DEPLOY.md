@@ -13,7 +13,7 @@ supabase link --project-ref <project-ref>
 supabase db push
 ```
 
-这会按文件名顺序执行 `supabase/migrations/`，其中包括 `20261005090000_g0_user_rls.sql` 和 `20261005110000_writes_via_functions.sql`。后一份撤销客户端对餐食、档案、反馈和习惯表的写入，分析草稿只允许本人读取。
+这会按文件名顺序执行 `supabase/migrations/`，其中包括 `20261005090000_g0_user_rls.sql`、`20261005110000_writes_via_functions.sql` 和 `20261005120000_consume_analysis_once.sql`。第二份撤销客户端对餐食、档案、反馈和习惯表的写入，分析草稿只允许本人读取。第三份增加 `consume_analysis_into_meal()`：同一条分析在事务里只能记成一餐，第二次保存返回 409。这份文档不表示这些迁移或六个函数已经部署到线上项目。
 
 迁移之后，`user_id` 为空的旧行对任何登录用户都不可见。这次没有把旧的 `device_id` 数据归到某个账号。
 

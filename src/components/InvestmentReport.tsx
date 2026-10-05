@@ -1,5 +1,6 @@
 import { useRef, useState, useMemo, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
+import type { Dictionary } from "@/lib/i18n/types";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import InvestmentReportCard from "./InvestmentReportCard";
@@ -59,7 +60,7 @@ function glFromMeals(meals: Meal[]): { week: number; gl: number; predicted?: boo
 }
 
 // ──── Balance Sheet Section ────
-function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
+function BalanceSheet({ meals, t }: { meals: Meal[]; t: Dictionary }) {
   const stats = useMemo(() => {
     if (meals.length === 0) return { protein: 0 };
     const protein = meals.reduce((sum, meal) => sum + meal.protein_g, 0);
@@ -111,7 +112,7 @@ function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
 }
 
 // ──── GL Fluctuation Glow Area Chart ────
-function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predicted?: boolean }[]; t: any }) {
+function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predicted?: boolean }[]; t: Dictionary }) {
   const riskThreshold = 60;
 
   return (
@@ -171,7 +172,7 @@ function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predic
             stroke="hsl(43, 72%, 52%)"
             strokeWidth={2}
             fill="url(#glGoldGrad)"
-            dot={(props: any) => {
+            dot={(props: { cx?: number; cy?: number; payload?: { gl?: number; predicted?: boolean; week?: number } }) => {
               const { cx, cy, payload } = props;
               const isRisk = payload.gl >= riskThreshold;
               const isPredicted = payload.predicted;
@@ -212,7 +213,7 @@ function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predic
 }
 
 // ──── Correction Records ────
-function CorrectionLog({ records, t }: { records: { date: string; pct: string; action: string }[]; t: any }) {
+function CorrectionLog({ records, t }: { records: { date: string; pct: string; action: string }[]; t: Dictionary }) {
   if (records.length === 0) {
     return <p className="text-[11px] text-muted-foreground text-center py-3">{t.noCorrectionRecords}</p>;
   }

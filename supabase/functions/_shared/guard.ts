@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { hasUserBearer } from "./bearer.ts";
 
 export const AI_CALLS_PER_HOUR = 20;
 
@@ -13,8 +14,9 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
   | { userId: string; supabase: SupabaseClient }
   | Response
 > {
-  const header = req.headers.get("Authorization") ?? "";
-  const match = header.match(/^Bearer\s+(\S+)$/i);
+  const header = req.headers.get("Authorization");
+  if (!hasUserBearer(header)) return json(401, { error: "需要登录" }, cors);
+  const match = (header ?? "").match(/^Bearer\s+(\S+)$/i);
   if (!match) return json(401, { error: "需要登录" }, cors);
 
   const url = Deno.env.get("SUPABASE_URL") ?? "";

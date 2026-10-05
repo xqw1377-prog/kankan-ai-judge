@@ -34,20 +34,22 @@ const Audit = () => {
 
   const hasImage = images.length > 0;
   const displayIngredients = auditComplete ? ingredients : [];
-  const healthConditions = (profile as any)?.health_conditions ?? [];
+  const recordedConditions = (profile as unknown as { health_conditions?: unknown } | null)?.health_conditions;
+  const healthConditions = Array.isArray(recordedConditions)
+    ? recordedConditions.filter((item): item is string => typeof item === "string")
+    : [];
 
   // Detect severe deviation for yellow warning border
   const isDeviationWarning = useMemo(() => {
     if (!auditComplete || ingredients.length === 0) return false;
     const totalFat = ingredients.reduce((s, i) => s + i.fat, 0);
     const totalGl = ingredients.reduce((s, i) => s + i.gl, 0);
-    const targetFat = (profile as any)?.target_fat_g || 60;
-    // Warning if fat > 2x target or GL > 40 or BPI < 35
-    return totalFat > targetFat * 2 || totalGl > 40;
+    const targetFat = profile?.targets?.fat_g;
+    return (typeof targetFat === "number" && targetFat > 0 && totalFat > targetFat * 2) || totalGl > 40;
   }, [auditComplete, ingredients, profile]);
 
   const AUDIT_PHASES = [
-    t.auditPixelPhases[0] || "Initializing GDAS engine...",
+    t.auditPixelPhases[0] || "Preparing the estimate...",
     t.auditPixelPhases[1] || "Analyzing pixel density matrix...",
     t.auditPixelPhases[2] || "Detecting hidden oil signatures...",
     t.auditPixelPhases[3] || "Computing glycemic load vectors...",
@@ -108,7 +110,7 @@ const Audit = () => {
     }
     const checked = inspectImages(images);
     if (!checked.ok) {
-      toast({ title: checked.error, variant: "destructive" });
+      toast({ title: "error" in checked ? checked.error : t.analysisUnrecognized, variant: "destructive" });
       return;
     }
     const { data: sessionData } = await supabase.auth.getSession();
@@ -129,8 +131,8 @@ const Audit = () => {
             language: "zh-CN",
             userContext: profile ? {
               goal: profile.goal,
-              allergies: (profile as any)?.allergies,
-              health_conditions: (profile as any)?.health_conditions,
+              allergies: profile.allergies,
+              health_conditions: healthConditions,
             } : undefined,
           },
         });
@@ -145,7 +147,7 @@ const Audit = () => {
       setEngineOffline(false);
       let parsedIngredients: DetectedIngredient[] = [];
       if (data?.ingredients && Array.isArray(data.ingredients)) {
-        parsedIngredients = data.ingredients.map((item: any) => ({
+        parsedIngredients = data.ingredients.map((item: { name?: string; grams?: number; weight?: number; gi?: number; gl?: number; oil_g?: number; oilG?: number; protein?: number; fat?: number; fiber?: number }) => ({
           name: item.name || "Unknown",
           grams: item.grams ?? item.weight ?? 0,
           gi: item.gi ?? 0,
