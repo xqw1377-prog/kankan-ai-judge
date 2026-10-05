@@ -47,6 +47,7 @@ export type Database = {
       guest_claim_tokens: {
         Row: {
           anonymous_user_id: string
+          claimed_owner_id: string | null
           consumed_at: string | null
           created_at: string
           expires_at: string
@@ -54,6 +55,7 @@ export type Database = {
         }
         Insert: {
           anonymous_user_id: string
+          claimed_owner_id?: string | null
           consumed_at?: string | null
           created_at?: string
           expires_at?: string
@@ -61,6 +63,7 @@ export type Database = {
         }
         Update: {
           anonymous_user_id?: string
+          claimed_owner_id?: string | null
           consumed_at?: string | null
           created_at?: string
           expires_at?: string
