@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Home } from "lucide-react";
 import { useMeals } from "@/hooks/useMeals";
-import { getMealTypeByTime } from "@/lib/nutrition";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
 import { isPlaceholderAnalysis, mealResultLines, type FoodAnalysis } from "@/lib/foodAnalysis";
@@ -48,19 +47,12 @@ const Result = () => {
 
   const handleSave = async () => {
     if (saving || saved) return;
+    if (!result.analysis_id) {
+      toast({ title: t.saveMealFailed, variant: "destructive" });
+      return;
+    }
     setSaving(true);
-    const { data, error } = await saveMeal({
-      food_name: result.food,
-      meal_type: getMealTypeByTime(),
-      calories: result.calories,
-      protein_g: result.protein_g,
-      fat_g: result.fat_g,
-      carbs_g: result.carbs_g,
-      ingredients: result.ingredients || [],
-      verdict: problem,
-      suggestion: action,
-      sequence_score: null,
-    });
+    const { data, error } = await saveMeal(result.analysis_id);
     setSaving(false);
     if (error || !data?.id) {
       toast({ title: t.saveMealFailed, variant: "destructive" });

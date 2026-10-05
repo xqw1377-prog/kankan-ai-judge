@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { mergeMeals, readMeals, writeMeals, GUEST_SCOPE, type StoredMeal } from "@/lib/localData";
 import { useAuthUserId } from "@/hooks/useAuthUser";
+import { getMealTypeByTime } from "@/lib/nutrition";
+import { mealConfirmBody, mealDeleteBody, mealReplaceBody } from "@/lib/serverWrites";
 
 export interface MealRecord {
   id: string;
@@ -91,71 +93,54 @@ export function useMeals() {
     fetchMeals();
   }, [fetchMeals]);
 
-  const saveMeal = useCallback(async (meal: Omit<MealRecord, "id" | "recorded_at">) => {
-    const local: StoredMeal = {
-      ...meal,
-      ingredients: meal.ingredients || [],
-      id: crypto.randomUUID(),
-      recorded_at: new Date().toISOString(),
-      pendingSync: false,
-    };
-
-    if (!userId) {
-      apply([local, ...readMeals(scope)]);
-      return { data: asMeal(local), error: null };
-    }
-
+  const saveMeal = useCallback(async (analysisId: string) => {
+    if (!userId) return { data: null, error: { message: "signin" } };
+    if (!analysisId) return { data: null, error: { message: "missing analysis" } };
     try {
-      const { data, error } = await supabase
-        .from("meal_records")
-        .insert({
-          user_id: userId,
-          food_name: meal.food_name,
-          meal_type: meal.meal_type,
-          calories: meal.calories,
-          protein_g: meal.protein_g,
-          fat_g: meal.fat_g,
-          carbs_g: meal.carbs_g,
-          ingredients: meal.ingredients,
-          verdict: meal.verdict,
-          suggestion: meal.suggestion,
-          sequence_score: meal.sequence_score,
-        })
-        .select()
-        .single();
-      if (!error && data) {
-        const saved = fromRemote(data as Record<string, unknown>);
-        apply([saved, ...readMeals(scope).filter((item) => item.id !== saved.id)]);
-        return { data: asMeal(saved), error: null };
+      const { data, error } = await supabase.functions.invoke("audit-confirm", {
+        body: mealConfirmBody(analysisId, getMealTypeByTime()),
+      });
+      const meal = data && typeof data === "object" ? (data as { meal?: Record<string, unknown>; error?: string }).meal : undefined;
+      if (error || !meal || (data && typeof data === "object" && (data as { error?: string }).error)) {
+        return { data: null, error: error ?? { message: "save failed" } };
       }
-      return { data: null, error: error ?? { message: "save failed" } };
+      const saved = fromRemote(meal);
+      apply([saved, ...readMeals(scope).filter((item) => item.id !== saved.id)]);
+      return { data: asMeal(saved), error: null };
     } catch (error) {
       return { data: null, error };
     }
   }, [apply, scope, userId]);
 
   const deleteMeal = useCallback(async (id: string) => {
-    apply(readMeals(scope).filter((meal) => meal.id !== id));
-    if (userId) {
-      try {
-        await supabase.from("meal_records").delete().eq("id", id).eq("user_id", userId);
-      } catch {
-        // Local delete already applied.
-      }
+    if (!userId) {
+      apply(readMeals(scope).filter((meal) => meal.id !== id));
+      return { error: null };
     }
-    return { error: null };
+    try {
+      const { error } = await supabase.functions.invoke("audit-confirm", { body: mealDeleteBody(id) });
+      if (error) return { error };
+      apply(readMeals(scope).filter((meal) => meal.id !== id));
+      return { error: null };
+    } catch (error) {
+      return { error };
+    }
   }, [apply, scope, userId]);
 
-  const updateMeal = useCallback(async (id: string, updates: Partial<MealRecord>) => {
-    apply(readMeals(scope).map((meal) => meal.id === id ? { ...meal, ...updates, pendingSync: Boolean(userId) } : meal));
-    if (userId) {
-      try {
-        await supabase.from("meal_records").update(updates).eq("id", id).eq("user_id", userId);
-      } catch {
-        // Local update already applied.
-      }
+  const replaceMeal = useCallback(async (mealId: string, analysisId: string) => {
+    if (!userId || !analysisId) return { error: { message: "missing analysis" } };
+    try {
+      const { data, error } = await supabase.functions.invoke("audit-confirm", {
+        body: mealReplaceBody(mealId, analysisId),
+      });
+      const meal = data && typeof data === "object" ? (data as { meal?: Record<string, unknown> }).meal : undefined;
+      if (error || !meal) return { error: error ?? { message: "save failed" } };
+      const saved = fromRemote(meal);
+      apply(readMeals(scope).map((item) => item.id === saved.id ? saved : item));
+      return { error: null };
+    } catch (error) {
+      return { error };
     }
-    return { error: null };
   }, [apply, scope, userId]);
 
   const todayMeals = todayOf(meals);
@@ -166,5 +151,5 @@ export function useMeals() {
     carbs_g: todayMeals.reduce((sum, meal) => sum + meal.carbs_g, 0),
   };
 
-  return { meals, todayMeals, todayTotals, loading, saveMeal, deleteMeal, updateMeal, refetch: fetchMeals, userId };
+  return { meals, todayMeals, todayTotals, loading, saveMeal, deleteMeal, replaceMeal, refetch: fetchMeals, userId };
 }

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMeals } from "@/hooks/useMeals";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
+import type { FoodAnalysis } from "@/lib/foodAnalysis";
 
 interface Ingredient {
   name: string;
@@ -28,7 +29,7 @@ const STEP = 10;
 const EditIngredients = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { updateMeal } = useMeals();
+  const { replaceMeal, deleteMeal } = useMeals();
   const { toast } = useToast();
   const { t, locale } = useI18n();
 
@@ -47,6 +48,8 @@ const EditIngredients = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [cookingMethod, setCookingMethod] = useState<CookingMethod>("stir_fried");
   const [reInferring, setReInferring] = useState(false);
+  const [analysisId, setAnalysisId] = useState<string>("");
+  const [serverResult, setServerResult] = useState<FoodAnalysis | null>(null);
 
   // Real-time nutrition estimation with oil absorption correction
   const nutrition = useMemo(() => {
@@ -65,6 +68,11 @@ const EditIngredients = () => {
     };
   }, [ingredients, cookingMethod]);
 
+  const invalidateAnalysis = () => {
+    setAnalysisId("");
+    setServerResult(null);
+  };
+
   const handleEditStart = (idx: number) => {
     setEditingIdx(idx);
     setEditName(ingredients[idx].name);
@@ -78,17 +86,20 @@ const EditIngredients = () => {
     setIngredients(updated);
     setModifiedIdx(prev => new Set(prev).add(editingIdx));
     setEditingIdx(null);
+    invalidateAnalysis();
   };
 
   const handleDelete = (idx: number) => {
     setIngredients(ingredients.filter((_, i) => i !== idx));
     if (editingIdx === idx) setEditingIdx(null);
+    invalidateAnalysis();
   };
 
   const handleAdd = () => {
     if (!addName.trim() || !addGrams) return;
     setIngredients([...ingredients, { name: addName.trim(), grams: Number(addGrams) }]);
     setModifiedIdx(prev => new Set(prev).add(ingredients.length));
+    invalidateAnalysis();
     setAddName("");
     setAddGrams("");
     setShowAdd(false);
@@ -107,6 +118,7 @@ const EditIngredients = () => {
     updated[idx] = { ...updated[idx], grams: newGrams };
     setIngredients(updated);
     setModifiedIdx(prev => new Set(prev).add(idx));
+    invalidateAnalysis();
     showResearchFeedback();
   };
 
@@ -115,6 +127,7 @@ const EditIngredients = () => {
     updated[idx] = { ...updated[idx], grams: value };
     setIngredients(updated);
     setModifiedIdx(prev => new Set(prev).add(idx));
+    invalidateAnalysis();
   };
 
   // Debounced research feedback for slider (fires on pointerUp)
@@ -134,17 +147,31 @@ const EditIngredients = () => {
       const { data, error } = await supabase.functions.invoke("re-infer-dish", {
         body: { ingredients, language: locale },
       });
-      if (error) throw error;
-      if (data?.food) {
-        setFoodNameValue(data.food);
-        toast({ title: "✨ " + t.reInferSuccess, description: data.food });
+      if (error || data?.error || typeof data?.analysis_id !== "string") {
+        toast({ title: t.reInferFailed, variant: "destructive" });
+        return;
       }
+      const next: FoodAnalysis = {
+        food: String(data.food || ""),
+        calories: Number(data.calories) || 0,
+        protein_g: Number(data.protein_g) || 0,
+        fat_g: Number(data.fat_g) || 0,
+        carbs_g: Number(data.carbs_g) || 0,
+        ingredients,
+        verdict: String(data.verdict || ""),
+        suggestion: String(data.suggestion || ""),
+        analysis_id: data.analysis_id,
+      };
+      setAnalysisId(data.analysis_id);
+      setServerResult(next);
+      setFoodNameValue(next.food);
+      toast({ title: "✨ " + t.reInferSuccess, description: next.food });
     } catch {
       toast({ title: t.reInferFailed, variant: "destructive" });
     } finally {
       setReInferring(false);
     }
-  }, [reInferring, ingredients, toast, t]);
+  }, [reInferring, ingredients, locale, toast, t]);
 
   const triggerConfetti = useCallback(() => {
     setShowConfetti(true);
@@ -153,6 +180,10 @@ const EditIngredients = () => {
 
   const handleSave = async () => {
     if (fromResult && resultState) {
+      if (!serverResult?.analysis_id) {
+        navigate("/result", { state: resultState, replace: true });
+        return;
+      }
       triggerConfetti();
       toast({
         title: "🎉 KANKAN " + t.editExpGain,
@@ -162,20 +193,39 @@ const EditIngredients = () => {
         navigate("/result", {
           state: {
             ...resultState,
-            result: { ...resultState.result, food: foodNameValue, ingredients, ...nutrition },
+            result: serverResult,
           },
           replace: true,
         });
       }, 800);
-    } else if (mealId) {
-      await updateMeal(mealId, { food_name: foodNameValue, ingredients: ingredients as any, ...nutrition });
-      triggerConfetti();
-      toast({
-        title: "🎉 KANKAN " + t.editExpGain,
-        description: t.editExpDescUpdated,
-      });
-      setTimeout(() => navigate(-1), 800);
+      return;
     }
+    if (!mealId) return;
+    if (!analysisId) {
+      toast({ title: t.needServerEstimate, variant: "destructive" });
+      return;
+    }
+    const { error } = await replaceMeal(mealId, analysisId);
+    if (error) {
+      toast({ title: t.saveMealFailed, variant: "destructive" });
+      return;
+    }
+    triggerConfetti();
+    toast({
+      title: "🎉 KANKAN " + t.editExpGain,
+      description: t.editExpDescUpdated,
+    });
+    setTimeout(() => navigate(-1), 800);
+  };
+
+  const handleDeleteMeal = async () => {
+    if (!mealId || !confirm(t.editDeleteConfirm)) return;
+    const { error } = await deleteMeal(mealId);
+    if (error) {
+      toast({ title: t.saveMealFailed, variant: "destructive" });
+      return;
+    }
+    navigate("/", { replace: true });
   };
 
   return (
@@ -240,6 +290,7 @@ const EditIngredients = () => {
           <div className="flex items-center justify-between">
             <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{t.livePreview}</span>
           </div>
+          <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">{t.localEstimateNote}</p>
           <div className="flex items-center justify-between mt-2">
             <div className="text-center flex-1">
               <div className={`text-lg font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary text-glow-gold" : "text-card-foreground"}`}>
@@ -444,7 +495,7 @@ const EditIngredients = () => {
 
         {mealId && (
           <button
-            onClick={() => { if (confirm(t.editDeleteConfirm)) navigate("/", { replace: true }); }}
+            onClick={handleDeleteMeal}
             className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 mt-8"
           >
             <Trash2 className="w-4 h-4" /> {t.editDeleteMeal}

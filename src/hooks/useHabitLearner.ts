@@ -60,33 +60,7 @@ export function useHabitLearner() {
     writeHabits(scope, next);
     setPatterns(next);
 
-    if (!userId) return;
-
-    if (existing) {
-      await supabase
-        .from("habit_patterns")
-        .update({
-          corrected_name: nextPattern.corrected_name,
-          corrected_grams: nextPattern.corrected_grams,
-          preferred_cook_method: nextPattern.preferred_cook_method,
-          occurrence_count: nextPattern.occurrence_count,
-          auto_apply: nextPattern.auto_apply,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId)
-        .eq("original_name", originalName);
-    } else {
-      await supabase.from("habit_patterns").insert({
-        user_id: userId,
-        original_name: originalName,
-        corrected_name: nextPattern.corrected_name,
-        corrected_grams: nextPattern.corrected_grams,
-        preferred_cook_method: nextPattern.preferred_cook_method,
-        occurrence_count: 1,
-        auto_apply: false,
-      });
-    }
-  }, [patterns, scope, userId]);
+  }, [patterns, scope]);
 
   const applyHabits = useCallback((ingredients: Array<{ name: string; grams: number; [key: string]: unknown }>) => {
     const autoPatterns = patterns.filter((pattern) => pattern.auto_apply);

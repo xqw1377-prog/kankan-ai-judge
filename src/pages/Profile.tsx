@@ -13,20 +13,7 @@ import InvestmentReport from "@/components/InvestmentReport";
 import MealSequenceCoach from "@/components/MealSequenceCoach";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-
-function calcHealthScore(
-  totalMeals: number, uniqueDays: number,
-  t: { levelGold: string; levelGoldDesc: string; levelSilver: string; levelSilverDesc: string; levelBronze: string; levelBronzeDesc: string; levelNewbie: string; levelNewbieDesc: string }
-) {
-  const base = Math.min(totalMeals * 50, 3000) + uniqueDays * 100;
-  const score = Math.min(base, 9999);
-  let level: string, levelDesc: string;
-  if (score >= 5000) { level = t.levelGold; levelDesc = t.levelGoldDesc; }
-  else if (score >= 2000) { level = t.levelSilver; levelDesc = t.levelSilverDesc; }
-  else if (score >= 500) { level = t.levelBronze; levelDesc = t.levelBronzeDesc; }
-  else { level = t.levelNewbie; levelDesc = t.levelNewbieDesc; }
-  return { score, level, levelDesc };
-}
+import { useDaySummary } from "@/hooks/useDaySummary";
 
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
@@ -42,7 +29,8 @@ function calcStreak(dates: string[]): number {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { profile, loading, saveProfile } = useProfile();
+  const { profile, loading, saveProfile, userId } = useProfile();
+  const summary = useDaySummary(userId);
   const { meals } = useMeals();
   const { t, locale, setLocale } = useI18n();
   const [editingNickname, setEditingNickname] = useState(false);
@@ -87,7 +75,7 @@ const Profile = () => {
   const genderLabel = profile.gender === "female" ? t.female : t.male;
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
   const streak = calcStreak(meals.map(m => m.recorded_at));
-  const { score, level, levelDesc } = calcHealthScore(meals.length, uniqueDays, t);
+  const score = summary?.score;
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -135,10 +123,11 @@ const Profile = () => {
         </div>
       </header>
 
-      {/* Diet Credit Card */}
-      <section className="px-5 mb-6">
-        <DietCreditCard score={score} level={level} levelDesc={levelDesc} beatText={t.dietCreditBeat} />
-      </section>
+      {typeof score === "number" && (
+        <section className="px-5 mb-6">
+          <DietCreditCard score={score} level={t.todayScore} levelDesc={t.dietCreditBeat} beatText={t.dietCreditBeat} />
+        </section>
+      )}
 
       <section className="px-5 mb-6">
         <div className="glass rounded-2xl p-5 shadow-card">
@@ -212,18 +201,17 @@ const Profile = () => {
 
       <section className="px-5 mb-6">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.healthAssets}</h3>
-        <div className="glass rounded-2xl p-5 shadow-card mb-3">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-primary" />
-              <span className="text-sm font-semibold text-card-foreground">{t.healthScore}</span>
+        {typeof score === "number" && (
+          <div className="glass rounded-2xl p-5 shadow-card mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-primary" />
+                <span className="text-sm font-semibold text-card-foreground">{t.todayScore}</span>
+              </div>
+              <AnimatedScore target={score} />
             </div>
-            <AnimatedScore target={score} />
           </div>
-          <p className="text-xs text-muted-foreground">
-            {level} · {levelDesc}
-          </p>
-        </div>
+        )}
         <div className="grid grid-cols-3 gap-3">
           {[
             { icon: Calendar, value: streak, label: t.consecutiveDays },
@@ -243,7 +231,7 @@ const Profile = () => {
         <details className="glass rounded-2xl p-4">
           <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">实验性指标（未验证，默认收起）</summary>
           <div className="mt-4">
-            <InvestmentReport meals={meals} score={score} />
+            <InvestmentReport meals={meals} score={score ?? 0} />
           </div>
         </details>
       </section>

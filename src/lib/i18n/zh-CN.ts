@@ -175,7 +175,9 @@ export const zhCN: Dictionary = {
   glHigh: "偏高",
 
   editIngredientsTitle: "编辑食材",
-  livePreview: "实时预览",
+  livePreview: "本机换算",
+  localEstimateNote: "这组数字只在本机按克重换算，不会写入记录。要改已保存的一餐，请先重新估算。",
+  needServerEstimate: "先重新估算，记录才会更新。",
   editIngredientName: "食材名称",
   editGrams: "克重",
   editAddIngredient: "添加食材",
@@ -535,6 +537,7 @@ export const zhCN: Dictionary = {
   resultProblem: "问题",
   resultAction: "这一口",
   saveToLog: "记到记录",
+  profileSaveFailed: "档案没能保存，请再试一次。",
 
   aiConsentTitle: "AI 数据使用说明",
   aiConsentBody: "为了分析您拍摄的食物照片，KanKan 需要将照片数据发送至第三方 AI 服务（Google Gemini）进行识别和营养分析。我们不会将您的照片用于其他目的，分析完成后不会在第三方服务器上保留您的图片数据。",

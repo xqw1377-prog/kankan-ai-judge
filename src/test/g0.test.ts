@@ -3,6 +3,7 @@ import { inspectImage, inspectImages, MAX_IMAGES } from "@/lib/imageGuard";
 import { isPlaceholderAnalysis, mealResultLines } from "@/lib/foodAnalysis";
 import { homeGate } from "@/lib/homeGate";
 import { scoreToday } from "@/lib/nutrition";
+import { mealConfirmBody, mealReplaceBody, profileSaveBody } from "@/lib/serverWrites";
 
 function dataUrl(mime: string, bytes: number) {
   const raw = "A".repeat(bytes);
@@ -57,6 +58,30 @@ describe("saved meal score", () => {
     expect(scoreToday({ calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0 }, targets)).toBe(0);
     expect(scoreToday(totals, targets)).toBe(scoreToday(totals, targets));
     expect(scoreToday(totals, targets)).toBeGreaterThan(0);
+  });
+});
+
+describe("server write bodies", () => {
+  it("omits ownership, calories, targets, and scores", () => {
+    const profile = profileSaveBody({
+      gender: "female",
+      age: 30,
+      user_id: "someone-else",
+      tdee: 2000,
+      target_calories: 1800,
+      calories: 1,
+      score: 99,
+    });
+    expect(profile).toEqual({ gender: "female", age: 30 });
+    expect(mealConfirmBody("analysis-1", "lunch")).toEqual({
+      analysis_id: "analysis-1",
+      meal_type: "lunch",
+    });
+    expect(mealReplaceBody("meal-1", "analysis-2")).toEqual({
+      action: "replace",
+      meal_id: "meal-1",
+      analysis_id: "analysis-2",
+    });
   });
 });
 

@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { calculateNutrition, type UserProfile } from "@/lib/nutrition";
+import { type UserProfile } from "@/lib/nutrition";
 import {
   GUEST_SCOPE,
   hydrateProfile,
+  profileFromServer,
   readProfile,
   writeProfile,
   type StoredProfile,
 } from "@/lib/localData";
+import { profileSaveBody } from "@/lib/serverWrites";
 import { useAuthUserId } from "@/hooks/useAuthUser";
 
 export interface FullProfile extends StoredProfile {
@@ -22,8 +24,12 @@ export function useProfile() {
 
   useEffect(() => {
     if (!ready) return;
-    setProfile(readProfile(scope));
-    if (!userId) return;
+    if (!userId) {
+      setProfile(readProfile(scope));
+      return;
+    }
+    const cached = readProfile(scope);
+    setProfile(cached?.targetsFromServer ? cached : null);
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
@@ -32,7 +38,8 @@ export function useProfile() {
         .eq("user_id", userId)
         .maybeSingle();
       if (cancelled || error || !data) return;
-      const full = hydrateProfile(data as StoredProfile) as FullProfile;
+      const full = profileFromServer(data as Record<string, unknown>) as FullProfile;
+      full.id = typeof (data as { id?: string }).id === "string" ? (data as { id: string }).id : undefined;
       writeProfile(scope, full);
       setProfile(full);
     })();
@@ -47,56 +54,36 @@ export function useProfile() {
       avatar_url?: string;
     },
   ) => {
-    const merged = hydrateProfile({
-      ...profile,
-      ...updates,
-      device_id: profile?.device_id || "",
-      onboarding_completed: updates.onboarding_completed ?? profile?.onboarding_completed ?? true,
-      details_skipped: updates.details_skipped ?? false,
-    });
-    const targets = calculateNutrition(merged);
-    const next: FullProfile = { ...profile, ...merged, targets };
-    writeProfile(scope, next);
-    setProfile(next);
-
-    if (!userId) return { data: next, error: null };
+    if (!userId) {
+      const merged = hydrateProfile({
+        ...profile,
+        ...updates,
+        device_id: profile?.device_id || "",
+        onboarding_completed: updates.onboarding_completed ?? profile?.onboarding_completed ?? true,
+        details_skipped: updates.details_skipped ?? false,
+      });
+      const next: FullProfile = { ...profile, ...merged };
+      writeProfile(scope, next);
+      setProfile(next);
+      return { data: next, error: null };
+    }
 
     try {
-      const payload = {
-        user_id: userId,
-        gender: next.gender,
-        age: next.age,
-        height_cm: next.height_cm,
-        weight_kg: next.weight_kg,
-        activity_level: next.activity_level,
-        goal: next.goal,
-        diet_preference: next.diet_preference,
-        cooking_source: next.cooking_source,
-        allergies: next.allergies,
-        nickname: next.nickname,
-        avatar_url: next.avatar_url,
-        onboarding_completed: next.onboarding_completed,
-        tdee: targets.tdee,
-        target_calories: targets.calories,
-        target_protein_g: targets.protein_g,
-        target_fat_g: targets.fat_g,
-        target_carbs_g: targets.carbs_g,
-      };
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .upsert(payload, { onConflict: "user_id" })
-        .select()
-        .single();
-      if (!error && data) {
-        const remote = hydrateProfile({ ...next, ...data }) as FullProfile;
-        remote.details_skipped = next.details_skipped;
-        writeProfile(scope, remote);
-        setProfile(remote);
-      }
-    } catch {
-      // The profile is already on this device. Server sync can retry later.
+      const { data, error } = await supabase.functions.invoke("save-profile", {
+        body: profileSaveBody({ ...updates } as Record<string, unknown>),
+      });
+      const row = data && typeof data === "object" ? (data as { profile?: Record<string, unknown>; error?: string }).profile : undefined;
+      const failed = error || (data && typeof data === "object" && (data as { error?: string }).error) || !row;
+      if (failed || !row) return { data: null, error: error ?? { message: "save failed" } };
+      const remote = profileFromServer(row) as FullProfile;
+      remote.details_skipped = updates.details_skipped ?? profile?.details_skipped ?? false;
+      remote.id = typeof row.id === "string" ? row.id : undefined;
+      writeProfile(scope, remote);
+      setProfile(remote);
+      return { data: remote, error: null };
+    } catch (error) {
+      return { data: null, error };
     }
-    return { data: next, error: null };
   }, [profile, scope, userId]);
 
   return { profile, loading, saveProfile, userId };

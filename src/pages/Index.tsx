@@ -5,7 +5,8 @@ import { Camera, X, ImagePlus, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import NutritionBar from "@/components/NutritionBar";
-import { calculateNutrition, getMealTypeLabel, scoreToday } from "@/lib/nutrition";
+import { getMealTypeLabel } from "@/lib/nutrition";
+import { useDaySummary } from "@/hooks/useDaySummary";
 import { useI18n } from "@/lib/i18n";
 import { takePhoto, pickPhoto } from "@/lib/camera";
 import { homeGate } from "@/lib/homeGate";
@@ -16,7 +17,8 @@ const MAX_PHOTOS = 5;
 const Index = () => {
   const navigate = useNavigate();
   const { profile, loading: profileLoading } = useProfile();
-  const { todayMeals, todayTotals, loading: mealsLoading } = useMeals();
+  const { todayMeals, loading: mealsLoading, userId } = useMeals();
+  const summary = useDaySummary(userId, todayMeals.length);
   const { t, locale, setLocale } = useI18n();
   const [photos, setPhotos] = useState<string[]>([]);
   const [gateReady, setGateReady] = useState(() => isGuestMode());
@@ -63,8 +65,8 @@ const Index = () => {
     );
   }
 
-  const targets = profile?.targets ?? calculateNutrition({});
-  const dayScore = todayMeals.length === 0 ? 0 : scoreToday(todayTotals, targets);
+  const targets = summary?.targets && summary.targets.calories > 0 ? summary.targets : null;
+  const dayScore = summary?.score;
   const nickname = profile?.nickname || "";
   const hour = new Date().getHours();
   const greeting = hour < 11 ? t.greetingMorning : hour < 14 ? t.greetingNoon : hour < 18 ? t.greetingAfternoon : t.greetingEvening;
@@ -105,16 +107,21 @@ const Index = () => {
           </div>
         ) : (
           <div className="glass rounded-2xl p-5 shadow-card space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-muted-foreground">{t.todayScore}</span>
-              <span className="text-2xl font-black text-primary tabular-nums">{dayScore}</span>
-            </div>
-            <NutritionBar label={t.energy} current={todayTotals.calories} target={targets.calories} unit="kcal" />
-            <NutritionBar label={t.protein} current={todayTotals.protein_g} target={targets.protein_g} unit="g" />
-            <NutritionBar label={t.fat} current={todayTotals.fat_g} target={targets.fat_g} unit="g" />
-            <NutritionBar label={t.carbs} current={todayTotals.carbs_g} target={targets.carbs_g} unit="g" />
-            {(!profile || profile.details_skipped) && (
-              <p className="text-[11px] text-muted-foreground">{t.defaultTargetNote}</p>
+            {typeof dayScore === "number" && targets ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">{t.todayScore}</span>
+                  <span className="text-2xl font-black text-primary tabular-nums">{dayScore}</span>
+                </div>
+                <NutritionBar label={t.energy} current={summary?.totals.calories ?? 0} target={targets.calories} unit="kcal" />
+                <NutritionBar label={t.protein} current={summary?.totals.protein_g ?? 0} target={targets.protein_g} unit="g" />
+                <NutritionBar label={t.fat} current={summary?.totals.fat_g ?? 0} target={targets.fat_g} unit="g" />
+                <NutritionBar label={t.carbs} current={summary?.totals.carbs_g ?? 0} target={targets.carbs_g} unit="g" />
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {locale === "zh-CN" ? `今天记下了 ${todayMeals.length} 餐。` : `${todayMeals.length} meals logged today.`}
+              </p>
             )}
           </div>
         )}

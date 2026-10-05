@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
 import { parseImages, toImageContents } from "../_shared/images.ts";
+import { storeAnalysis } from "../_shared/storeAnalysis.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -193,9 +194,18 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
       if (unnamed || !hasMacros) {
         return json(422, { error: "没能识别这餐" }, corsHeaders);
       }
-      return new Response(JSON.stringify(result), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const analysisId = await storeAnalysis(auth.userId, {
+        food: foodName,
+        calories,
+        protein_g: protein,
+        fat_g: fat,
+        carbs_g: carbs,
+        ingredients: result.ingredients,
+        verdict: result.verdict,
+        suggestion: result.suggestion,
       });
+      if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
+      return json(200, { ...result, analysis_id: analysisId }, corsHeaders);
     }
 
     return json(422, { error: "没能识别这餐" }, corsHeaders);

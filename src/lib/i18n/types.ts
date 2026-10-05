@@ -182,6 +182,8 @@ export interface Dictionary {
   // Edit Ingredients
   editIngredientsTitle: string;
   livePreview: string;
+  localEstimateNote: string;
+  needServerEstimate: string;
   editIngredientName: string;
   editGrams: string;
   editAddIngredient: string;
@@ -547,6 +549,7 @@ export interface Dictionary {
   resultProblem: string;
   resultAction: string;
   saveToLog: string;
+  profileSaveFailed: string;
 
   // AI consent
   aiConsentTitle: string;

@@ -175,7 +175,9 @@ export const enUS: Dictionary = {
   glHigh: "High",
 
   editIngredientsTitle: "Edit Ingredients",
-  livePreview: "Live Preview",
+  livePreview: "On-device sketch",
+  localEstimateNote: "These numbers are a local gram conversion and are not saved. Re-estimate before an existing meal changes.",
+  needServerEstimate: "Re-estimate first. That is what updates the log.",
   editIngredientName: "Ingredient name",
   editGrams: "Grams",
   editAddIngredient: "Add Ingredient",
@@ -535,6 +537,7 @@ export const enUS: Dictionary = {
   resultProblem: "Problem",
   resultAction: "This bite",
   saveToLog: "Save to log",
+  profileSaveFailed: "The profile could not be saved. Try again.",
 
   aiConsentTitle: "AI Data Usage Notice",
   aiConsentBody: "To analyze your food photos, KanKan sends image data to a third-party AI service (Google Gemini) for recognition and nutritional analysis. Your photos will not be used for any other purpose and will not be retained on third-party servers after analysis.",

@@ -17,10 +17,20 @@ BEGIN
     SELECT 1
     FROM pg_policies
     WHERE schemaname = 'public'
-      AND tablename IN ('user_profiles', 'meal_records', 'meal_feedbacks', 'habit_patterns', 'ai_usage')
+      AND tablename IN ('user_profiles', 'meal_records', 'meal_feedbacks', 'habit_patterns', 'ai_usage', 'meal_analyses')
       AND (qual = 'true' OR with_check = 'true')
   ) THEN
     RAISE EXCEPTION 'open RLS policy is still installed';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('user_profiles', 'meal_records', 'meal_feedbacks', 'habit_patterns', 'meal_analyses')
+      AND cmd IN ('INSERT', 'UPDATE', 'DELETE', 'ALL')
+  ) THEN
+    RAISE EXCEPTION 'client write policy is still installed';
   END IF;
 END $$;
 

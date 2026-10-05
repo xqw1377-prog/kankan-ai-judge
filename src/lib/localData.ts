@@ -37,6 +37,8 @@ export interface StoredProfile extends UserProfile {
   targets: NutritionTargets;
   nickname?: string;
   avatar_url?: string;
+  /** Targets were stored by save-profile. Do not recalculate them on this device. */
+  targetsFromServer?: boolean;
 }
 
 export function markGuestMode() {
@@ -88,9 +90,40 @@ export function hydrateProfile(raw: Partial<StoredProfile> & { device_id?: strin
   };
 }
 
+export function profileFromServer(row: Record<string, unknown>): StoredProfile {
+  const calories = Number(row.target_calories);
+  const targets = Number.isFinite(calories) && calories > 0
+    ? {
+      tdee: Number(row.tdee) || 0,
+      calories,
+      protein_g: Number(row.target_protein_g) || 0,
+      fat_g: Number(row.target_fat_g) || 0,
+      carbs_g: Number(row.target_carbs_g) || 0,
+    }
+    : { tdee: 0, calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0 };
+  return {
+    gender: row.gender === "female" ? "female" : "male",
+    age: Number(row.age) || 0,
+    height_cm: Number(row.height_cm) || 0,
+    weight_kg: Number(row.weight_kg) || 0,
+    activity_level: (row.activity_level as StoredProfile["activity_level"]) || "light",
+    goal: (row.goal as StoredProfile["goal"]) || "maintain",
+    diet_preference: typeof row.diet_preference === "string" ? row.diet_preference : undefined,
+    cooking_source: typeof row.cooking_source === "string" ? row.cooking_source : undefined,
+    allergies: typeof row.allergies === "string" ? row.allergies : undefined,
+    device_id: "",
+    onboarding_completed: Boolean(row.onboarding_completed),
+    nickname: typeof row.nickname === "string" ? row.nickname : undefined,
+    avatar_url: typeof row.avatar_url === "string" ? row.avatar_url : undefined,
+    targets,
+    targetsFromServer: true,
+  };
+}
+
 export function readProfile(scope: string): StoredProfile | null {
   const raw = readJson<StoredProfile>(profileKey(scope));
   if (!raw || typeof raw !== "object") return null;
+  if (raw.targetsFromServer) return raw;
   return hydrateProfile(raw);
 }
 

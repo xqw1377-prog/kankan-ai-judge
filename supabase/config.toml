@@ -11,3 +11,9 @@ verify_jwt = true
 
 [functions.re-infer-dish]
 verify_jwt = true
+
+[functions.save-profile]
+verify_jwt = true
+
+[functions.day-summary]
+verify_jwt = true

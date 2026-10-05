@@ -23,6 +23,7 @@ export interface FoodAnalysis {
   cooking_scene?: string;
   roast?: string;
   gi_value?: number;
+  analysis_id?: string;
 }
 
 export type AnalysisCode = "missing_key" | "unavailable" | "unrecognized";
@@ -116,6 +117,7 @@ export function toFoodAnalysis(data: unknown): FoodAnalysis | null {
     cooking_scene: typeof row.cooking_scene === "string" ? row.cooking_scene : undefined,
     roast: typeof row.roast === "string" ? row.roast : undefined,
     gi_value: row.gi_value == null ? undefined : num(row.gi_value),
+    analysis_id: typeof row.analysis_id === "string" ? row.analysis_id : undefined,
   };
 }
 
