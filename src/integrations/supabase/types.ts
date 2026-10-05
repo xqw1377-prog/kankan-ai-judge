@@ -401,7 +401,7 @@ export type Database = {
           p_carbs_g: number
           p_fat_g: number
           p_food_name: string
-          p_idempotency_key?: string
+          p_idempotency_key: string
           p_ingredients: Json
           p_lease_id: string
           p_model: string
