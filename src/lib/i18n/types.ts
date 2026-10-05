@@ -52,6 +52,7 @@ export interface Dictionary {
   onboardingTitle5Desc: string;
   age: string;
   ageSuffix: string;
+  notFilled: string;
   height: string;
   weight: string;
   male: string;
@@ -510,6 +511,8 @@ export interface Dictionary {
   loginWechatConfirmHint: string;
   logout: string;
   logoutConfirm: string;
+  loginEmailLabel: string;
+  loginPasswordLabel: string;
   loginEmailPlaceholder: string;
   loginPasswordPlaceholder: string;
   loginSignIn: string;
@@ -534,6 +537,7 @@ export interface Dictionary {
   todayEmpty: string;
   profileSetupTitle: string;
   profileSetupHint: string;
+  profileMissingPrompt: string;
   analysisMissingKey: string;
   analysisUnavailable: string;
   analysisUnrecognized: string;
@@ -552,6 +556,9 @@ export interface Dictionary {
   saveToLog: string;
   saveNeedsSignIn: string;
   guestFreeLimit: string;
+  guestClaimPending: string;
+  guestClaimPendingDesc: string;
+  guestClaimRetry: string;
   profileSaveFailed: string;
 
   // AI consent
@@ -560,4 +567,5 @@ export interface Dictionary {
   aiConsentAgree: string;
   aiConsentDecline: string;
   aiConsentPrivacy: string;
+  aiConsentRevoke: string;
 }

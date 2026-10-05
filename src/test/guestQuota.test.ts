@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ensureAnalysisSession } from "@/lib/ensureAnalysisSession";
-import { GUEST_FREE_LIMIT, guestQuotaDecision } from "@/lib/guestQuota";
+import { GUEST_FREE_LIMIT, guestQuotaDecision, guestRetryDecision, persistedIdempotencyKey, resolveGuestReservation } from "@/lib/guestQuota";
 import { readInvokeFailure } from "@/lib/invokeFailure";
 
 describe("guest food quota", () => {
@@ -28,10 +28,47 @@ describe("guest food quota", () => {
   });
 });
 
+describe("lost guest response", () => {
+  it("replays only the same key and blocks a new key after the trial is used", () => {
+    expect(guestRetryDecision({ isAnonymous: false, hasStoredAnalysis: true, quotaAllows: false })).toBe("analyze");
+    expect(guestRetryDecision({ isAnonymous: true, hasStoredAnalysis: true, quotaAllows: false })).toBe("replay");
+    expect(guestRetryDecision({ isAnonymous: true, hasStoredAnalysis: false, quotaAllows: false })).toBe("block");
+    expect(guestRetryDecision({ isAnonymous: true, hasStoredAnalysis: false, quotaAllows: true })).toBe("analyze");
+  });
+
+  it("lets only one concurrent guest reservation analyse", async () => {
+    let held = false;
+    const reserve = async () => {
+      await Promise.resolve();
+      if (held) return "taken" as const;
+      held = true;
+      return "reserved" as const;
+    };
+    const [first, second] = await Promise.all([reserve(), reserve()]);
+    const outcomes = [first, second].map((reserved) => resolveGuestReservation({
+      reserved,
+      hasStoredAnalysis: false,
+    }));
+    expect(outcomes.filter((outcome) => outcome === "analyze")).toHaveLength(1);
+    expect(outcomes.filter((outcome) => outcome === "block")).toHaveLength(1);
+    expect(resolveGuestReservation({ reserved: "taken", hasStoredAnalysis: true })).toBe("replay");
+    expect(resolveGuestReservation({ reserved: "reclaimed", hasStoredAnalysis: false })).toBe("analyze");
+  });
+});
+
+describe("idempotency key", () => {
+  it("stores a photo key only for an anonymous trial", () => {
+    expect(persistedIdempotencyKey(false, "abc")).toBeNull();
+    expect(persistedIdempotencyKey(true, "abc")).toBe("abc");
+    expect(persistedIdempotencyKey(true, "  ")).toBeNull();
+    expect(persistedIdempotencyKey(true, 12)).toBeNull();
+  });
+});
+
 describe("function error body", () => {
   it("reads GUEST_FREE_LIMIT from the response", async () => {
     const context = new Response(JSON.stringify({
-      error: "免费体验已用完，注册后继续记录",
+      error: "本次免费体验已用完，注册后继续记录",
       code: GUEST_FREE_LIMIT,
     }), { status: 403 });
     const failure = await readInvokeFailure(null, {
@@ -39,7 +76,7 @@ describe("function error body", () => {
       context,
     });
     expect(failure).toEqual({
-      message: "免费体验已用完，注册后继续记录",
+      message: "本次免费体验已用完，注册后继续记录",
       code: GUEST_FREE_LIMIT,
     });
   });

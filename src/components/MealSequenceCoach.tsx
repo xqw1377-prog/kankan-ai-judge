@@ -49,12 +49,12 @@ function generateTips(meals: MealRecord[], isZh: boolean): string[] {
 
   const breakfasts = last7.filter(m => new Date(m.recorded_at).getHours() >= 5 && new Date(m.recorded_at).getHours() < 10);
   if (breakfasts.length < 3) {
-    tips.push(isZh ? "🌅 本周早餐不足3次，建议每天7-8点进食，启动代谢引擎" : "🌅 Less than 3 breakfasts this week — try eating by 7-8 AM to kickstart metabolism");
+    tips.push(isZh ? "本周 5 点到 10 点的记录少于 3 次。" : "Fewer than 3 records between 5 and 10 this week.");
   }
 
   const lateNight = last7.filter(m => new Date(m.recorded_at).getHours() >= 21);
   if (lateNight.length > 0) {
-    tips.push(isZh ? "🌙 检测到夜间进食记录，21点后进食会增加脂肪存储风险" : "🌙 Late-night eating detected — eating after 9 PM increases fat storage risk");
+    tips.push(isZh ? "有 21 点以后的记录。" : "There is a record after 21:00.");
   }
 
   // Sequence score trend tip
@@ -62,14 +62,14 @@ function generateTips(meals: MealRecord[], isZh: boolean): string[] {
   if (scored.length >= 2) {
     const avgScore = scored.reduce((s, m) => s + (m.sequence_score || 0), 0) / scored.length;
     if (avgScore < 50) {
-      tips.push(isZh ? "🔄 近期进食顺序评分偏低，记住：蔬菜→蛋白质→主食，血糖更稳定" : "🔄 Recent sequence scores are low — remember: Veggies → Protein → Carbs for stable blood sugar");
+      tips.push(isZh ? "识别出的食材排列不是测到的进食顺序。" : "The recognized ingredient order is not a measured eating order.");
     } else if (avgScore >= 80) {
-      tips.push(isZh ? "🏆 进食顺序表现优秀！身体资产持续增值，午后专注力+20%" : "🏆 Excellent eating order! Body assets appreciating, afternoon focus +20%");
+      tips.push(isZh ? "识别出的食材排列不是测到的进食顺序。" : "The recognized ingredient order is not a measured eating order.");
     }
   }
 
   if (tips.length === 0) {
-    tips.push(isZh ? "✨ 饮食时序表现良好！保持规律进食，身体资产持续增值" : "✨ Great meal timing! Keep it up — consistent timing maximizes body asset growth");
+    tips.push(isZh ? "这些只是记录时间，不是代谢或专注力的测量。" : "These are record times, not a metabolism or focus measurement.");
   }
 
   return tips.slice(0, 3);
@@ -110,6 +110,7 @@ export default function MealSequenceCoach({ meals }: Props) {
 
         {/* Score Ring */}
         <div className="flex items-center gap-5">
+          {scoredMeals.length > 0 && (
           <div className="relative w-20 h-20 flex-shrink-0">
             <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
               <circle cx="40" cy="40" r="34" fill="none" stroke="hsl(var(--border))" strokeWidth="5" />
@@ -126,17 +127,18 @@ export default function MealSequenceCoach({ meals }: Props) {
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-xl font-bold font-mono" style={{ color: scoreColor }}>{overallScore}</span>
-              <span className="text-[8px] font-mono text-muted-foreground tracking-wider">{scoreLabel}</span>
+              <span className="text-xs font-mono text-muted-foreground tracking-wider">{scoreLabel}</span>
             </div>
           </div>
+          )}
           <div className="flex-1 min-w-0">
             <p className="text-xs font-semibold text-card-foreground mb-1">
-              {isZh ? "进食顺序评分" : "Eating Order Score"}
+              {isZh ? "吃前可以先菜、再蛋白、后主食" : "Before eating: vegetables, then protein, then starch"}
             </p>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
+            <p className="text-[13px] text-muted-foreground leading-relaxed">
               {isZh
-                ? "基于每餐食材顺序评估：蔬菜→蛋白质→主食为最优路径"
-                : "Per-meal ingredient order: Veggies → Protein → Carbs is optimal"}
+                ? "照片里的食材排列不是测到的进食顺序，这里不打进食顺序分。"
+                : "Ingredient order in a photo is not a measured eating order, so this screen does not score it."}
             </p>
           </div>
         </div>
@@ -144,7 +146,7 @@ export default function MealSequenceCoach({ meals }: Props) {
         {/* Per-Meal Sequence Score History */}
         {scoredMeals.length > 0 && (
           <div>
-            <p className="text-[10px] font-mono font-bold text-muted-foreground tracking-wider mb-2">
+            <p className="text-[13px] font-mono font-bold text-muted-foreground tracking-wider mb-2">
               {isZh ? "近期顺序评分记录" : "RECENT SEQUENCE SCORES"}
             </p>
             {/* Sparkline bar chart */}
@@ -165,8 +167,8 @@ export default function MealSequenceCoach({ meals }: Props) {
                     />
                     {/* Tooltip on hover */}
                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 glass-strong rounded-md px-2 py-1 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-10">
-                      <p className="text-[8px] font-mono text-card-foreground">{m.food_name}</p>
-                      <p className="text-[7px] font-mono" style={{ color: info.color }}>{info.icon} {s} · {info.label}</p>
+                      <p className="text-xs font-mono text-card-foreground">{m.food_name}</p>
+                      <p className="text-xs font-mono" style={{ color: info.color }}>{info.icon} {s} · {info.label}</p>
                     </div>
                   </div>
                 );
@@ -187,8 +189,8 @@ export default function MealSequenceCoach({ meals }: Props) {
                     <div className="flex items-center gap-2 min-w-0 flex-1">
                       <span className="text-sm">{info.icon}</span>
                       <div className="min-w-0">
-                        <p className="text-[10px] font-semibold text-card-foreground truncate">{m.food_name}</p>
-                        <p className="text-[8px] font-mono text-muted-foreground/50">
+                        <p className="text-[13px] font-semibold text-card-foreground truncate">{m.food_name}</p>
+                        <p className="text-xs font-mono text-muted-foreground/50">
                           {new Date(m.recorded_at).toLocaleDateString(isZh ? "zh-CN" : "en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                         </p>
                       </div>
@@ -201,7 +203,7 @@ export default function MealSequenceCoach({ meals }: Props) {
                         />
                       </div>
                       <span className="text-xs font-black font-mono tabular-nums" style={{ color: info.color }}>{s}</span>
-                      <span className="text-[7px] font-mono text-muted-foreground/40">{info.label}</span>
+                      <span className="text-xs font-mono text-muted-foreground/40">{info.label}</span>
                     </div>
                   </div>
                 );
@@ -212,19 +214,19 @@ export default function MealSequenceCoach({ meals }: Props) {
 
         {/* Timing Heatmap */}
         <div>
-          <p className="text-[10px] font-mono font-bold text-muted-foreground tracking-wider mb-2">
+          <p className="text-[13px] font-mono font-bold text-muted-foreground tracking-wider mb-2">
             {isZh ? "7日进食热力图" : "7-DAY TIMING HEATMAP"}
           </p>
           <div className="grid grid-cols-8 gap-1">
             <div />
             {heatmap.map((day, i) => (
-              <div key={i} className="text-center text-[8px] font-mono text-muted-foreground/60">
+              <div key={i} className="text-center text-xs font-mono text-muted-foreground/60">
                 {isZh ? day.label : ["S", "M", "T", "W", "T", "F", "S"][new Date(Date.now() - (6 - i) * 86400000).getDay()]}
               </div>
             ))}
             {slotLabels.map((slot, si) => (
               <div key={`row-${si}`} className="contents">
-                <div className="text-[8px] font-mono text-muted-foreground/50 flex items-center justify-end pr-1">
+                <div className="text-xs font-mono text-muted-foreground/50 flex items-center justify-end pr-1">
                   {slot}
                 </div>
                 {heatmap.map((day, di) => {
@@ -248,7 +250,7 @@ export default function MealSequenceCoach({ meals }: Props) {
 
         {/* Optimal Order Guide */}
         <div className="glass rounded-xl p-3 space-y-2">
-          <p className="text-[10px] font-mono font-bold text-muted-foreground tracking-wider">
+          <p className="text-[13px] font-mono font-bold text-muted-foreground tracking-wider">
             {isZh ? "黄金进食顺序" : "GOLDEN EATING ORDER"}
           </p>
           <div className="flex items-center gap-2 overflow-x-auto py-1">
@@ -267,8 +269,8 @@ export default function MealSequenceCoach({ meals }: Props) {
                   >
                     {item.icon}
                   </div>
-                  <span className="text-[9px] font-semibold text-card-foreground">{item.label}</span>
-                  <span className="text-[7px] text-muted-foreground">{item.desc}</span>
+                  <span className="text-xs font-semibold text-card-foreground">{item.label}</span>
+                  <span className="text-xs text-muted-foreground">{item.desc}</span>
                 </div>
               ) : (
                 <span key={i} className="text-muted-foreground/30 text-xs font-mono">→</span>
@@ -280,13 +282,13 @@ export default function MealSequenceCoach({ meals }: Props) {
         {/* Smart Tips */}
         {tips.length > 0 && (
           <div className="space-y-2">
-            <p className="text-[10px] font-mono font-bold text-muted-foreground tracking-wider">
+            <p className="text-[13px] font-mono font-bold text-muted-foreground tracking-wider">
               {isZh ? "智能建议" : "SMART TIPS"}
             </p>
             {tips.map((tip, i) => (
               <div
                 key={i}
-                className="glass rounded-lg px-3 py-2.5 text-[10px] text-muted-foreground leading-relaxed border border-border/20"
+                className="glass rounded-lg px-3 py-2.5 text-[13px] text-muted-foreground leading-relaxed border border-border/20"
               >
                 {tip}
               </div>
@@ -297,7 +299,7 @@ export default function MealSequenceCoach({ meals }: Props) {
         {/* Meal Rhythm */}
         {meals.length > 0 && (
           <div>
-            <p className="text-[10px] font-mono font-bold text-muted-foreground tracking-wider mb-2">
+            <p className="text-[13px] font-mono font-bold text-muted-foreground tracking-wider mb-2">
               {isZh ? "今日进食节奏" : "TODAY'S MEAL RHYTHM"}
             </p>
             <MealRhythmBar meals={meals} isZh={isZh} />
@@ -316,7 +318,7 @@ function MealRhythmBar({ meals, isZh }: { meals: MealRecord[]; isZh: boolean }) 
 
   if (todayMeals.length === 0) {
     return (
-      <p className="text-[9px] text-muted-foreground/40 font-mono text-center py-2">
+      <p className="text-xs text-muted-foreground/40 font-mono text-center py-2">
         {isZh ? "今日暂无记录" : "No meals recorded today"}
       </p>
     );
@@ -332,7 +334,7 @@ function MealRhythmBar({ meals, isZh }: { meals: MealRecord[]; isZh: boolean }) 
           className="absolute top-0 bottom-0 w-px"
           style={{ left: `${((h - startH) / range) * 100}%`, background: "hsl(var(--border) / 0.2)" }}
         >
-          <span className="absolute -bottom-3.5 -translate-x-1/2 text-[7px] font-mono text-muted-foreground/30">
+          <span className="absolute -bottom-3.5 -translate-x-1/2 text-xs font-mono text-muted-foreground/30">
             {h}
           </span>
         </div>
@@ -351,14 +353,14 @@ function MealRhythmBar({ meals, isZh }: { meals: MealRecord[]; isZh: boolean }) 
             style={{ left: `${left}%` }}
           >
             <div
-              className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] border-2"
+              className="w-5 h-5 rounded-full flex items-center justify-center text-[13px] border-2"
               style={{
                 background: info ? `${info.color}20` : "hsl(var(--primary) / 0.15)",
                 borderColor: info ? `${info.color}80` : "hsl(var(--primary) / 0.5)",
                 boxShadow: `0 0 8px ${info ? `${info.color}40` : "hsl(var(--primary) / 0.3)"}`,
               }}
             >
-              {hasScore ? <span className="text-[7px] font-mono font-bold">{m.sequence_score}</span> : i + 1}
+              {hasScore ? <span className="text-xs font-mono font-bold">{m.sequence_score}</span> : i + 1}
             </div>
           </div>
         );

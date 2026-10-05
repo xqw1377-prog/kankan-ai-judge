@@ -46,15 +46,16 @@ const EditIngredients = () => {
   const [addName, setAddName] = useState("");
   const [addGrams, setAddGrams] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
-  const [cookingMethod, setCookingMethod] = useState<CookingMethod>("stir_fried");
+  const [cookingMethod, setCookingMethod] = useState<CookingMethod | null>(null);
   const [reInferring, setReInferring] = useState(false);
   const [analysisId, setAnalysisId] = useState<string>("");
   const [serverResult, setServerResult] = useState<FoodAnalysis | null>(null);
+  const [matchedRevision, setMatchedRevision] = useState<number | null>(null);
 
   // Real-time nutrition estimation with oil absorption correction
   const nutrition = useMemo(() => {
     const totalGrams = ingredients.reduce((s, i) => s + i.grams, 0);
-    const coeff = OIL_COEFFICIENTS[cookingMethod];
+    const coeff = cookingMethod ? OIL_COEFFICIENTS[cookingMethod] : { fat: 1, cal: 1, gi_boost: 0 };
     // Estimate GI value: base ~55, adjusted by cooking method and carb ratio
     const baseGI = 55;
     const gi_value = Math.round(Math.min(100, Math.max(20, baseGI + coeff.gi_boost * 100 + (totalGrams > 0 ? (totalGrams * 0.2 / totalGrams) * 20 - 10 : 0))));
@@ -72,6 +73,7 @@ const EditIngredients = () => {
   const revisionRef = useRef(0);
   const invalidateAnalysis = () => {
     revisionRef.current += 1;
+    setMatchedRevision(null);
     setAnalysisId("");
     setServerResult(null);
   };
@@ -148,7 +150,12 @@ const EditIngredients = () => {
     const revision = revisionRef.current;
     try {
       const { data, error } = await supabase.functions.invoke("re-infer-dish", {
-        body: { ingredients, language: locale, dishName: foodNameValue.trim(), cookingMethod },
+        body: {
+          ingredients,
+          language: locale,
+          dishName: foodNameValue.trim(),
+          ...(cookingMethod ? { cookingMethod } : {}),
+        },
       });
       if (revision !== revisionRef.current) return;
       if (error || data?.error || typeof data?.analysis_id !== "string") {
@@ -166,6 +173,7 @@ const EditIngredients = () => {
         suggestion: String(data.suggestion || ""),
         analysis_id: data.analysis_id,
       };
+      setMatchedRevision(revision);
       setAnalysisId(data.analysis_id);
       setServerResult(next);
       setFoodNameValue(next.food);
@@ -182,10 +190,16 @@ const EditIngredients = () => {
     setTimeout(() => setShowConfetti(false), 2000);
   }, []);
 
+  const canSave = matchedRevision !== null && matchedRevision === revisionRef.current && !!analysisId && !reInferring;
+
   const handleSave = async () => {
+    if (!canSave) {
+      toast({ title: t.needServerEstimate, variant: "destructive" });
+      return;
+    }
     if (fromResult && resultState) {
       if (!serverResult?.analysis_id) {
-        navigate("/result", { state: resultState, replace: true });
+        toast({ title: t.needServerEstimate, variant: "destructive" });
         return;
       }
       setTimeout(() => {
@@ -253,7 +267,12 @@ const EditIngredients = () => {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <span className="font-semibold text-sm text-card-foreground">{t.editIngredientsTitle}</span>
-        <button onClick={handleSave} className="p-2 text-primary">
+        <button
+          onClick={handleSave}
+          disabled={!canSave}
+          aria-label={t.done}
+          className="p-2 text-primary disabled:opacity-40"
+        >
           <Check className="w-5 h-5" />
         </button>
       </header>
@@ -282,36 +301,36 @@ const EditIngredients = () => {
         {/* Real-time nutrition bar */}
         <div className="glass rounded-xl p-3 mb-5 shadow-card">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{t.livePreview}</span>
+            <span className="text-[13px] text-muted-foreground font-semibold uppercase tracking-wider">{t.livePreview}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">{t.localEstimateNote}</p>
+          <p className="text-[13px] text-muted-foreground leading-relaxed mt-1">{t.localEstimateNote}</p>
           <div className="flex items-center justify-between mt-2">
             <div className="text-center flex-1">
               <div className={`text-lg font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary text-glow-gold" : "text-card-foreground"}`}>
                 {nutrition.calories}
               </div>
-              <div className="text-[9px] text-muted-foreground">{t.energy}</div>
+              <div className="text-xs text-muted-foreground">{t.energy}</div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center flex-1">
               <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary" : "text-card-foreground"}`}>
                 {nutrition.protein_g}g
               </div>
-              <div className="text-[9px] text-muted-foreground">{t.protein}</div>
+              <div className="text-xs text-muted-foreground">{t.protein}</div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center flex-1">
               <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary" : "text-card-foreground"}`}>
                 {nutrition.fat_g}g
               </div>
-              <div className="text-[9px] text-muted-foreground">{t.fat}</div>
+              <div className="text-xs text-muted-foreground">{t.fat}</div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center flex-1">
               <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary" : "text-card-foreground"}`}>
                 {nutrition.carbs_g}g
               </div>
-              <div className="text-[9px] text-muted-foreground">{t.carbs}</div>
+              <div className="text-xs text-muted-foreground">{t.carbs}</div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center flex-1">
@@ -320,7 +339,7 @@ const EditIngredients = () => {
               }`}>
                 {nutrition.gi_value}
               </div>
-              <div className={`text-[9px] font-semibold ${nutrition.gi_value >= 70 ? "text-destructive/70" : "text-muted-foreground"}`}>
+              <div className={`text-xs font-semibold ${nutrition.gi_value >= 70 ? "text-destructive/70" : "text-muted-foreground"}`}>
                 GI {nutrition.gi_value >= 70 ? `⚠️` : ""}
               </div>
             </div>
@@ -330,9 +349,9 @@ const EditIngredients = () => {
         {/* Cooking method selector */}
         <div className="glass rounded-xl p-3 mb-5 shadow-card">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{t.cookingMethod}</span>
+            <span className="text-[13px] text-muted-foreground font-semibold uppercase tracking-wider">{t.cookingMethod}</span>
             {(cookingMethod === "fried" || cookingMethod === "stir_fried" || cookingMethod === "pan_fried") && (
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full animate-fade-in"
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full animate-fade-in"
                 style={{ color: "hsl(30, 90%, 50%)", background: "hsl(30 90% 50% / 0.1)", border: "1px solid hsl(30 90% 50% / 0.2)" }}>
                 🛢️ {t.oilAbsorptionHint}
               </span>
@@ -356,7 +375,7 @@ const EditIngredients = () => {
                 }`}
               >
                 <div className="text-base leading-none">{icon}</div>
-                <div className="text-[9px] font-semibold mt-1">{label}</div>
+                <div className="text-xs font-semibold mt-1">{label}</div>
               </button>
             ))}
           </div>
@@ -405,7 +424,7 @@ const EditIngredients = () => {
                     <div className="flex items-center">
                       <button onClick={() => handleEditStart(idx)} className="flex-1 text-left text-sm text-card-foreground">
                         {item.name}
-                        {isModified && <span className="ml-1 text-[8px] text-primary font-bold">✓</span>}
+                        {isModified && <span className="ml-1 text-xs text-primary font-bold">✓</span>}
                       </button>
                       <div className="flex items-center gap-1">
                         <button

@@ -10,6 +10,7 @@ import { toFoodAnalysis } from "@/lib/foodAnalysis";
 import { GUEST_FREE_LIMIT } from "@/lib/guestQuota";
 import { inspectImages } from "@/lib/imageGuard";
 import { readInvokeFailure } from "@/lib/invokeFailure";
+import { scanAttemptKey } from "@/lib/scanAttempt";
 
 const Scan = () => {
   const location = useLocation();
@@ -91,9 +92,15 @@ const Scan = () => {
 
     let outcome: Outcome;
     try {
-      const body = images.length === 1
-        ? { imageBase64: images[0], userContext, language: locale }
-        : { imagesBase64: images, userContext, language: locale };
+      const { data: sessionAfter } = await supabase.auth.getSession();
+      const anonymous = sessionAfter.session?.user?.is_anonymous === true;
+      const idempotencyKey = anonymous ? await scanAttemptKey(images) : null;
+      const body = {
+        ...(images.length === 1 ? { imageBase64: images[0] } : { imagesBase64: images }),
+        userContext,
+        language: locale,
+        ...(idempotencyKey ? { idempotencyKey } : {}),
+      };
       const { data, error } = await supabase.functions.invoke("analyze-food", { body });
       const failure = await readInvokeFailure(data, error);
       const message = failure.message;

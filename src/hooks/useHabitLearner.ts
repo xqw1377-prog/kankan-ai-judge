@@ -21,7 +21,7 @@ export function useHabitLearner() {
       .from("habit_patterns")
       .select("*")
       .eq("user_id", userId);
-    if (error || !data) return;
+    if (error || !data || data.length === 0) return;
     const remote = data.map((row) => ({
       original_name: row.original_name,
       corrected_name: row.corrected_name,

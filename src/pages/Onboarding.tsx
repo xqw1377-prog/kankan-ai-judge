@@ -4,7 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
-import type { UserProfile } from "@/lib/nutrition";
+import { calculateNutrition, type UserProfile } from "@/lib/nutrition";
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -33,21 +33,25 @@ const Onboarding = () => {
 
   const [step, setStep] = useState(0);
   const [data, setData] = useState<UserProfile>({
-    gender: profile?.gender || undefined,
-    age: profile?.age || 28,
-    height_cm: profile?.height_cm || 170,
-    weight_kg: profile?.weight_kg || 65,
-    activity_level: profile?.activity_level || undefined,
-    goal: profile?.goal || undefined,
-    diet_preference: profile?.diet_preference || undefined,
-    cooking_source: profile?.cooking_source || undefined,
+    gender: profile?.gender,
+    age: profile?.age,
+    height_cm: profile?.height_cm,
+    weight_kg: profile?.weight_kg,
+    activity_level: profile?.activity_level,
+    goal: profile?.goal,
+    diet_preference: profile?.diet_preference,
+    cooking_source: profile?.cooking_source,
     allergies: profile?.allergies || "",
   });
 
   const update = (partial: Partial<UserProfile>) => setData(prev => ({ ...prev, ...partial }));
   const handleNext = () => { if (step < 4) setStep(step + 1); };
   const handleFinish = async () => {
-    const { error } = await saveProfile({ ...data, onboarding_completed: true });
+    if (!calculateNutrition(data)) {
+      toast({ title: t.profileSaveFailed, variant: "destructive" });
+      return;
+    }
+    const { error } = await saveProfile({ ...data, onboarding_completed: true, details_skipped: false });
     if (error) {
       toast({ title: t.profileSaveFailed, variant: "destructive" });
       return;
@@ -64,7 +68,8 @@ const Onboarding = () => {
     navigate("/", { replace: true });
   };
   const canNext = () => {
-    if (step === 0) return !!data.gender;
+    if (step === 0) return !!data.gender && !!data.age;
+    if (step === 1) return !!data.height_cm && !!data.weight_kg;
     if (step === 2) return !!data.activity_level;
     if (step === 3) return !!data.goal;
     return true;
@@ -94,7 +99,7 @@ const Onboarding = () => {
             <h2 className="text-2xl font-bold mb-8 text-card-foreground">{isEditing ? t.onboardingTitle1Edit : t.onboardingTitle1}</h2>
             <div className="flex gap-4 justify-center mb-8">
               {(["male", "female"] as const).map(g => (
-                <button key={g} onClick={() => update({ gender: g, height_cm: data.height_cm || (g === "female" ? 160 : 170), weight_kg: data.weight_kg || (g === "female" ? 55 : 65) })}
+                <button key={g} onClick={() => update({ gender: g })}
                   className={`w-28 h-28 rounded-2xl flex flex-col items-center justify-center gap-2 border-2 transition-all ${data.gender === g ? "border-primary bg-primary/10" : "border-border glass"}`}>
                   <span className="text-3xl">{g === "male" ? "♂" : "♀"}</span>
                   <span className="font-semibold text-card-foreground">{g === "male" ? t.male : t.female}</span>
@@ -104,8 +109,8 @@ const Onboarding = () => {
             <div>
               <label className="text-sm font-medium text-muted-foreground mb-2 block">{t.age}</label>
               <div className="flex items-center gap-4">
-                <input type="range" min={18} max={80} value={data.age || 28} onChange={e => update({ age: Number(e.target.value) })} className="flex-1 accent-[hsl(43,72%,52%)]" />
-                <span className="text-lg font-bold w-16 text-center text-card-foreground">{data.age} {t.ageSuffix}</span>
+                <input type="range" min={18} max={80} value={data.age ?? 28} onChange={e => update({ age: Number(e.target.value) })} className="flex-1 accent-[hsl(43,72%,52%)]" />
+                <span className="text-lg font-bold w-16 text-center text-card-foreground">{data.age ? `${data.age} ${t.ageSuffix}` : t.notFilled}</span>
               </div>
             </div>
           </div>
@@ -118,15 +123,15 @@ const Onboarding = () => {
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">{t.height}</label>
                 <div className="flex items-center gap-4">
-                  <input type="range" min={140} max={210} value={data.height_cm || 170} onChange={e => update({ height_cm: Number(e.target.value) })} className="flex-1 accent-[hsl(43,72%,52%)]" />
-                  <span className="text-lg font-bold w-20 text-center text-card-foreground">{data.height_cm} cm</span>
+                  <input type="range" min={140} max={210} value={data.height_cm ?? 170} onChange={e => update({ height_cm: Number(e.target.value) })} className="flex-1 accent-[hsl(43,72%,52%)]" />
+                  <span className="text-lg font-bold w-20 text-center text-card-foreground">{data.height_cm ? `${data.height_cm} cm` : t.notFilled}</span>
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">{t.weight}</label>
                 <div className="flex items-center gap-4">
-                  <input type="range" min={30} max={150} value={data.weight_kg || 65} onChange={e => update({ weight_kg: Number(e.target.value) })} className="flex-1 accent-[hsl(43,72%,52%)]" />
-                  <span className="text-lg font-bold w-20 text-center text-card-foreground">{data.weight_kg} kg</span>
+                  <input type="range" min={30} max={150} value={data.weight_kg ?? 65} onChange={e => update({ weight_kg: Number(e.target.value) })} className="flex-1 accent-[hsl(43,72%,52%)]" />
+                  <span className="text-lg font-bold w-20 text-center text-card-foreground">{data.weight_kg ? `${data.weight_kg} kg` : t.notFilled}</span>
                 </div>
               </div>
             </div>
@@ -138,11 +143,11 @@ const Onboarding = () => {
             <h2 className="text-2xl font-bold mb-6 text-card-foreground">{t.onboardingTitle3}</h2>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2">
               {ACTIVITY_OPTIONS.map(opt => (
-                <button key={opt.value} onClick={() => update({ activity_level: opt.value as any })}
+                <button key={opt.value} onClick={() => update({ activity_level: opt.value as UserProfile["activity_level"] })}
                   className={`shrink-0 w-20 py-4 rounded-2xl flex flex-col items-center gap-2 border-2 transition-all ${data.activity_level === opt.value ? "border-primary bg-primary/10" : "border-border glass"}`}>
                   <span className="text-2xl">{opt.emoji}</span>
                   <span className="text-xs font-semibold text-card-foreground">{opt.label}</span>
-                  <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+                  <span className="text-[13px] text-muted-foreground">{opt.desc}</span>
                 </button>
               ))}
             </div>
@@ -154,7 +159,7 @@ const Onboarding = () => {
             <h2 className="text-2xl font-bold mb-6 text-card-foreground">{t.onboardingTitle4}</h2>
             <div className="grid grid-cols-2 gap-3">
               {GOAL_OPTIONS.map(opt => (
-                <button key={opt.value} onClick={() => update({ goal: opt.value as any })}
+                <button key={opt.value} onClick={() => update({ goal: opt.value as UserProfile["goal"] })}
                   className={`py-6 rounded-2xl flex flex-col items-center gap-2 border-2 transition-all ${data.goal === opt.value ? "border-primary bg-primary/10" : "border-border glass"}`}>
                   <span className="text-3xl">{opt.emoji}</span>
                   <span className="font-bold text-card-foreground">{opt.label}</span>

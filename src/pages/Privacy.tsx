@@ -15,7 +15,7 @@ const Privacy = () => {
 
       <div className="flex-1 overflow-y-auto px-6 pb-[max(2rem,env(safe-area-inset-bottom))]">
         <div className="prose prose-sm max-w-none text-card-foreground/90 space-y-4">
-          <p className="text-muted-foreground text-xs">最后更新日期：2026年3月10日</p>
+          <p className="text-muted-foreground text-xs">最后更新日期：2026年10月5日</p>
 
           <h2 className="text-base font-bold mt-6">1. 引言</h2>
           <p>欢迎使用 KanKan（以下简称"本应用"）。我们非常重视您的隐私保护。本隐私政策旨在向您说明我们如何收集、使用、存储和保护您的个人信息。</p>
@@ -24,7 +24,7 @@ const Privacy = () => {
           <p>本应用可能收集以下类型的信息：</p>
           <ul className="list-disc pl-5 space-y-1 text-sm">
             <li><strong>个人资料信息</strong>：性别、年龄、身高、体重、活动水平、健康目标等，用于提供个性化饮食建议。</li>
-            <li><strong>食物照片</strong>：您通过相机拍摄或相册上传的食物照片，用于 AI 营养分析。照片仅在分析过程中使用。</li>
+            <li><strong>食物照片与分析所需资料</strong>：您通过相机拍摄或相册上传的食物照片。若资料里已有目标、过敏、饮食偏好和活动水平，这些字段也可能随照片一起发送，用于完成这一次营养分析。</li>
             <li><strong>饮食记录</strong>：您的餐食记录、营养数据和评分信息。</li>
             <li><strong>设备标识</strong>：匿名设备标识符，用于关联您的数据。</li>
           </ul>
@@ -44,10 +44,10 @@ const Privacy = () => {
           <h2 className="text-base font-bold">5. 第三方 AI 数据披露</h2>
           <p>本应用使用第三方人工智能（AI）服务来实现核心功能。根据相关法律法规及平台要求，我们在此明确披露：</p>
           <ul className="list-disc pl-5 space-y-1 text-sm">
-            <li><strong>AI 服务提供方</strong>：Google Gemini（由 Google LLC 提供）</li>
-            <li><strong>数据传输内容</strong>：您拍摄或上传的食物照片将被发送至 Google Gemini API 进行食物识别和营养成分分析</li>
-            <li><strong>数据用途</strong>：仅用于识别食物种类、估算营养成分（热量、蛋白质、脂肪、碳水化合物等）</li>
-            <li><strong>数据保留</strong>：照片数据在 AI 分析完成后不会被第三方服务保留或用于模型训练</li>
+            <li><strong>调用链</strong>：KanKan → Lovable AI Gateway → Gemini</li>
+            <li><strong>数据传输内容</strong>：食物照片，以及资料中已有的目标、过敏、饮食偏好和活动水平。我们仅传输完成分析所需的数据，并尽量减少传输内容。</li>
+            <li><strong>数据用途</strong>：用于识别食物种类、估算营养成分（热量、蛋白质、脂肪、碳水化合物等）</li>
+            <li><strong>数据保留</strong>：数据保留和处理方式以实际使用的 AI 服务提供方及其服务条款为准；我们仅传输完成分析所需的数据，并尽量减少传输内容。</li>
             <li><strong>用户授权</strong>：首次使用 AI 分析功能时，应用会通过弹窗明确告知并征得您的同意，您可以随时选择不使用该功能</li>
           </ul>
           <p className="text-sm">我们不会将您的个人身份信息（如姓名、设备ID等）与发送给 AI 服务的照片数据关联。</p>

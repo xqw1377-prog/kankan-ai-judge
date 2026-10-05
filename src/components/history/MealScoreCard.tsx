@@ -31,14 +31,14 @@ export default function MealScoreCard({ meal }: MealScoreCardProps) {
             <p className="font-semibold text-sm text-card-foreground truncate leading-tight">
               {meal.food_name}
             </p>
-            <p className="text-[10px] font-mono text-muted-foreground mt-0.5 flex items-center gap-1.5">
+            <p className="text-[13px] font-mono text-muted-foreground mt-0.5 flex items-center gap-1.5">
               {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
               {meal.sequence_score != null && (() => {
                 const grade = getSequenceGrade(meal.sequence_score);
                 const info = getSequenceGradeInfo(grade, isZh);
                 return (
                   <span
-                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[7px] font-bold"
+                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold"
                     style={{ background: `${info.color}15`, color: info.color }}
                   >
                     {info.icon} {info.label}
@@ -71,21 +71,21 @@ export default function MealScoreCard({ meal }: MealScoreCardProps) {
         {/* Macro labels */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
+            <span className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--success))]" />
               {t.historyProtein} {Math.round(meal.protein_g)}g
             </span>
-            <span className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
+            <span className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--warning))]" />
               {t.historyFat} {Math.round(meal.fat_g)}g
             </span>
-            <span className="flex items-center gap-1 text-[9px] font-mono text-muted-foreground">
+            <span className="flex items-center gap-1 text-xs font-mono text-muted-foreground">
               <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--info))]" />
               {t.historyCarbs} {Math.round(meal.carbs_g)}g
             </span>
           </div>
           <span className="text-xs font-bold font-mono tabular-nums text-card-foreground">
-            {meal.calories}<span className="text-[8px] text-muted-foreground font-normal ml-0.5">kcal</span>
+            {meal.calories}<span className="text-xs text-muted-foreground font-normal ml-0.5">kcal</span>
           </span>
         </div>
       </div>

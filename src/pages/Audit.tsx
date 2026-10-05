@@ -34,14 +34,14 @@ const Audit = () => {
 
   const hasImage = images.length > 0;
   const displayIngredients = auditComplete ? ingredients : [];
-  const healthConditions = (profile as any)?.health_conditions ?? [];
+  const healthConditions: string[] = [];
 
   // Detect severe deviation for yellow warning border
   const isDeviationWarning = useMemo(() => {
     if (!auditComplete || ingredients.length === 0) return false;
     const totalFat = ingredients.reduce((s, i) => s + i.fat, 0);
     const totalGl = ingredients.reduce((s, i) => s + i.gl, 0);
-    const targetFat = (profile as any)?.target_fat_g || 60;
+    const targetFat = profile?.targets?.fat_g || 60;
     // Warning if fat > 2x target or GL > 40 or BPI < 35
     return totalFat > targetFat * 2 || totalGl > 40;
   }, [auditComplete, ingredients, profile]);
@@ -133,8 +133,7 @@ const Audit = () => {
             language: "zh-CN",
             userContext: profile ? {
               goal: profile.goal,
-              allergies: (profile as any)?.allergies,
-              health_conditions: (profile as any)?.health_conditions,
+              allergies: profile.allergies,
             } : undefined,
           },
         });
@@ -149,15 +148,15 @@ const Audit = () => {
       setEngineOffline(false);
       let parsedIngredients: DetectedIngredient[] = [];
       if (data?.ingredients && Array.isArray(data.ingredients)) {
-        parsedIngredients = data.ingredients.map((item: any) => ({
-          name: item.name || "Unknown",
-          grams: item.grams ?? item.weight ?? 0,
-          gi: item.gi ?? 0,
-          gl: item.gl ?? 0,
-          oilG: item.oil_g ?? item.oilG ?? 0,
-          protein: item.protein ?? 0,
-          fat: item.fat ?? 0,
-          fiber: item.fiber ?? 0,
+        parsedIngredients = (data.ingredients as Array<Record<string, unknown>>).map((item) => ({
+          name: String(item.name || "Unknown"),
+          grams: Number(item.grams ?? item.weight ?? 0),
+          gi: Number(item.gi ?? 0),
+          gl: Number(item.gl ?? 0),
+          oilG: Number(item.oil_g ?? item.oilG ?? 0),
+          protein: Number(item.protein ?? 0),
+          fat: Number(item.fat ?? 0),
+          fiber: Number(item.fiber ?? 0),
         }));
       }
       if (parsedIngredients.length === 0) {

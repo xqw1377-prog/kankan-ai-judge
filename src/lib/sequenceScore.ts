@@ -1,7 +1,6 @@
 /**
- * Compute a per-meal sequence score (0-100) based on ingredient composition.
- * Evaluates whether the eating order follows the optimal pattern:
- * Vegetables/Fiber → Protein → Carbs/Starches
+ * Unused helper. Ingredient array order is not a measured eating order.
+ * Do not show this number as "you ate in this sequence."
  */
 
 interface IngredientLike {
@@ -43,10 +42,7 @@ const IDEAL_ORDER: Record<IngCategory, number> = {
   carb: 2,
 };
 
-/**
- * Score the ingredient list as if eaten top-to-bottom.
- * Returns 0-100 where 100 = perfect order (fiber → protein → carbs).
- */
+/** Scores array order only. This is not an eating-order measurement. */
 export function computeSequenceScore(ingredients: IngredientLike[]): number {
   if (ingredients.length <= 1) return 80; // Single ingredient = decent by default
 

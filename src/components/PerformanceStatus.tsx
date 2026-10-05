@@ -36,11 +36,8 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
     return () => clearTimeout(timer);
   }, [gaugeOffset]);
 
-  const nowHour = new Date().getHours();
-  const focusHours = state === "surplus" ? ((battery - 50) / 20 * 2.5).toFixed(1) : "0";
-  const sustainTime = `${Math.min(nowHour + Math.ceil(parseFloat(focusHours)), 23)}:00`;
-  const crashTime = `${Math.min(nowHour + 3, 23)}:00`;
-  const perfLoss = state === "deficit" ? Math.min(60, Math.round((50 - battery) * 1.2)) : 0;
+  const crashTime = "";
+  const perfLoss = 0;
 
   const cfg = {
     surplus: {
@@ -67,9 +64,9 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
   }[state];
 
   const hedgeOptions = [
-    { key: "water", icon: Droplets, label: "补充500ml电解质水", effect: "稀释血糖峰值，挽回约15%性能损耗" },
-    { key: "walk", icon: Footprints, label: "餐后15分钟快走", effect: "加速葡萄糖利用，挽回约30%损耗" },
-    { key: "rest", icon: Coffee, label: "5分钟深呼吸冥想", effect: "降低皮质醇，恢复专注力基线" },
+    { key: "water", icon: Droplets, label: "喝一些水", effect: "这不是测到的效果。" },
+    { key: "walk", icon: Footprints, label: "餐后走一走", effect: "这不是测到的效果。" },
+    { key: "rest", icon: Coffee, label: "休息几分钟", effect: "这不是测到的效果。" },
   ];
 
   // Gauge bar math: center is 50%, bar extends left or right
@@ -157,11 +154,7 @@ export default function PerformanceStatus({ todayTotals, targets }: Props) {
         {/* Status description */}
         <div className={`text-sm font-bold leading-relaxed ${state === "deficit" ? "animate-pulse" : ""}`}
           style={{ color: cfg.color }}>
-          {state === "surplus"
-            ? `🟢 今日生理性能处于牛市，专注力预计增值 ${Math.round(parseFloat(focusHours) * 60)}min。`
-            : state === "deficit"
-              ? `🔴 当前处于生理空头，下午 ${crashTime} 存在宕机风险，建议立即补救。`
-              : `⚡ ${t.perfNeutralDesc}`}
+          {t.perfNeutralDesc}
         </div>
 
         {/* Deficit flash warning */}

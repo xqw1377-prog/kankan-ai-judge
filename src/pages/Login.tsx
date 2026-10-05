@@ -5,6 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { clearGuestMode, markGuestMode } from "@/lib/localData";
+import { adoptGuestLocalData } from "@/lib/guestHandoff";
+import { readClaimToken, rememberClaimToken, retryStoredGuestClaim } from "@/lib/guestClaim";
+import { profileSaveBody } from "@/lib/serverWrites";
 
 export default function Login() {
   const { t } = useI18n();
@@ -21,14 +24,37 @@ export default function Login() {
   const handleSignIn = async () => {
     if (!email || !password) return;
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: before } = await supabase.auth.getSession();
+    let claimToken = readClaimToken();
+    if (before.session?.user?.is_anonymous) {
+      const issued = await supabase.functions.invoke("claim-guest-meal", { body: { action: "issue" } });
+      const token = issued.data && typeof issued.data === "object" ? (issued.data as { token?: unknown }).token : null;
+      if (typeof token === "string") {
+        claimToken = token;
+        rememberClaimToken(token);
+      }
+    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       toast({ title: t.loginError, description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: t.loginSuccess, description: t.loginWelcomeBack });
-      navigate("/", { replace: true });
+      return;
     }
+    const claimResult = claimToken
+      ? await retryStoredGuestClaim(async (token) => {
+        const result = await supabase.functions.invoke("claim-guest-meal", { body: { action: "claim", token } });
+        const status = result.data && typeof result.data === "object" ? (result.data as { status?: unknown }).status : "";
+        return { error: result.error, status };
+      })
+      : "none";
+    const claimed = claimResult !== "failed";
+    if (claimed && data.user) adoptGuestLocalData(data.user.id, { includeProfile: false });
+    else if (claimed) clearGuestMode();
+    toast({
+      title: claimed ? t.loginSuccess : t.guestClaimPending,
+      description: claimed ? t.loginWelcomeBack : t.guestClaimPendingDesc,
+    });
+    navigate("/", { replace: true });
   };
 
   const handleSignUp = async () => {
@@ -50,7 +76,16 @@ export default function Login() {
         toast({ title: t.loginSignUpSuccess, description: t.loginSignUpSuccessDesc });
         return;
       }
-      clearGuestMode();
+      if (data.user) {
+        const carried = adoptGuestLocalData(data.user.id, { includeProfile: true });
+        if (carried.profile) {
+          await supabase.functions.invoke("save-profile", {
+            body: profileSaveBody({ ...carried.profile } as Record<string, unknown>),
+          });
+        }
+      } else {
+        clearGuestMode();
+      }
       toast({ title: t.loginSignUpSuccess, description: t.loginWelcomeBack });
       navigate("/", { replace: true });
       return;
@@ -64,6 +99,7 @@ export default function Login() {
     if (error) {
       toast({ title: t.loginError, description: error.message, variant: "destructive" });
     } else {
+      clearGuestMode();
       toast({ title: t.loginSignUpSuccess, description: t.loginSignUpSuccessDesc });
       setMode("signin");
     }
@@ -100,14 +136,15 @@ export default function Login() {
 
       {/* Header */}
       <div className="pt-[max(3rem,env(safe-area-inset-top))] px-6 text-center relative z-10">
-        <div
-          className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-          style={{
-            background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))",
-            boxShadow: "0 8px 32px hsl(var(--primary) / 0.3)",
-          }}
-        >
-          <span className="text-2xl font-black text-primary-foreground">K</span>
+        <div className="mx-auto mb-4 flex flex-col items-center gap-1">
+          <svg viewBox="0 0 64 40" className="h-10 w-16" aria-hidden="true">
+            <path fill="hsl(42 88% 52%)" d="M32 20C24 8 8 4 4 14c6 2 16 6 28 6z" />
+            <path fill="hsl(36 78% 42%)" d="M32 20C22 28 8 34 6 24c8-1 16-3 26-4z" />
+            <path fill="hsl(42 88% 52%)" d="M32 20c8-12 24-16 28-6-6 2-16 6-28 6z" />
+            <path fill="hsl(36 78% 42%)" d="M32 20c10 8 24 14 26 4-8-1-16-3-26-4z" />
+            <ellipse cx="32" cy="20" rx="1.6" ry="7" fill="hsl(28 35% 22%)" />
+          </svg>
+          <span className="text-lg font-black tracking-[0.28em] text-card-foreground">KK</span>
         </div>
         <h1 className="text-2xl font-black text-card-foreground tracking-tight">KanKan</h1>
         <p className="text-xs text-muted-foreground/60 mt-1 font-mono tracking-widest">
@@ -131,31 +168,43 @@ export default function Login() {
 
             <form onSubmit={handleSubmit} className="space-y-4 mt-4">
               {/* Email */}
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder={t.loginEmailPlaceholder}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary text-sm text-card-foreground outline-none border border-border focus:border-primary transition-colors"
-                />
+              <div>
+                <label htmlFor="login-email" className="mb-1.5 block text-sm font-semibold text-card-foreground">
+                  {t.loginEmailLabel}
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    id="login-email"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder={t.loginEmailPlaceholder}
+                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary text-base text-card-foreground outline-none border border-border focus:border-primary transition-colors"
+                  />
+                </div>
               </div>
 
               {/* Password (hidden in forgot mode) */}
               {mode !== "forgot" && (
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="password"
-                    required
-                    minLength={6}
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder={t.loginPasswordPlaceholder}
-                    className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary text-sm text-card-foreground outline-none border border-border focus:border-primary transition-colors"
-                  />
+                <div>
+                  <label htmlFor="login-password" className="mb-1.5 block text-sm font-semibold text-card-foreground">
+                    {t.loginPasswordLabel}
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <input
+                      id="login-password"
+                      type="password"
+                      required
+                      minLength={6}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder={t.loginPasswordPlaceholder}
+                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-secondary text-base text-card-foreground outline-none border border-border focus:border-primary transition-colors"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -214,10 +263,10 @@ export default function Login() {
             markGuestMode();
             navigate("/", { replace: true });
           }}
-          className="text-xs text-muted-foreground/40 hover:text-muted-foreground/60 transition-colors font-mono">
+          className="text-sm font-semibold text-card-foreground hover:text-primary transition-colors">
           {t.loginSkip}
         </button>
-        <p className="text-[8px] text-muted-foreground/25 leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           {t.loginTerms}
         </p>
       </div>

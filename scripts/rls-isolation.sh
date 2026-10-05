@@ -37,4 +37,46 @@ for migration in supabase/migrations/*.sql; do
 done
 
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/meal_isolation.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/consume_once.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/guest_claim.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/guest_lease.sql
+
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+INSERT INTO public.meal_analyses (id, user_id, food_name, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion)
+VALUES (
+  'cccccccc-cccc-cccc-cccc-cccccccccccc',
+  '11111111-1111-1111-1111-111111111111',
+  '并发午饭',
+  400, 20, 10, 40,
+  '[{"name":"米饭","grams":150}]'::jsonb,
+  '可以。',
+  '正常吃。'
+);
+SQL
+
+psql "$DATABASE_URL" -tA -v ON_ERROR_STOP=1 -c "SELECT public.consume_analysis_into_meal('11111111-1111-1111-1111-111111111111', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'lunch', NULL)->>'status'" > /tmp/kankan-consume-a.txt &
+psql "$DATABASE_URL" -tA -v ON_ERROR_STOP=1 -c "SELECT public.consume_analysis_into_meal('11111111-1111-1111-1111-111111111111', 'cccccccc-cccc-cccc-cccc-cccccccccccc', 'lunch', NULL)->>'status'" > /tmp/kankan-consume-b.txt &
+wait
+statuses=$(sort /tmp/kankan-consume-a.txt /tmp/kankan-consume-b.txt | tr -d '[:space:]')
+if [[ "$statuses" != "already_consumedcreated" ]]; then
+  echo "concurrent consume statuses were: $(cat /tmp/kankan-consume-a.txt /tmp/kankan-consume-b.txt)" >&2
+  exit 1
+fi
+meal_count=$(psql "$DATABASE_URL" -tA -c "SELECT count(*) FROM public.meal_records WHERE food_name = '并发午饭'")
+if [[ "$meal_count" != "1" ]]; then
+  echo "concurrent consume created $meal_count meals" >&2
+  exit 1
+fi
+psql "$DATABASE_URL" -c "INSERT INTO public.ai_usage (user_id, kind) VALUES ('11111111-1111-1111-1111-111111111111', 'guest_success');" > /tmp/kankan-guest-a.txt 2>&1 &
+psql "$DATABASE_URL" -c "INSERT INTO public.ai_usage (user_id, kind) VALUES ('11111111-1111-1111-1111-111111111111', 'guest_success');" > /tmp/kankan-guest-b.txt 2>&1 &
+wait || true
+guest_slots=$(psql "$DATABASE_URL" -tA -c "SELECT count(*) FROM public.ai_usage WHERE user_id = '11111111-1111-1111-1111-111111111111' AND kind = 'guest_success'")
+if [[ "$guest_slots" != "1" ]]; then
+  echo "concurrent guest reservations created $guest_slots rows" >&2
+  cat /tmp/kankan-guest-a.txt /tmp/kankan-guest-b.txt >&2
+  exit 1
+fi
 echo "RLS isolation passed"
+echo "analysis single-consumption passed"
+echo "guest claim passed"
+echo "guest slot single-reservation passed"

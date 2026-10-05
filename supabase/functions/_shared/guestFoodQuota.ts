@@ -6,8 +6,8 @@ import {
 } from "./guestQuotaDecision.ts";
 import { json } from "./guard.ts";
 
-const GUEST_LIMIT_BODY = {
-  error: "免费体验已用完，注册后继续记录",
+export const GUEST_LIMIT_BODY = {
+  error: "本次免费体验已用完，注册后继续记录",
   code: GUEST_FREE_LIMIT,
 };
 
@@ -17,12 +17,13 @@ export function denyAnonymousAi(isAnonymous: boolean, cors: Record<string, strin
   return json(403, { error: "注册后可继续使用云端分析", code: "REGISTER_REQUIRED" }, cors);
 }
 
-async function successfulGuestAnalyses(supabase: SupabaseClient, userId: string): Promise<number | null> {
+export async function guestSuccessCount(supabase: SupabaseClient, userId: string): Promise<number | null> {
   const { count, error } = await supabase
     .from("ai_usage")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .eq("kind", GUEST_SUCCESS_KIND);
+    .eq("kind", GUEST_SUCCESS_KIND)
+    .or("status.eq.completed,status.is.null");
   if (error) return null;
   return count ?? 0;
 }
@@ -35,14 +36,14 @@ export async function enforceGuestFoodQuota(
   cors: Record<string, string>,
 ): Promise<Response | null> {
   if (!isAnonymous) return null;
-  const successfulCount = await successfulGuestAnalyses(supabase, userId);
+  const successfulCount = await guestSuccessCount(supabase, userId);
   if (successfulCount == null) return json(503, { error: "暂时无法校验调用次数" }, cors);
   const decision = guestQuotaDecision({ isAnonymous: true, successfulCount });
   if (!decision.allow) return json(decision.status, GUEST_LIMIT_BODY, cors);
   return null;
 }
 
-/** Call only after a successful analysis was stored. A unique index keeps the lifetime cap at one. */
+/** Call only after a successful analysis was stored. One row per anonymous trial, not per person for life. */
 export async function recordGuestFoodSuccess(
   supabase: SupabaseClient,
   userId: string,
@@ -55,8 +56,63 @@ export async function recordGuestFoodSuccess(
     kind: GUEST_SUCCESS_KIND,
   });
   if (!error) return null;
-  const duplicate = error.code === "23505"
-    || /duplicate key|ai_usage_one_guest_success/i.test(error.message ?? "");
-  if (duplicate) return json(403, GUEST_LIMIT_BODY, cors);
+  if (duplicateGuestSlot(error)) return json(403, GUEST_LIMIT_BODY, cors);
   return json(503, { error: "暂时无法校验调用次数" }, cors);
+}
+
+function asReplay(row: Record<string, unknown>) {
+  return {
+    food: String(row.food_name ?? ""),
+    calories: Number(row.calories) || 0,
+    protein_g: Number(row.protein_g) || 0,
+    fat_g: Number(row.fat_g) || 0,
+    carbs_g: Number(row.carbs_g) || 0,
+    ingredients: Array.isArray(row.ingredients) ? row.ingredients : [],
+    verdict: String(row.verdict ?? ""),
+    suggestion: String(row.suggestion ?? ""),
+    analysis_id: String(row.id),
+    recovered: true,
+  };
+}
+
+function duplicateGuestSlot(error: { code?: string; message?: string }) {
+  return error.code === "23505" || /duplicate key|ai_usage_one_guest_success/i.test(error.message ?? "");
+}
+
+/** Insert or reclaim the one guest_success row before the model call. */
+export async function reserveGuestFoodSlot(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<"reserved" | "reclaimed" | "taken" | "error"> {
+  const { data, error } = await supabase.rpc("reserve_guest_food_slot", { p_user_id: userId });
+  if (error || typeof data !== "string") return "error";
+  if (data === "reserved" || data === "reclaimed" || data === "taken") return data;
+  return "error";
+}
+
+/** Drop a reservation that never stored an analysis, so the trial can be retried. */
+export async function releaseGuestFoodSlot(supabase: SupabaseClient, userId: string): Promise<void> {
+  await supabase.rpc("release_guest_food_slot", { p_user_id: userId });
+}
+
+/** The stored analysis is the completed trial. A crash after this must not look like a fresh lease. */
+export async function completeGuestFoodSlot(supabase: SupabaseClient, userId: string): Promise<void> {
+  await supabase.rpc("complete_guest_food_slot", { p_user_id: userId });
+}
+
+/** Exact idempotency-key match only. A different photo does not replay an older analysis. */
+export async function replayGuestAnalysis(
+  supabase: SupabaseClient,
+  userId: string,
+  idempotencyKey: string,
+): Promise<Record<string, unknown> | null> {
+  if (!idempotencyKey) return null;
+  const { data } = await supabase
+    .from("meal_analyses")
+    .select("id, food_name, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion")
+    .eq("user_id", userId)
+    .eq("idempotency_key", idempotencyKey)
+    .maybeSingle();
+  if (!data?.id) return null;
+  return asReplay(data as Record<string, unknown>);
 }

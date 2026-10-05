@@ -1,5 +1,6 @@
 import { useRef, useState, useMemo, useCallback } from "react";
 import { useI18n } from "@/lib/i18n";
+import type { Dictionary } from "@/lib/i18n/types";
 import { useToast } from "@/hooks/use-toast";
 import html2canvas from "html2canvas";
 import InvestmentReportCard from "./InvestmentReportCard";
@@ -59,7 +60,7 @@ function glFromMeals(meals: Meal[]): { week: number; gl: number; predicted?: boo
 }
 
 // ──── Balance Sheet Section ────
-function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
+function BalanceSheet({ meals, t }: { meals: Meal[]; t: Dictionary }) {
   const stats = useMemo(() => {
     if (meals.length === 0) return { protein: 0 };
     const protein = meals.reduce((sum, meal) => sum + meal.protein_g, 0);
@@ -80,13 +81,13 @@ function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
     <div className="grid grid-cols-2 gap-3">
       {/* Assets (Left) */}
       <div className="rounded-xl p-3" style={{ background: DARK_BG, border: `1px solid ${CARD_BORDER}` }}>
-        <p className="text-[9px] font-bold uppercase tracking-wider mb-2" style={{ color: GOLD_DIM }}>
+        <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: GOLD_DIM }}>
           🧬 {t.intakeAssets}
         </p>
         <div className="space-y-2">
           {assets.map((a) => (
             <div key={a.label} className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground">{a.label}</span>
+              <span className="text-[13px] text-muted-foreground">{a.label}</span>
               <span className="text-sm font-bold tabular-nums" style={{ color: GOLD }}>{a.value}</span>
             </div>
           ))}
@@ -94,13 +95,13 @@ function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
       </div>
       {/* Liabilities (Right) */}
       <div className="rounded-xl p-3" style={{ background: DARK_BG, border: `1px solid ${CARD_BORDER}` }}>
-        <p className="text-[9px] font-bold uppercase tracking-wider mb-2" style={{ color: "hsl(0 60% 55% / 0.6)" }}>
+        <p className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "hsl(0 60% 55% / 0.6)" }}>
           ⚠️ {t.metabolicLiabilities}
         </p>
         <div className="space-y-2">
           {liabilities.map((l) => (
             <div key={l.label} className="flex items-center justify-between">
-              <span className="text-[11px] text-muted-foreground">{l.label}</span>
+              <span className="text-[13px] text-muted-foreground">{l.label}</span>
               <span className="text-sm font-bold tabular-nums" style={{ color: l.bad ? RED : GOLD }}>{l.value}</span>
             </div>
           ))}
@@ -111,7 +112,7 @@ function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
 }
 
 // ──── GL Fluctuation Glow Area Chart ────
-function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predicted?: boolean }[]; t: any }) {
+function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predicted?: boolean }[]; t: Dictionary }) {
   const riskThreshold = 60;
 
   return (
@@ -171,7 +172,7 @@ function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predic
             stroke="hsl(43, 72%, 52%)"
             strokeWidth={2}
             fill="url(#glGoldGrad)"
-            dot={(props: any) => {
+            dot={(props: { cx?: number; cy?: number; payload?: { gl?: number; predicted?: boolean; week?: number } }) => {
               const { cx, cy, payload } = props;
               const isRisk = payload.gl >= riskThreshold;
               const isPredicted = payload.predicted;
@@ -196,15 +197,15 @@ function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predic
       <div className="flex items-center justify-center gap-4 mt-1 mb-1">
         <div className="flex items-center gap-1">
           <div className="w-2 h-2 rounded-full" style={{ background: GOLD }} />
-          <span className="text-[9px] text-muted-foreground">{t.glSteady}</span>
+          <span className="text-xs text-muted-foreground">{t.glSteady}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-2 h-2 rounded-full" style={{ background: RED }} />
-          <span className="text-[9px] text-muted-foreground">{t.glRiskZone}</span>
+          <span className="text-xs text-muted-foreground">{t.glRiskZone}</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="w-2 h-2 rounded-full border border-dashed" style={{ borderColor: GOLD_DIM }} />
-          <span className="text-[9px] text-muted-foreground">{t.predicted7d}</span>
+          <span className="text-xs text-muted-foreground">{t.predicted7d}</span>
         </div>
       </div>
     </div>
@@ -212,9 +213,9 @@ function GLNetValueChart({ data, t }: { data: { week: number; gl: number; predic
 }
 
 // ──── Correction Records ────
-function CorrectionLog({ records, t }: { records: { date: string; pct: string; action: string }[]; t: any }) {
+function CorrectionLog({ records, t }: { records: { date: string; pct: string; action: string }[]; t: Dictionary }) {
   if (records.length === 0) {
-    return <p className="text-[11px] text-muted-foreground text-center py-3">{t.noCorrectionRecords}</p>;
+    return <p className="text-[13px] text-muted-foreground text-center py-3">{t.noCorrectionRecords}</p>;
   }
 
   return (
@@ -233,16 +234,16 @@ function CorrectionLog({ records, t }: { records: { date: string; pct: string; a
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-[10px] text-muted-foreground">{r.date}</span>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{
+              <span className="text-[13px] text-muted-foreground">{r.date}</span>
+              <span className="text-[13px] font-bold px-1.5 py-0.5 rounded" style={{
                 color: GOLD,
                 background: "hsl(43 72% 52% / 0.08)",
               }}>
                 +{r.pct}%
               </span>
             </div>
-            <p className="text-[11px] text-card-foreground leading-snug">{r.action}</p>
-            <p className="text-[9px] mt-0.5" style={{ color: GOLD_DIM }}>
+            <p className="text-[13px] text-card-foreground leading-snug">{r.action}</p>
+            <p className="text-xs mt-0.5" style={{ color: GOLD_DIM }}>
               {t.correctionEntry(r.pct)}
             </p>
           </div>
@@ -408,7 +409,7 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
                 {t.quarterlyReport}
               </span>
             </div>
-            <span className="text-[9px] px-2 py-0.5 rounded-full font-bold"
+            <span className="text-xs px-2 py-0.5 rounded-full font-bold"
               style={{ color: "hsl(43, 72%, 55%)", background: "hsl(43 72% 52% / 0.1)", border: "1px solid hsl(43 72% 52% / 0.15)" }}>
               {t.betaTester}
             </span>
@@ -418,28 +419,28 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
         {/* KPI Cards */}
         <div className="grid grid-cols-2 gap-3 px-5 pb-4 relative z-10">
           <div className="rounded-xl p-3" style={{ background: DARK_BG, border: `1px solid ${CARD_BORDER}` }}>
-            <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">{t.avgGiVolatility}</p>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">{t.avgGiVolatility}</p>
             <p className="text-xl font-black tabular-nums" style={{ color: GOLD }}>
               {giVolatility}
-              <span className="text-[10px] text-muted-foreground font-normal ml-1">σ</span>
+              <span className="text-[13px] text-muted-foreground font-normal ml-1">σ</span>
             </p>
-            <p className="text-[9px] text-muted-foreground mt-0.5">avg GL {avgGI}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">avg GL {avgGI}</p>
           </div>
           <div className="rounded-xl p-3" style={{ background: DARK_BG, border: `1px solid ${CARD_BORDER}` }}>
-            <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-1">{t.dietAssetBalance}</p>
+            <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-1">{t.dietAssetBalance}</p>
             <p className="text-xl font-black tabular-nums" style={{
               color: macroBalance.score >= 70 ? GOLD : macroBalance.score >= 50 ? "hsl(30, 90%, 50%)" : RED,
             }}>
               {macroBalance.score}
-              <span className="text-[10px] text-muted-foreground font-normal ml-1">/ 100</span>
+              <span className="text-[13px] text-muted-foreground font-normal ml-1">/ 100</span>
             </p>
-            <p className="text-[9px] text-muted-foreground mt-0.5">{t.balanceScore}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{t.balanceScore}</p>
           </div>
         </div>
 
         {/* ═══ Balance Sheet ═══ */}
         <div className="px-5 pb-4 relative z-10">
-          <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">
             🧪 {t.intakeAssets} / {t.metabolicLiabilities}
           </p>
           <BalanceSheet meals={meals} t={t} />
@@ -447,13 +448,13 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
 
         {/* ═══ GL Fluctuation Glow Area Chart ═══ */}
         <div className="px-5 pb-4 relative z-10">
-          <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">{t.glNetValueCurve}</p>
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">{t.glNetValueCurve}</p>
           <GLNetValueChart data={glData} t={t} />
         </div>
 
         {/* Radar Chart */}
         <div className="px-5 pb-3 relative z-10">
-          <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">{t.macroRadar}</p>
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">{t.macroRadar}</p>
           <div className="flex items-center justify-center rounded-xl py-2" style={{
             background: "hsl(220 15% 6% / 0.6)",
             border: "1px solid hsl(43 72% 52% / 0.06)",
@@ -470,7 +471,7 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
 
         {/* ═══ Correction Log ═══ */}
         <div className="px-5 pb-4 relative z-10">
-          <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">
             📝 {t.correctionLog}
           </p>
           <CorrectionLog records={correctionRecords} t={t} />
@@ -478,7 +479,7 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
 
         {/* Rebalance suggestions */}
         <div className="px-5 pb-4 relative z-10">
-          <p className="text-[9px] text-muted-foreground font-semibold uppercase tracking-wider mb-2">
+          <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wider mb-2">
             🩺 {t.rebalanceSuggestion}
           </p>
           <div className="space-y-1.5">
@@ -487,8 +488,8 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
                 background: "hsl(43 72% 52% / 0.05)",
                 border: "1px solid hsl(43 72% 52% / 0.08)",
               }}>
-                <span className="text-[10px] mt-0.5" style={{ color: GOLD }}>▸</span>
-                <p className="text-[11px] text-card-foreground leading-relaxed">{tip}</p>
+                <span className="text-[13px] mt-0.5" style={{ color: GOLD }}>▸</span>
+                <p className="text-[13px] text-card-foreground leading-relaxed">{tip}</p>
               </div>
             ))}
           </div>

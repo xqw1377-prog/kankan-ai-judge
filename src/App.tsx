@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { canonicalPath } from "@/lib/routes";
 import { Suspense, type ReactNode } from "react";
-import { I18nProvider } from "@/lib/i18n";
+import { I18nProvider, useI18n } from "@/lib/i18n";
+import { useGuestClaimRecovery } from "@/hooks/useGuestClaimRecovery";
 import BottomNav from "@/components/BottomNav";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
@@ -25,6 +26,25 @@ const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
+function ClaimRetryBar() {
+  const { t } = useI18n();
+  const { needsRetry, pending, retry } = useGuestClaimRecovery();
+  if (!needsRetry) return null;
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-primary/20 bg-primary/10 px-4 py-2">
+      <p className="text-sm text-card-foreground">{t.guestClaimPending}</p>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => void retry()}
+        className="shrink-0 rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+      >
+        {t.guestClaimRetry}
+      </button>
+    </div>
+  );
+}
+
 function Page({ children }: { children: ReactNode }) {
   return (
     <RouteErrorBoundary>
@@ -42,7 +62,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="h-full flex flex-col">
+          <div className="h-full bg-muted">
+            <div className="mx-auto flex h-full w-full max-w-[480px] flex-col bg-background md:max-w-2xl lg:max-w-3xl">
+            <ClaimRetryBar />
             <Routes>
               <Route path="/onboarding" element={<Page><Onboarding /></Page>} />
               <Route path="/" element={<Page><Index /></Page>} />
@@ -60,6 +82,7 @@ const App = () => (
               <Route path="*" element={<Page><NotFound /></Page>} />
             </Routes>
             <BottomNav />
+            </div>
           </div>
         </BrowserRouter>
       </I18nProvider>

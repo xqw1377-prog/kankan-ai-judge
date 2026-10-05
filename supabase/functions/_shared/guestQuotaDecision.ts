@@ -9,7 +9,8 @@ export type GuestQuotaDecision =
 
 /**
  * Permanent users are not capped here.
- * An anonymous user may complete this many successful analyses, then must register.
+ * One anonymous session may complete this many successful analyses.
+ * This is not a lifetime limit on a person, and it is not tied to a device id.
  */
 export function guestQuotaDecision(input: {
   isAnonymous: boolean;
@@ -20,4 +21,38 @@ export function guestQuotaDecision(input: {
     return { allow: false, status: 403, code: GUEST_FREE_LIMIT };
   }
   return { allow: true };
+}
+
+/** A lost response should replay the stored trial result instead of looking like a new denial. */
+export function guestRetryDecision(input: {
+  isAnonymous: boolean;
+  hasStoredAnalysis: boolean;
+  quotaAllows: boolean;
+}): "analyze" | "replay" | "block" {
+  if (!input.isAnonymous) return "analyze";
+  if (input.hasStoredAnalysis) return "replay";
+  if (!input.quotaAllows) return "block";
+  return "analyze";
+}
+
+/** Permanent accounts never persist a photo key. Only an anonymous trial does. */
+export function persistedIdempotencyKey(isAnonymous: boolean, raw: unknown): string | null {
+  if (!isAnonymous || typeof raw !== "string") return null;
+  const key = raw.trim().slice(0, 80);
+  return key || null;
+}
+
+/** After the atomic guest slot insert: one winner analyses, a loser replays only an exact key. */
+export function resolveGuestReservation(input: {
+  reserved: "reserved" | "reclaimed" | "taken" | "error";
+  hasStoredAnalysis: boolean;
+}): "analyze" | "replay" | "block" | "unavailable" {
+  if (input.reserved === "error") return "unavailable";
+  if (input.reserved === "reserved" || input.reserved === "reclaimed") return "analyze";
+  const retry = guestRetryDecision({
+    isAnonymous: true,
+    hasStoredAnalysis: input.hasStoredAnalysis,
+    quotaAllows: false,
+  });
+  return retry === "replay" ? "replay" : "block";
 }
