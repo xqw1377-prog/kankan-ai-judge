@@ -15,7 +15,9 @@ serve(async (req) => {
   }
 
   try {
-    const { ingredients, language = "zh-CN" } = await req.json();
+    const { ingredients, language = "zh-CN", dishName: rawDish, cookingMethod: rawCook } = await req.json();
+    const dishName = typeof rawDish === "string" ? rawDish.trim().slice(0, 40) : "";
+    const cookingMethod = typeof rawCook === "string" ? rawCook.trim().slice(0, 30) : "";
     const auth = await requireUser(req, corsHeaders);
     if (auth instanceof Response) return auth;
     const anonymous = denyAnonymousAi(auth.isAnonymous, corsHeaders);
@@ -45,6 +47,10 @@ serve(async (req) => {
     const userMessage = isEnglish
       ? `Based on these ingredients, what dish is this most likely? Recalculate nutrition.\n\nIngredients: ${ingredientList}`
       : `根据以下食材，推断这最可能是什么菜，并重新计算营养数据。\n\n食材清单：${ingredientList}`;
+    const extra = [
+      dishName ? (isEnglish ? `User-confirmed dish name: ${dishName}. Use it as the dish name.` : `用户确认的菜名：${dishName}，请以此为菜名。`) : "",
+      cookingMethod ? (isEnglish ? `Cooking method: ${cookingMethod}. Account for its oil and nutrition impact.` : `烹饪方式：${cookingMethod}，请计入其用油和营养影响。`) : "",
+    ].filter(Boolean).join("\n");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -56,7 +62,7 @@ serve(async (req) => {
         model: "google/gemini-2.5-flash-lite",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage },
+          { role: "user", content: extra ? `${userMessage}\n\n${extra}` : userMessage },
         ],
         tools: [
           {
@@ -95,7 +101,7 @@ serve(async (req) => {
 
     if (toolCall?.function?.arguments) {
       const result = JSON.parse(toolCall.function.arguments);
-      const foodName = String(result?.food ?? "").trim();
+      const foodName = dishName || String(result?.food ?? "").trim();
       const calories = Number(result?.calories) || 0;
       const protein = Number(result?.protein_g) || 0;
       const fat = Number(result?.fat_g) || 0;
@@ -114,7 +120,7 @@ serve(async (req) => {
         suggestion: result.suggestion,
       });
       if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
-      return json(200, { ...result, analysis_id: analysisId }, corsHeaders);
+      return json(200, { ...result, food: foodName, analysis_id: analysisId }, corsHeaders);
     }
 
     return json(422, { error: "没能识别这餐" }, corsHeaders);

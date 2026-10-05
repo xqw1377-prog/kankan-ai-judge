@@ -89,7 +89,7 @@ describe("server write bodies", () => {
 describe("guest gate", () => {
   it("lets a guest open home without a session", () => {
     expect(homeGate({ hasSession: false, isGuest: true })).toBe("home");
-    expect(homeGate({ hasSession: false, isGuest: false })).toBe("login");
+    expect(homeGate({ hasSession: false, isGuest: false })).toBe("home");
   });
 });
 

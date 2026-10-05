@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ChevronLeft, Check, Plus, Trash2, Minus, Sparkles, Wand2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,7 +68,10 @@ const EditIngredients = () => {
     };
   }, [ingredients, cookingMethod]);
 
+  // Every edit bumps the revision; a server reply for an older revision is discarded.
+  const revisionRef = useRef(0);
   const invalidateAnalysis = () => {
+    revisionRef.current += 1;
     setAnalysisId("");
     setServerResult(null);
   };
@@ -105,12 +108,7 @@ const EditIngredients = () => {
     setShowAdd(false);
   };
 
-  const showResearchFeedback = useCallback(() => {
-    toast({
-      title: "📊 " + t.dataStoredToResearchLab,
-      description: "🎯 " + t.precisionUp,
-    });
-  }, [toast, t]);
+  const showResearchFeedback = useCallback(() => {}, []);
 
   const handleStep = (idx: number, delta: number) => {
     const updated = [...ingredients];
@@ -147,10 +145,12 @@ const EditIngredients = () => {
       return;
     }
     setReInferring(true);
+    const revision = revisionRef.current;
     try {
       const { data, error } = await supabase.functions.invoke("re-infer-dish", {
-        body: { ingredients, language: locale },
+        body: { ingredients, language: locale, dishName: foodNameValue.trim(), cookingMethod },
       });
+      if (revision !== revisionRef.current) return;
       if (error || data?.error || typeof data?.analysis_id !== "string") {
         toast({ title: t.reInferFailed, variant: "destructive" });
         return;
@@ -175,7 +175,7 @@ const EditIngredients = () => {
     } finally {
       setReInferring(false);
     }
-  }, [reInferring, ingredients, locale, toast, t]);
+  }, [reInferring, ingredients, locale, toast, t, foodNameValue, cookingMethod]);
 
   const triggerConfetti = useCallback(() => {
     setShowConfetti(true);
@@ -188,11 +188,6 @@ const EditIngredients = () => {
         navigate("/result", { state: resultState, replace: true });
         return;
       }
-      triggerConfetti();
-      toast({
-        title: "🎉 KANKAN " + t.editExpGain,
-        description: t.editExpDesc,
-      });
       setTimeout(() => {
         navigate("/result", {
           state: {
@@ -214,11 +209,7 @@ const EditIngredients = () => {
       toast({ title: t.saveMealFailed, variant: "destructive" });
       return;
     }
-    triggerConfetti();
-    toast({
-      title: "🎉 KANKAN " + t.editExpGain,
-      description: t.editExpDescUpdated,
-    });
+    toast({ title: t.reInferSuccess });
     setTimeout(() => navigate(-1), 800);
   };
 
@@ -239,8 +230,7 @@ const EditIngredients = () => {
         <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
           <div className="animate-scale-in flex flex-col items-center gap-2">
             <Sparkles className="w-16 h-16 text-primary animate-pulse" />
-            <span className="text-lg font-bold text-primary animate-fade-in">EXP +1</span>
-          </div>
+                      </div>
           {Array.from({ length: 20 }).map((_, i) => (
             <div
               key={i}
@@ -275,7 +265,7 @@ const EditIngredients = () => {
           <input
             type="text"
             value={foodNameValue}
-            onChange={e => setFoodNameValue(e.target.value)}
+            onChange={e => { setFoodNameValue(e.target.value); invalidateAnalysis(); }}
             placeholder={t.editFoodName}
             className="mt-1 text-xl font-bold text-center text-card-foreground bg-transparent border-b border-border/50 focus:border-primary outline-none w-full max-w-[240px] transition-colors"
           />
@@ -358,7 +348,7 @@ const EditIngredients = () => {
               { key: "raw" as CookingMethod, label: t.cookRaw, icon: "🥗" },
             ]).map(({ key, label, icon }) => (
               <button key={key}
-                onClick={() => setCookingMethod(key)}
+                onClick={() => { setCookingMethod(key); invalidateAnalysis(); }}
                 className={`flex-1 py-2 rounded-lg text-center transition-all duration-200 ${
                   cookingMethod === key
                     ? "bg-primary text-primary-foreground shadow-soft"
