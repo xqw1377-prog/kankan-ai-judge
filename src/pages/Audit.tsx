@@ -108,7 +108,7 @@ const Audit = () => {
     }
     const checked = inspectImages(images);
     if (!checked.ok) {
-      toast({ title: checked.error, variant: "destructive" });
+      toast({ title: (checked as { error: string }).error, variant: "destructive" });
       return;
     }
     const { data: sessionData } = await supabase.auth.getSession();

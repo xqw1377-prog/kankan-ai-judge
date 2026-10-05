@@ -28,8 +28,9 @@ const Scan = () => {
   const [consentGranted, setConsentGranted] = useState(hasAiConsent());
   const [failure, setFailure] = useState<"missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | null>(null);
   const [imageError, setImageError] = useState("");
+  type Outcome = { ok: true; result: ReturnType<typeof toFoodAnalysis> } | { ok: false; code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image"; message?: string };
   const startedRef = useRef(false);
-  const resultReadyRef = useRef<{ ok: boolean; code?: string; result?: unknown; message?: string } | null>(null);
+  const resultReadyRef = useRef<Outcome | null>(null);
   const minTimeRef = useRef(false);
 
   useEffect(() => {
@@ -40,11 +41,12 @@ const Scan = () => {
     return () => clearInterval(interval);
   }, [images.length]);
 
-  const finish = useCallback((outcome: { ok: true; result: ReturnType<typeof toFoodAnalysis> } | { ok: false; code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image"; message?: string }) => {
+  const finish = useCallback((outcome: Outcome) => {
     if (cancelled) return;
     if (!outcome.ok) {
-      if (outcome.message) setImageError(outcome.message);
-      setFailure(outcome.code);
+      const failed = outcome as { code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image"; message?: string };
+      if (failed.message) setImageError(failed.message);
+      setFailure(failed.code);
       return;
     }
     if (!outcome.result) {
@@ -64,7 +66,7 @@ const Scan = () => {
 
     const checked = inspectImages(images);
     if (!checked.ok) {
-      const outcome = { ok: false as const, code: "image" as const, message: checked.error };
+      const outcome = { ok: false as const, code: "image" as const, message: (checked as { error: string }).error };
       if (minTimeRef.current) finish(outcome);
       else resultReadyRef.current = outcome;
       return;
@@ -84,7 +86,7 @@ const Scan = () => {
       diet_preference: profile.diet_preference,
     } : {};
 
-    let outcome: { ok: true; result: ReturnType<typeof toFoodAnalysis> } | { ok: false; code: "missing_key" | "unavailable" | "unrecognized" };
+    let outcome: Outcome;
     try {
       const body = images.length === 1
         ? { imageBase64: images[0], userContext, language: locale }
