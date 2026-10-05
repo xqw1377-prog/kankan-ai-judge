@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ensureAnalysisSession } from "@/lib/ensureAnalysisSession";
-import { GUEST_FREE_LIMIT, guestQuotaDecision, guestRetryDecision, resolveGuestReservation } from "@/lib/guestQuota";
+import { GUEST_FREE_LIMIT, guestQuotaDecision, guestRetryDecision, persistedIdempotencyKey, resolveGuestReservation } from "@/lib/guestQuota";
 import { readInvokeFailure } from "@/lib/invokeFailure";
 
 describe("guest food quota", () => {
@@ -52,13 +52,23 @@ describe("lost guest response", () => {
     expect(outcomes.filter((outcome) => outcome === "analyze")).toHaveLength(1);
     expect(outcomes.filter((outcome) => outcome === "block")).toHaveLength(1);
     expect(resolveGuestReservation({ reserved: "taken", hasStoredAnalysis: true })).toBe("replay");
+    expect(resolveGuestReservation({ reserved: "reclaimed", hasStoredAnalysis: false })).toBe("analyze");
+  });
+});
+
+describe("idempotency key", () => {
+  it("stores a photo key only for an anonymous trial", () => {
+    expect(persistedIdempotencyKey(false, "abc")).toBeNull();
+    expect(persistedIdempotencyKey(true, "abc")).toBe("abc");
+    expect(persistedIdempotencyKey(true, "  ")).toBeNull();
+    expect(persistedIdempotencyKey(true, 12)).toBeNull();
   });
 });
 
 describe("function error body", () => {
   it("reads GUEST_FREE_LIMIT from the response", async () => {
     const context = new Response(JSON.stringify({
-      error: "每台设备的一次试用已用完，注册后继续记录",
+      error: "本次免费体验已用完，注册后继续记录",
       code: GUEST_FREE_LIMIT,
     }), { status: 403 });
     const failure = await readInvokeFailure(null, {
@@ -66,7 +76,7 @@ describe("function error body", () => {
       context,
     });
     expect(failure).toEqual({
-      message: "每台设备的一次试用已用完，注册后继续记录",
+      message: "本次免费体验已用完，注册后继续记录",
       code: GUEST_FREE_LIMIT,
     });
   });

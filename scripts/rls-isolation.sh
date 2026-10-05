@@ -39,6 +39,7 @@ done
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/meal_isolation.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/consume_once.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/guest_claim.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/guest_lease.sql
 
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
 INSERT INTO public.meal_analyses (id, user_id, food_name, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion)

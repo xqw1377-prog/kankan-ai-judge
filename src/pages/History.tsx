@@ -129,14 +129,14 @@ const History = () => {
         <div>
           <h1 className="text-xl font-bold text-card-foreground">{t.navHistory}</h1>
           {meals.length > 0 && (
-            <p className="text-[10px] font-mono text-muted-foreground mt-0.5 tracking-wider">
+            <p className="text-[13px] font-mono text-muted-foreground mt-0.5 tracking-wider">
               {meals.length} {isZh ? "条记录" : "records"}
             </p>
           )}
         </div>
         <button
           onClick={() => setLocale(isZh ? "en-US" : "zh-CN")}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass text-[10px] font-bold text-muted-foreground tracking-wider"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass text-[13px] font-bold text-muted-foreground tracking-wider"
         >
           <Globe className="w-3 h-3" />
           {isZh ? "EN" : "中"}
@@ -154,7 +154,7 @@ const History = () => {
                 setWeekOffset(0);
                 setMonthOffset(0);
               }}
-              className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold transition-all duration-200 ${
+              className={`flex-1 py-1.5 rounded-lg text-[13px] font-semibold transition-all duration-200 ${
                 filter === mode
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-card-foreground"
@@ -173,7 +173,7 @@ const History = () => {
         <div className="px-5 mb-3 flex items-center justify-between">
           <button
             onClick={() => setOffset(offset + 1)}
-            className="px-3 py-1 rounded-lg glass text-[10px] font-mono font-bold text-muted-foreground active:scale-95 transition-transform"
+            className="px-3 py-1 rounded-lg glass text-[13px] font-mono font-bold text-muted-foreground active:scale-95 transition-transform"
           >
             ← {isZh ? "上一" : "Prev"}{filter === "week" ? (isZh ? "周" : "") : (isZh ? "月" : "")}
           </button>
@@ -181,7 +181,7 @@ const History = () => {
           <button
             onClick={() => setOffset(Math.max(0, offset - 1))}
             disabled={offset === 0}
-            className="px-3 py-1 rounded-lg glass text-[10px] font-mono font-bold text-muted-foreground disabled:opacity-30 active:scale-95 transition-transform"
+            className="px-3 py-1 rounded-lg glass text-[13px] font-mono font-bold text-muted-foreground disabled:opacity-30 active:scale-95 transition-transform"
           >
             {isZh ? "下一" : "Next"}{filter === "week" ? (isZh ? "周" : "") : (isZh ? "月" : "")} →
           </button>
@@ -217,13 +217,13 @@ const History = () => {
                 },
               ].map((item, i) => (
                 <div key={i} className="text-center">
-                  <p className="text-[8px] font-mono text-muted-foreground/60 tracking-wider mb-1">{item.label}</p>
+                  <p className="text-xs font-mono text-muted-foreground/60 tracking-wider mb-1">{item.label}</p>
                   <p className="text-base font-black font-mono tabular-nums text-card-foreground leading-none">
                     {item.value}
-                    {item.unit && <span className="text-[8px] font-normal text-muted-foreground ml-0.5">{item.unit}</span>}
+                    {item.unit && <span className="text-xs font-normal text-muted-foreground ml-0.5">{item.unit}</span>}
                   </p>
                   {"trend" in item && item.trend !== undefined && item.trend !== 0 && (
-                    <div className={`flex items-center justify-center gap-0.5 mt-1 text-[8px] font-mono ${
+                    <div className={`flex items-center justify-center gap-0.5 mt-1 text-xs font-mono ${
                       item.trend > 0 ? "text-[hsl(var(--warning))]" : "text-[hsl(var(--success))]"
                     }`}>
                       {item.trend > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
@@ -236,7 +236,7 @@ const History = () => {
 
             {/* Macro Distribution Pie */}
             <div className="mt-3 pt-3 border-t border-border/20">
-              <p className="text-[8px] font-mono text-muted-foreground/50 tracking-wider mb-2">
+              <p className="text-xs font-mono text-muted-foreground/50 tracking-wider mb-2">
                 {isZh ? "营养素分布" : "MACRO DISTRIBUTION"}
               </p>
               <MacroPieChart
@@ -253,7 +253,7 @@ const History = () => {
             {/* Daily Goal Achievement */}
             {profile?.targets && profile.targets.calories > 0 && (
               <div className="mt-3 pt-3 border-t border-border/20">
-                <p className="text-[8px] font-mono text-muted-foreground/50 tracking-wider mb-2">
+                <p className="text-xs font-mono text-muted-foreground/50 tracking-wider mb-2">
                   {isZh ? "每日目标达成率" : "DAILY GOAL ACHIEVEMENT"}
                 </p>
                 <DailyGoalBars
@@ -267,7 +267,7 @@ const History = () => {
 
             {filteredMeals.length > 1 && (
               <div className="mt-3 pt-3 border-t border-border/20">
-                <p className="text-[8px] font-mono text-muted-foreground/50 tracking-wider mb-2">
+                <p className="text-xs font-mono text-muted-foreground/50 tracking-wider mb-2">
                   {isZh ? "热量趋势" : "CALORIE TREND"}
                 </p>
                 <MiniCalChart meals={filteredMeals} />
@@ -304,8 +304,8 @@ const History = () => {
             return (
               <div key={date}>
                 <div className="flex items-center justify-between mb-2.5 px-1">
-                  <p className="text-[11px] font-semibold text-muted-foreground">{date}</p>
-                  <p className="text-[9px] font-mono text-muted-foreground/60">
+                  <p className="text-[13px] font-semibold text-muted-foreground">{date}</p>
+                  <p className="text-xs font-mono text-muted-foreground/60">
                     {t.historyDailySummary(dateMeals.length, dayCal)}
                   </p>
                 </div>
@@ -402,8 +402,8 @@ function MacroPieChart({ protein, fat, carbs, prevProtein, prevFat, prevCarbs, i
           ))}
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-[9px] font-mono font-bold text-card-foreground">{Math.round(total)}g</span>
-          <span className="text-[7px] text-muted-foreground/50">{isZh ? "总计" : "total"}</span>
+          <span className="text-xs font-mono font-bold text-card-foreground">{Math.round(total)}g</span>
+          <span className="text-xs text-muted-foreground/50">{isZh ? "总计" : "total"}</span>
         </div>
       </div>
       <div className="flex-1 space-y-1.5">
@@ -412,11 +412,11 @@ function MacroPieChart({ protein, fat, carbs, prevProtein, prevFat, prevCarbs, i
           return (
             <div key={i} className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: seg.color }} />
-              <span className="text-[9px] font-mono text-muted-foreground flex-1">{seg.label}</span>
-              <span className="text-[10px] font-mono font-bold text-card-foreground tabular-nums">{seg.grams}g</span>
-              <span className="text-[8px] font-mono text-muted-foreground/50 w-7 text-right">{seg.pct}%</span>
+              <span className="text-xs font-mono text-muted-foreground flex-1">{seg.label}</span>
+              <span className="text-[13px] font-mono font-bold text-card-foreground tabular-nums">{seg.grams}g</span>
+              <span className="text-xs font-mono text-muted-foreground/50 w-7 text-right">{seg.pct}%</span>
               {diff !== null && diff !== 0 && (
-                <span className={`flex items-center text-[8px] font-mono w-10 justify-end ${
+                <span className={`flex items-center text-xs font-mono w-10 justify-end ${
                   diff > 0 ? "text-[hsl(var(--warning))]" : "text-[hsl(var(--success))]"
                 }`}>
                   {diff > 0 ? <TrendingUp className="w-2.5 h-2.5 mr-0.5" /> : <TrendingDown className="w-2.5 h-2.5 mr-0.5" />}
@@ -424,7 +424,7 @@ function MacroPieChart({ protein, fat, carbs, prevProtein, prevFat, prevCarbs, i
                 </span>
               )}
               {diff !== null && diff === 0 && (
-                <span className="flex items-center text-[8px] font-mono text-muted-foreground/40 w-10 justify-end">
+                <span className="flex items-center text-xs font-mono text-muted-foreground/40 w-10 justify-end">
                   <Minus className="w-2.5 h-2.5" />
                 </span>
               )}
@@ -487,8 +487,8 @@ function DailyGoalBars({ meals, targetCal, targetProtein, isZh }: {
         ].map((item, idx) => (
           <div key={idx}>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[8px] font-mono text-muted-foreground">{item.label}</span>
-              <span className={`text-[10px] font-mono font-bold ${pctClass(item.pct)}`}>{item.pct}%</span>
+              <span className="text-xs font-mono text-muted-foreground">{item.label}</span>
+              <span className={`text-[13px] font-mono font-bold ${pctClass(item.pct)}`}>{item.pct}%</span>
             </div>
             <div className="h-2 rounded-full overflow-hidden bg-secondary/50 relative">
               <div
@@ -496,7 +496,7 @@ function DailyGoalBars({ meals, targetCal, targetProtein, isZh }: {
                 style={{ width: `${Math.min(item.pct, 100)}%`, background: pctColor(item.pct) }}
               />
             </div>
-            <p className="text-[7px] text-muted-foreground/40 font-mono mt-0.5">
+            <p className="text-xs text-muted-foreground/40 font-mono mt-0.5">
               {isZh ? `目标 ${item.target}/天` : `Target ${item.target}/day`}
             </p>
           </div>
@@ -511,26 +511,26 @@ function DailyGoalBars({ meals, targetCal, targetProtein, isZh }: {
           return (
             <div key={i}>
               <div className="flex items-center gap-2">
-                <span className="text-[8px] font-mono text-muted-foreground/60 w-10 shrink-0">{day.label}</span>
+                <span className="text-xs font-mono text-muted-foreground/60 w-10 shrink-0">{day.label}</span>
                 <div className="flex-1 space-y-0.5">
                   {/* Calorie bar */}
                   <div className="flex items-center gap-1">
-                    <span className="text-[6px] font-mono text-muted-foreground/40 w-4">🔥</span>
+                    <span className="text-xs font-mono text-muted-foreground/40 w-4">🔥</span>
                     <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-secondary/40">
                       <div className="h-full rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(calPct, 100)}%`, background: pctColor(calPct) }} />
                     </div>
-                    <span className={`text-[7px] font-mono w-7 text-right tabular-nums ${pctClass(calPct)}`}>{calPct}%</span>
+                    <span className={`text-xs font-mono w-7 text-right tabular-nums ${pctClass(calPct)}`}>{calPct}%</span>
                   </div>
                   {/* Protein bar */}
                   {targetProtein > 0 && (
                     <div className="flex items-center gap-1">
-                      <span className="text-[6px] font-mono text-muted-foreground/40 w-4">💪</span>
+                      <span className="text-xs font-mono text-muted-foreground/40 w-4">💪</span>
                       <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-secondary/40">
                         <div className="h-full rounded-full transition-all duration-500"
                           style={{ width: `${Math.min(protPct, 100)}%`, background: pctColor(protPct) }} />
                       </div>
-                      <span className={`text-[7px] font-mono w-7 text-right tabular-nums ${pctClass(protPct)}`}>{protPct}%</span>
+                      <span className={`text-xs font-mono w-7 text-right tabular-nums ${pctClass(protPct)}`}>{protPct}%</span>
                     </div>
                   )}
                 </div>

@@ -112,7 +112,7 @@ const DietCreditCard = ({ score, level, levelDesc, beatText }: DietCreditCardPro
               HEALTH INDEX
             </span>
           </div>
-          <span className="text-[10px] font-bold px-3 py-1 rounded-full"
+          <span className="text-[13px] font-bold px-3 py-1 rounded-full"
             style={{ background: "rgba(212,175,55,0.12)", color: "#D4AF37", border: "1px solid rgba(212,175,55,0.2)" }}>
             {level}
           </span>
@@ -125,7 +125,7 @@ const DietCreditCard = ({ score, level, levelDesc, beatText }: DietCreditCardPro
         </div>
 
         {/* Bottom: value copy */}
-        <p className="text-[11px] leading-relaxed" style={{ color: "rgba(160,174,192,0.6)" }}>
+        <p className="text-[13px] leading-relaxed" style={{ color: "rgba(160,174,192,0.6)" }}>
           {beatText}
         </p>
       </div>

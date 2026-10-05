@@ -1,12 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
+  completeGuestFoodSlot,
   GUEST_LIMIT_BODY,
   guestSuccessCount,
   releaseGuestFoodSlot,
   replayGuestAnalysis,
   reserveGuestFoodSlot,
 } from "../_shared/guestFoodQuota.ts";
-import { guestQuotaDecision, guestRetryDecision, resolveGuestReservation } from "../_shared/guestQuotaDecision.ts";
+import { guestQuotaDecision, guestRetryDecision, persistedIdempotencyKey, resolveGuestReservation } from "../_shared/guestQuotaDecision.ts";
 import { enforceAiRateLimit, json, requireUser, serviceDb } from "../_shared/guard.ts";
 import { parseImages, toImageContents } from "../_shared/images.ts";
 import { validateAnalysis } from "../_shared/analysisContract.ts";
@@ -37,7 +38,7 @@ serve(async (req) => {
     const body = await req.json();
     const auth = await requireUser(req, corsHeaders);
     if (auth instanceof Response) return auth;
-    const idempotencyKey = typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim().slice(0, 80) : "";
+    const idempotencyKey = persistedIdempotencyKey(auth.isAnonymous, body.idempotencyKey) ?? "";
     const admin = auth.isAnonymous ? serviceDb() : null;
     const exact = await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey);
     let quotaAllows = true;
@@ -209,6 +210,7 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
       await abandonGuestSlot();
       return json(500, { error: "没能保存分析结果" }, corsHeaders);
     }
+    if (auth.isAnonymous && admin) await completeGuestFoodSlot(admin, auth.userId);
     guestHold = null;
     if (stored.reused && idempotencyKey) {
       const replay = await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey);

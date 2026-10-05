@@ -108,11 +108,11 @@ export default function EnergyPrediction({ ingredients }: Props) {
   return (
     <div className="mt-3 rounded-xl p-3 border border-border/30" style={{ background: statusBg }}>
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[9px] font-mono font-bold tracking-wider uppercase text-muted-foreground">
+        <span className="text-xs font-mono font-bold tracking-wider uppercase text-muted-foreground">
           {t.energyPredictionTitle}
         </span>
         <div
-          className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[8px] font-mono font-bold"
+          className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-mono font-bold"
           style={{
             background: `${statusColor}20`,
             color: statusColor,
@@ -181,7 +181,7 @@ export default function EnergyPrediction({ ingredients }: Props) {
       </svg>
 
       {/* Tip */}
-      <p className="text-[9px] mt-2 leading-relaxed" style={{ color: statusColor }}>
+      <p className="text-xs mt-2 leading-relaxed" style={{ color: statusColor }}>
         {isOptimal ? t.energyOptimalTip : isPoor ? t.energyFatigueTip : t.energyModerateTip}
       </p>
     </div>

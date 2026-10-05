@@ -71,7 +71,7 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass text-[10px] font-bold text-muted-foreground tracking-wider"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass text-[13px] font-bold text-muted-foreground tracking-wider"
             >
               <Globe className="w-3 h-3" />
               {locale === "zh-CN" ? "EN" : "中"}

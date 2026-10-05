@@ -12,6 +12,7 @@ import DietCreditCard from "@/components/DietCreditCard";
 import InvestmentReport from "@/components/InvestmentReport";
 import MealSequenceCoach from "@/components/MealSequenceCoach";
 import { useI18n } from "@/lib/i18n";
+import { hasAiConsent, revokeAiConsent } from "@/components/AiConsentDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useDaySummary } from "@/hooks/useDaySummary";
 
@@ -36,6 +37,7 @@ const Profile = () => {
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [aiConsentOn, setAiConsentOn] = useState(hasAiConsent);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,29 +57,16 @@ const Profile = () => {
     );
   }
 
-  if (!profile) {
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <h1 className="text-lg font-bold text-card-foreground">{t.profileSetupTitle}</h1>
-        <p className="text-sm text-muted-foreground leading-relaxed">{t.profileSetupHint}</p>
-        <button
-          onClick={() => navigate("/onboarding")}
-          className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
-        >
-          {t.fillProfile}
-        </button>
-      </div>
-    );
-  }
-
-  const nickname = profile.nickname || "";
-  const avatarUrl = profile.avatar_url;
-  const genderLabel = profile.gender === "female" ? t.female : profile.gender === "male" ? t.male : "";
+  const nickname = profile?.nickname || "";
+  const avatarUrl = profile?.avatar_url;
+  const genderLabel = profile?.gender === "female" ? t.female : profile?.gender === "male" ? t.male : "";
   const bodyBits = [
-    profile.age ? `${profile.age}${t.ageSuffix}` : "",
+    profile?.age ? `${profile.age}${t.ageSuffix}` : "",
     genderLabel,
-    profile.height_cm && profile.weight_kg ? `${profile.height_cm}cm / ${profile.weight_kg}kg` : "",
+    profile?.height_cm && profile?.weight_kg ? `${profile.height_cm}cm / ${profile.weight_kg}kg` : "",
   ].filter(Boolean);
+  const profileIncomplete = !profile?.gender || !profile?.age || !profile?.height_cm || !profile?.weight_kg || !profile?.goal;
+  const goalKey = profile?.goal;
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
   const streak = calcStreak(meals.map(m => m.recorded_at));
   const score = summary?.score;
@@ -114,7 +103,7 @@ const Profile = () => {
             </button>
           )}
           {authUser && !authUser.is_anonymous && (
-            <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
+            <span className="text-[13px] text-muted-foreground truncate max-w-[120px]">
               {authUser.email}
             </span>
           )}
@@ -127,6 +116,22 @@ const Profile = () => {
           </button>
         </div>
       </header>
+
+      {profileIncomplete && (
+        <section className="px-5 mb-4">
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4">
+            <p className="text-sm font-semibold text-card-foreground">{t.profileMissingPrompt}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed mt-1">{t.profileSetupHint}</p>
+            <button
+              type="button"
+              onClick={() => navigate("/onboarding")}
+              className="mt-3 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
+            >
+              {t.fillProfile}
+            </button>
+          </div>
+        </section>
+      )}
 
       {typeof score === "number" && (
         <section className="px-5 mb-6">
@@ -181,9 +186,9 @@ const Profile = () => {
               {bodyBits.length > 0 && (
                 <p className="text-sm text-muted-foreground">{bodyBits.join(" · ")}</p>
               )}
-              {profile.goal && t.goalLabels[profile.goal] && (
+              {goalKey && t.goalLabels[goalKey] && (
                 <p className="text-sm text-primary font-semibold mt-0.5">
-                  {t.goal}：{t.goalLabels[profile.goal]}
+                  {t.goal}：{t.goalLabels[goalKey]}
                 </p>
               )}
             </div>
@@ -199,11 +204,6 @@ const Profile = () => {
         <div className="glass rounded-2xl p-5 shadow-card flex justify-center">
           <DietRing meals={meals} />
         </div>
-      </section>
-
-      {/* Meal Sequence Coach */}
-      <section className="px-5">
-        <MealSequenceCoach meals={meals} />
       </section>
 
       <section className="px-5 mb-6">
@@ -228,7 +228,7 @@ const Profile = () => {
             <div key={label} className="glass rounded-xl p-3 shadow-card text-center">
               <Icon className="w-4 h-4 text-primary mx-auto mb-1" />
               <p className="text-lg font-bold text-card-foreground">{value}</p>
-              <p className="text-[10px] text-muted-foreground">{label}</p>
+              <p className="text-[13px] text-muted-foreground">{label}</p>
             </div>
           ))}
         </div>
@@ -237,7 +237,8 @@ const Profile = () => {
       <section className="px-5 mb-6">
         <details className="glass rounded-2xl p-4">
           <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">实验性指标（未验证，默认收起）</summary>
-          <div className="mt-4">
+          <div className="mt-4 space-y-4">
+            <MealSequenceCoach meals={meals} />
             <InvestmentReport meals={meals} score={score ?? 0} />
           </div>
         </details>
@@ -252,10 +253,23 @@ const Profile = () => {
           >
             <span className="truncate">{t.allergenManagement}</span>
             <div className="flex items-center gap-1 shrink-0">
-              <span className="text-xs text-muted-foreground truncate max-w-[120px]">{profile.allergies || t.notSet}</span>
+              <span className="text-xs text-muted-foreground truncate max-w-[120px]">{profile?.allergies || t.notSet}</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </div>
           </button>
+          {aiConsentOn && (
+            <button
+              type="button"
+              onClick={() => {
+                revokeAiConsent();
+                setAiConsentOn(false);
+              }}
+              className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground"
+            >
+              <span>{t.aiConsentRevoke}</span>
+              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+            </button>
+          )}
           <button
             onClick={() => navigate("/privacy")}
             className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground"

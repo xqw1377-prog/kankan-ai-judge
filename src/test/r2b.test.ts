@@ -101,7 +101,9 @@ describe("r2b source contracts", () => {
     const scan = readFileSync("src/pages/Scan.tsx", "utf8");
     expect(scan).toContain("idempotencyKey");
     expect(scan).toContain("scanAttemptKey");
+    expect(scan).toContain("const idempotencyKey = anonymous ? await scanAttemptKey(images) : null");
     const analyze = readFileSync("supabase/functions/analyze-food/index.ts", "utf8");
+    expect(analyze).toContain("persistedIdempotencyKey");
     expect(analyze).toContain("guestRetryDecision");
     expect(analyze).toContain('if (early === "block") return json(403, GUEST_LIMIT_BODY, corsHeaders);');
     expect(analyze).toContain("resolveGuestReservation");
@@ -121,7 +123,12 @@ describe("r2b source contracts", () => {
     expect(claim).toContain("issue_guest_claim_token");
     expect(claim).toContain("claim_guest_meals");
     const profile = readFileSync("src/pages/Profile.tsx", "utf8");
-    expect(profile.indexOf("if (!authReady || !profileReady)")).toBeLessThan(profile.indexOf("profileSetupTitle"));
+    expect(profile).toContain("if (!authReady || !profileReady)");
+    expect(profile).toContain("t.myPage");
+    expect(profile).toContain("profileMissingPrompt");
+    expect(profile).not.toContain("profileSetupTitle");
+    expect(profile.indexOf("<details")).toBeLessThan(profile.indexOf("<MealSequenceCoach"));
+    expect(profile.indexOf("<details")).toBeLessThan(profile.indexOf("<InvestmentReport"));
     expect(readFileSync("src/App.tsx", "utf8")).toContain('path="/audit"');
     const privacy = readFileSync("src/pages/Privacy.tsx", "utf8");
     const consent = readFileSync("src/lib/i18n/zh-CN.ts", "utf8");
@@ -131,7 +138,8 @@ describe("r2b source contracts", () => {
       expect(text).toContain("数据保留和处理方式以实际使用的 AI 服务提供方及其服务条款为准；我们仅传输完成分析所需的数据，并尽量减少传输内容。");
       expect(text).not.toContain("不会在第三方服务器");
     }
-    expect(consent).toContain("每台设备的一次试用已用完，注册后继续记录");
+    expect(consent).toContain("本次免费体验已用完，注册后继续记录");
+    expect(consent).not.toContain("每台设备");
     expect(consent).not.toContain("终身");
   });
 });

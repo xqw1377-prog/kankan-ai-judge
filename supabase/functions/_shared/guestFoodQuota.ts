@@ -7,7 +7,7 @@ import {
 import { json } from "./guard.ts";
 
 export const GUEST_LIMIT_BODY = {
-  error: "每台设备的一次试用已用完，注册后继续记录",
+  error: "本次免费体验已用完，注册后继续记录",
   code: GUEST_FREE_LIMIT,
 };
 
@@ -22,7 +22,8 @@ export async function guestSuccessCount(supabase: SupabaseClient, userId: string
     .from("ai_usage")
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId)
-    .eq("kind", GUEST_SUCCESS_KIND);
+    .eq("kind", GUEST_SUCCESS_KIND)
+    .or("status.eq.completed,status.is.null");
   if (error) return null;
   return count ?? 0;
 }
@@ -78,23 +79,25 @@ function duplicateGuestSlot(error: { code?: string; message?: string }) {
   return error.code === "23505" || /duplicate key|ai_usage_one_guest_success/i.test(error.message ?? "");
 }
 
-/** Insert the one guest_success row before the model call. The unique index makes this atomic. */
+/** Insert or reclaim the one guest_success row before the model call. */
 export async function reserveGuestFoodSlot(
   supabase: SupabaseClient,
   userId: string,
-): Promise<"reserved" | "taken" | "error"> {
-  const { error } = await supabase.from("ai_usage").insert({
-    user_id: userId,
-    kind: GUEST_SUCCESS_KIND,
-  });
-  if (!error) return "reserved";
-  if (duplicateGuestSlot(error)) return "taken";
+): Promise<"reserved" | "reclaimed" | "taken" | "error"> {
+  const { data, error } = await supabase.rpc("reserve_guest_food_slot", { p_user_id: userId });
+  if (error || typeof data !== "string") return "error";
+  if (data === "reserved" || data === "reclaimed" || data === "taken") return data;
   return "error";
 }
 
-/** Drop the reservation when the model call or storage fails, so the trial can be retried. */
+/** Drop a reservation that never stored an analysis, so the trial can be retried. */
 export async function releaseGuestFoodSlot(supabase: SupabaseClient, userId: string): Promise<void> {
-  await supabase.from("ai_usage").delete().eq("user_id", userId).eq("kind", GUEST_SUCCESS_KIND);
+  await supabase.rpc("release_guest_food_slot", { p_user_id: userId });
+}
+
+/** The stored analysis is the completed trial. A crash after this must not look like a fresh lease. */
+export async function completeGuestFoodSlot(supabase: SupabaseClient, userId: string): Promise<void> {
+  await supabase.rpc("complete_guest_food_slot", { p_user_id: userId });
 }
 
 /** Exact idempotency-key match only. A different photo does not replay an older analysis. */

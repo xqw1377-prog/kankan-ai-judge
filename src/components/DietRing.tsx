@@ -192,11 +192,11 @@ const DietRing = ({ meals }: DietRingProps) => {
         <div className="absolute glass rounded-xl shadow-soft p-3 z-20 animate-fade-in" style={{ left: Math.max(10, Math.min(tooltip.x - 80, 100)), top: Math.max(0, tooltip.y), width: 180 }}>
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs font-bold text-card-foreground">{tooltip.day.date.getMonth() + 1}月{tooltip.day.date.getDate()}日</p>
-            <span className="text-[10px] font-semibold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{tooltip.day.meals.length}餐</span>
+            <span className="text-[13px] font-semibold text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">{tooltip.day.meals.length}餐</span>
           </div>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg font-black text-primary">{tooltip.day.totalCal}</span>
-            <span className="text-[10px] text-muted-foreground">kcal</span>
+            <span className="text-[13px] text-muted-foreground">kcal</span>
           </div>
           <div className="flex h-1.5 rounded-full overflow-hidden mb-2">
             <div style={{ width: `${tooltip.day.proteinRatio * 100}%`, background: "hsl(160 60% 45%)" }} />
@@ -205,13 +205,13 @@ const DietRing = ({ meals }: DietRingProps) => {
           </div>
           <div className="flex flex-wrap gap-1">
             {tooltip.day.meals.slice(0, 4).map((m, i) => (
-              <span key={i} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold truncate max-w-[80px]">🍽 {m.food_name}</span>
+              <span key={i} className="text-[13px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold truncate max-w-[80px]">🍽 {m.food_name}</span>
             ))}
           </div>
         </div>
       )}
 
-      <div className="flex items-center gap-4 text-[10px] text-muted-foreground mt-1">
+      <div className="flex items-center gap-4 text-[13px] text-muted-foreground mt-1">
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "hsl(160 60% 45%)" }} /> 蛋白</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "hsl(30 90% 55%)" }} /> 脂肪</span>
         <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: "hsl(280 50% 55%)" }} /> 碳水</span>

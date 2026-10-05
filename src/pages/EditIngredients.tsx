@@ -301,36 +301,36 @@ const EditIngredients = () => {
         {/* Real-time nutrition bar */}
         <div className="glass rounded-xl p-3 mb-5 shadow-card">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{t.livePreview}</span>
+            <span className="text-[13px] text-muted-foreground font-semibold uppercase tracking-wider">{t.livePreview}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">{t.localEstimateNote}</p>
+          <p className="text-[13px] text-muted-foreground leading-relaxed mt-1">{t.localEstimateNote}</p>
           <div className="flex items-center justify-between mt-2">
             <div className="text-center flex-1">
               <div className={`text-lg font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary text-glow-gold" : "text-card-foreground"}`}>
                 {nutrition.calories}
               </div>
-              <div className="text-[9px] text-muted-foreground">{t.energy}</div>
+              <div className="text-xs text-muted-foreground">{t.energy}</div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center flex-1">
               <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary" : "text-card-foreground"}`}>
                 {nutrition.protein_g}g
               </div>
-              <div className="text-[9px] text-muted-foreground">{t.protein}</div>
+              <div className="text-xs text-muted-foreground">{t.protein}</div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center flex-1">
               <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary" : "text-card-foreground"}`}>
                 {nutrition.fat_g}g
               </div>
-              <div className="text-[9px] text-muted-foreground">{t.fat}</div>
+              <div className="text-xs text-muted-foreground">{t.fat}</div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center flex-1">
               <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary" : "text-card-foreground"}`}>
                 {nutrition.carbs_g}g
               </div>
-              <div className="text-[9px] text-muted-foreground">{t.carbs}</div>
+              <div className="text-xs text-muted-foreground">{t.carbs}</div>
             </div>
             <div className="w-px h-8 bg-border" />
             <div className="text-center flex-1">
@@ -339,7 +339,7 @@ const EditIngredients = () => {
               }`}>
                 {nutrition.gi_value}
               </div>
-              <div className={`text-[9px] font-semibold ${nutrition.gi_value >= 70 ? "text-destructive/70" : "text-muted-foreground"}`}>
+              <div className={`text-xs font-semibold ${nutrition.gi_value >= 70 ? "text-destructive/70" : "text-muted-foreground"}`}>
                 GI {nutrition.gi_value >= 70 ? `⚠️` : ""}
               </div>
             </div>
@@ -349,9 +349,9 @@ const EditIngredients = () => {
         {/* Cooking method selector */}
         <div className="glass rounded-xl p-3 mb-5 shadow-card">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">{t.cookingMethod}</span>
+            <span className="text-[13px] text-muted-foreground font-semibold uppercase tracking-wider">{t.cookingMethod}</span>
             {(cookingMethod === "fried" || cookingMethod === "stir_fried" || cookingMethod === "pan_fried") && (
-              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full animate-fade-in"
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full animate-fade-in"
                 style={{ color: "hsl(30, 90%, 50%)", background: "hsl(30 90% 50% / 0.1)", border: "1px solid hsl(30 90% 50% / 0.2)" }}>
                 🛢️ {t.oilAbsorptionHint}
               </span>
@@ -375,7 +375,7 @@ const EditIngredients = () => {
                 }`}
               >
                 <div className="text-base leading-none">{icon}</div>
-                <div className="text-[9px] font-semibold mt-1">{label}</div>
+                <div className="text-xs font-semibold mt-1">{label}</div>
               </button>
             ))}
           </div>
@@ -424,7 +424,7 @@ const EditIngredients = () => {
                     <div className="flex items-center">
                       <button onClick={() => handleEditStart(idx)} className="flex-1 text-left text-sm text-card-foreground">
                         {item.name}
-                        {isModified && <span className="ml-1 text-[8px] text-primary font-bold">✓</span>}
+                        {isModified && <span className="ml-1 text-xs text-primary font-bold">✓</span>}
                       </button>
                       <div className="flex items-center gap-1">
                         <button

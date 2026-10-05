@@ -147,7 +147,7 @@ const Onboarding = () => {
                   className={`shrink-0 w-20 py-4 rounded-2xl flex flex-col items-center gap-2 border-2 transition-all ${data.activity_level === opt.value ? "border-primary bg-primary/10" : "border-border glass"}`}>
                   <span className="text-2xl">{opt.emoji}</span>
                   <span className="text-xs font-semibold text-card-foreground">{opt.label}</span>
-                  <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
+                  <span className="text-[13px] text-muted-foreground">{opt.desc}</span>
                 </button>
               ))}
             </div>

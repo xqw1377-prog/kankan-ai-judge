@@ -11,10 +11,22 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const CONSENT_KEY = "kankan_ai_consent";
+export const AI_CONSENT_VERSION = "2026-10-05";
+const CONSENT_VERSION_KEY = "kankan_ai_consent_version";
+const LEGACY_CONSENT_KEY = "kankan_ai_consent";
 
-export const hasAiConsent = () => localStorage.getItem(CONSENT_KEY) === "yes";
-export const setAiConsent = () => localStorage.setItem(CONSENT_KEY, "yes");
+/** Only the current version counts. A leftover kankan_ai_consent=yes does not. */
+export const hasAiConsent = () => localStorage.getItem(CONSENT_VERSION_KEY) === AI_CONSENT_VERSION;
+
+export const setAiConsent = () => {
+  localStorage.setItem(CONSENT_VERSION_KEY, AI_CONSENT_VERSION);
+  localStorage.removeItem(LEGACY_CONSENT_KEY);
+};
+
+export const revokeAiConsent = () => {
+  localStorage.removeItem(CONSENT_VERSION_KEY);
+  localStorage.removeItem(LEGACY_CONSENT_KEY);
+};
 
 interface Props {
   open: boolean;

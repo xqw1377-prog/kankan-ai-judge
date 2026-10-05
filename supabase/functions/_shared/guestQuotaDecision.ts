@@ -9,8 +9,8 @@ export type GuestQuotaDecision =
 
 /**
  * Permanent users are not capped here.
- * One anonymous trial on a device may complete this many successful analyses.
- * This is not a lifetime limit on a person.
+ * One anonymous session may complete this many successful analyses.
+ * This is not a lifetime limit on a person, and it is not tied to a device id.
  */
 export function guestQuotaDecision(input: {
   isAnonymous: boolean;
@@ -35,13 +35,20 @@ export function guestRetryDecision(input: {
   return "analyze";
 }
 
+/** Permanent accounts never persist a photo key. Only an anonymous trial does. */
+export function persistedIdempotencyKey(isAnonymous: boolean, raw: unknown): string | null {
+  if (!isAnonymous || typeof raw !== "string") return null;
+  const key = raw.trim().slice(0, 80);
+  return key || null;
+}
+
 /** After the atomic guest slot insert: one winner analyses, a loser replays only an exact key. */
 export function resolveGuestReservation(input: {
-  reserved: "reserved" | "taken" | "error";
+  reserved: "reserved" | "reclaimed" | "taken" | "error";
   hasStoredAnalysis: boolean;
 }): "analyze" | "replay" | "block" | "unavailable" {
   if (input.reserved === "error") return "unavailable";
-  if (input.reserved === "reserved") return "analyze";
+  if (input.reserved === "reserved" || input.reserved === "reclaimed") return "analyze";
   const retry = guestRetryDecision({
     isAnonymous: true,
     hasStoredAnalysis: input.hasStoredAnalysis,

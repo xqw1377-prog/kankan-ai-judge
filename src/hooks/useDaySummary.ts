@@ -8,9 +8,28 @@ export interface DaySummary {
   targets: { calories: number; protein_g: number; fat_g: number; carbs_g: number } | null;
 }
 
+/** Local calendar day. A change after midnight refreshes the saved-row summary. */
+export function localDayStamp(now = new Date()) {
+  return `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+}
+
 /** Score and totals come from saved rows. The client does not calculate them. */
 export function useDaySummary(userId: string | null, refreshKey = 0) {
   const [summary, setSummary] = useState<DaySummary | null>(null);
+  const [dayStamp, setDayStamp] = useState(() => localDayStamp());
+
+  useEffect(() => {
+    const tick = () => {
+      const next = localDayStamp();
+      setDayStamp((current) => (current === next ? current : next));
+    };
+    const timer = window.setInterval(tick, 30_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, []);
 
   useEffect(() => {
     if (!userId) {
@@ -30,7 +49,7 @@ export function useDaySummary(userId: string | null, refreshKey = 0) {
       });
     })();
     return () => { cancelled = true; };
-  }, [userId, refreshKey]);
+  }, [userId, refreshKey, dayStamp]);
 
   return summary;
 }

@@ -511,6 +511,8 @@ export interface Dictionary {
   loginWechatConfirmHint: string;
   logout: string;
   logoutConfirm: string;
+  loginEmailLabel: string;
+  loginPasswordLabel: string;
   loginEmailPlaceholder: string;
   loginPasswordPlaceholder: string;
   loginSignIn: string;
@@ -535,6 +537,7 @@ export interface Dictionary {
   todayEmpty: string;
   profileSetupTitle: string;
   profileSetupHint: string;
+  profileMissingPrompt: string;
   analysisMissingKey: string;
   analysisUnavailable: string;
   analysisUnrecognized: string;
@@ -555,6 +558,7 @@ export interface Dictionary {
   guestFreeLimit: string;
   guestClaimPending: string;
   guestClaimPendingDesc: string;
+  guestClaimRetry: string;
   profileSaveFailed: string;
 
   // AI consent
@@ -563,4 +567,5 @@ export interface Dictionary {
   aiConsentAgree: string;
   aiConsentDecline: string;
   aiConsentPrivacy: string;
+  aiConsentRevoke: string;
 }
