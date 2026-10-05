@@ -23,6 +23,7 @@ export interface Dictionary {
   // Bottom Nav
   navHome: string;
   navHistory: string;
+  navScan: string;
   navProfile: string;
 
   // Index

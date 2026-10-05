@@ -20,6 +20,7 @@ export const enUS: Dictionary = {
 
   navHome: "Home",
   navHistory: "History",
+  navScan: "Scan",
   navProfile: "Me",
 
   greetingMorning: "Good morning",

@@ -20,6 +20,7 @@ export const zhCN: Dictionary = {
 
   navHome: "首页",
   navHistory: "记录",
+  navScan: "拍照",
   navProfile: "我的",
 
   greetingMorning: "早安",
