@@ -142,6 +142,10 @@ const EditIngredients = () => {
       toast({ title: "需要先登录才能重新估算", variant: "destructive" });
       return;
     }
+    if (sessionData.session.user.is_anonymous) {
+      toast({ title: t.guestFreeLimit });
+      return;
+    }
     setReInferring(true);
     try {
       const { data, error } = await supabase.functions.invoke("re-infer-dish", {

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { denyAnonymousAi } from "../_shared/guestFoodQuota.ts";
 import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
 import { storeAnalysis } from "../_shared/storeAnalysis.ts";
 
@@ -17,6 +18,8 @@ serve(async (req) => {
     const { ingredients, language = "zh-CN" } = await req.json();
     const auth = await requireUser(req, corsHeaders);
     if (auth instanceof Response) return auth;
+    const anonymous = denyAnonymousAi(auth.isAnonymous, corsHeaders);
+    if (anonymous) return anonymous;
     const limited = await enforceAiRateLimit(auth.supabase, auth.userId, corsHeaders);
     if (limited) return limited;
 

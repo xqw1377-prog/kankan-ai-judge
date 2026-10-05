@@ -18,8 +18,8 @@ const Index = () => {
   const navigate = useNavigate();
   const { profile } = useProfile();
   const { todayMeals, userId } = useMeals();
-  const { ready } = useAuthUserId();
-  const summary = useDaySummary(userId, todayMeals.length);
+  const { ready, isAnonymous } = useAuthUserId();
+  const summary = useDaySummary(isAnonymous ? null : userId, todayMeals.length);
   const { t, locale, setLocale } = useI18n();
   const [photos, setPhotos] = useState<string[]>([]);
   const guest = isGuestMode();

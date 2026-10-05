@@ -116,6 +116,10 @@ const Audit = () => {
       toast({ title: "估算会调用云端分析，需要先登录。", variant: "destructive" });
       return;
     }
+    if (sessionData.session.user.is_anonymous) {
+      toast({ title: t.guestFreeLimit });
+      return;
+    }
 
     setAuditing(true);
     setAuditComplete(false);

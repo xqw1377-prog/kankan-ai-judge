@@ -61,8 +61,9 @@ function todayOf(meals: MealRecord[]) {
 }
 
 export function useMeals() {
-  const { ready, userId } = useAuthUserId();
-  const scope = userId ?? GUEST_SCOPE;
+  const { ready, userId, isAnonymous } = useAuthUserId();
+  // Keep the on-device guest log. The anonymous user id is still used when saving a scanned meal.
+  const scope = userId && !isAnonymous ? userId : GUEST_SCOPE;
   const [meals, setMeals] = useState<MealRecord[]>(() => (
     isGuestMode() ? readMeals(GUEST_SCOPE).map(asMeal) : []
   ));
@@ -76,7 +77,7 @@ export function useMeals() {
   const fetchMeals = useCallback(async () => {
     if (!ready) return;
     setMeals(readMeals(scope).map(asMeal));
-    if (!userId) return;
+    if (!userId || isAnonymous) return;
     try {
       const { data, error } = await supabase
         .from("meal_records")
@@ -89,7 +90,7 @@ export function useMeals() {
     } catch {
       // Keep this account's on-device copy.
     }
-  }, [apply, ready, scope, userId]);
+  }, [apply, isAnonymous, ready, scope, userId]);
 
   useEffect(() => {
     fetchMeals();

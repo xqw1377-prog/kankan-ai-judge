@@ -6,7 +6,8 @@ import { useAuthUserId } from "@/hooks/useAuthUser";
 export type HabitPattern = StoredHabit;
 
 export function useHabitLearner() {
-  const { ready, userId } = useAuthUserId();
+  const { ready, userId: sessionUserId, isAnonymous } = useAuthUserId();
+  const userId = sessionUserId && !isAnonymous ? sessionUserId : null;
   const scope = userId ?? GUEST_SCOPE;
   const [patterns, setPatterns] = useState<HabitPattern[]>([]);
   const loading = !ready;

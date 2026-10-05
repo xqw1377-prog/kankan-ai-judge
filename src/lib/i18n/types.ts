@@ -551,6 +551,7 @@ export interface Dictionary {
   resultMore: string;
   saveToLog: string;
   saveNeedsSignIn: string;
+  guestFreeLimit: string;
   profileSaveFailed: string;
 
   // AI consent

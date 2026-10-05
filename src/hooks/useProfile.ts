@@ -18,7 +18,9 @@ export interface FullProfile extends StoredProfile {
 }
 
 export function useProfile() {
-  const { ready, userId } = useAuthUserId();
+  const { ready, userId: sessionUserId, isAnonymous } = useAuthUserId();
+  // Anonymous sessions exist only so one food scan can call the API. Profile stays on this device.
+  const userId = sessionUserId && !isAnonymous ? sessionUserId : null;
   const scope = userId ?? GUEST_SCOPE;
   const [profile, setProfile] = useState<FullProfile | null>(() => (
     isGuestMode() ? readProfile(GUEST_SCOPE) : null

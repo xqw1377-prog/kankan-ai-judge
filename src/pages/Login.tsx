@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
-import { markGuestMode } from "@/lib/localData";
+import { clearGuestMode, markGuestMode } from "@/lib/localData";
 
 export default function Login() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+  const upgrade = Boolean((location.state as { upgrade?: boolean } | null)?.upgrade);
 
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">(upgrade ? "signup" : "signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,23 @@ export default function Login() {
       return;
     }
     setLoading(true);
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (sessionData.session?.user?.is_anonymous) {
+      const { data, error } = await supabase.auth.updateUser({ email, password });
+      setLoading(false);
+      if (error) {
+        toast({ title: t.loginError, description: error.message, variant: "destructive" });
+        return;
+      }
+      if (data.user?.is_anonymous) {
+        toast({ title: t.loginSignUpSuccess, description: t.loginSignUpSuccessDesc });
+        return;
+      }
+      clearGuestMode();
+      toast({ title: t.loginSignUpSuccess, description: t.loginWelcomeBack });
+      navigate("/", { replace: true });
+      return;
+    }
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -103,6 +122,9 @@ export default function Login() {
             <h2 className="text-lg font-bold text-card-foreground mb-1 text-center">
               {mode === "forgot" ? t.loginResetPasswordTitle : mode === "signup" ? t.loginSignUp : t.loginSignIn}
             </h2>
+            {upgrade && mode === "signup" && (
+              <p className="text-xs text-muted-foreground text-center mt-1">{t.guestFreeLimit}</p>
+            )}
             {mode === "forgot" && (
               <p className="text-xs text-muted-foreground/60 mb-4 text-center">{t.loginResetPasswordDesc}</p>
             )}
