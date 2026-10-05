@@ -536,7 +536,9 @@ export const zhCN: Dictionary = {
   resultSeen: "看到",
   resultProblem: "问题",
   resultAction: "这一口",
+  resultMore: "更多细节",
   saveToLog: "记到记录",
+  saveNeedsSignIn: "先登录，才能把这餐记到记录。",
   profileSaveFailed: "档案没能保存，请再试一次。",
 
   aiConsentTitle: "AI 数据使用说明",

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { mergeMeals, readMeals, writeMeals, GUEST_SCOPE, type StoredMeal } from "@/lib/localData";
+import { mergeMeals, readMeals, writeMeals, GUEST_SCOPE, isGuestMode, type StoredMeal } from "@/lib/localData";
 import { useAuthUserId } from "@/hooks/useAuthUser";
 import { getMealTypeByTime } from "@/lib/nutrition";
 import { mealConfirmBody, mealDeleteBody, mealReplaceBody } from "@/lib/serverWrites";
@@ -63,8 +63,10 @@ function todayOf(meals: MealRecord[]) {
 export function useMeals() {
   const { ready, userId } = useAuthUserId();
   const scope = userId ?? GUEST_SCOPE;
-  const [meals, setMeals] = useState<MealRecord[]>([]);
-  const loading = !ready;
+  const [meals, setMeals] = useState<MealRecord[]>(() => (
+    isGuestMode() ? readMeals(GUEST_SCOPE).map(asMeal) : []
+  ));
+  const loading = !ready && !isGuestMode();
 
   const apply = useCallback((stored: StoredMeal[]) => {
     writeMeals(scope, stored);

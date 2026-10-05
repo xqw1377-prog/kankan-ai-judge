@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { inspectImage, inspectImages, MAX_IMAGES } from "@/lib/imageGuard";
 import { isPlaceholderAnalysis, mealResultLines } from "@/lib/foodAnalysis";
 import { homeGate } from "@/lib/homeGate";
+import { canonicalPath } from "@/lib/routes";
 import { scoreToday } from "@/lib/nutrition";
 import { mealConfirmBody, mealReplaceBody, profileSaveBody } from "@/lib/serverWrites";
 
@@ -89,5 +90,13 @@ describe("guest gate", () => {
   it("lets a guest open home without a session", () => {
     expect(homeGate({ hasSession: false, isGuest: true })).toBe("home");
     expect(homeGate({ hasSession: false, isGuest: false })).toBe("login");
+  });
+});
+
+describe("record alias", () => {
+  it("sends /record to the history log", () => {
+    expect(canonicalPath("/record")).toBe("/history");
+    expect(canonicalPath("/record/")).toBe("/history");
+    expect(canonicalPath("/history")).toBe("/history");
   });
 });

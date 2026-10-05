@@ -536,7 +536,9 @@ export const enUS: Dictionary = {
   resultSeen: "Seen",
   resultProblem: "Problem",
   resultAction: "This bite",
+  resultMore: "More detail",
   saveToLog: "Save to log",
+  saveNeedsSignIn: "Sign in before this meal can be saved.",
   profileSaveFailed: "The profile could not be saved. Try again.",
 
   aiConsentTitle: "AI Data Usage Notice",

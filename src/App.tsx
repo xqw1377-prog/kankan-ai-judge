@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
+import { canonicalPath } from "@/lib/routes";
 import { Suspense, type ReactNode } from "react";
 import { I18nProvider } from "@/lib/i18n";
 import BottomNav from "@/components/BottomNav";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/result" element={<Page><Result /></Page>} />
               <Route path="/edit-ingredients" element={<Page><EditIngredients /></Page>} />
               <Route path="/history" element={<Page><History /></Page>} />
+              <Route path="/record" element={<Navigate to={canonicalPath("/record")} replace />} />
               <Route path="/meal/:id" element={<Page><MealDetail /></Page>} />
               <Route path="/profile" element={<Page><Profile /></Page>} />
               <Route path="/login" element={<Page><Login /></Page>} />

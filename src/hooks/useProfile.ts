@@ -4,6 +4,7 @@ import { type UserProfile } from "@/lib/nutrition";
 import {
   GUEST_SCOPE,
   hydrateProfile,
+  isGuestMode,
   profileFromServer,
   readProfile,
   writeProfile,
@@ -19,8 +20,10 @@ export interface FullProfile extends StoredProfile {
 export function useProfile() {
   const { ready, userId } = useAuthUserId();
   const scope = userId ?? GUEST_SCOPE;
-  const [profile, setProfile] = useState<FullProfile | null>(null);
-  const loading = !ready;
+  const [profile, setProfile] = useState<FullProfile | null>(() => (
+    isGuestMode() ? readProfile(GUEST_SCOPE) : null
+  ));
+  const loading = !ready && !isGuestMode();
 
   useEffect(() => {
     if (!ready) return;

@@ -49,8 +49,8 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="h-full flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -236,39 +236,24 @@ const Profile = () => {
         </details>
       </section>
 
-      <section className="px-5 mb-3">
+      <section className="px-5 pb-4">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.preferences}</h3>
         <div className="glass rounded-xl shadow-card divide-y divide-border">
-          {[
-            { label: t.allergenManagement, info: profile.allergies || t.notSet, action: undefined },
-            { label: t.reminderSettings, info: "", action: undefined },
-            { label: t.privacy, info: "", action: () => navigate("/privacy") },
-          ].map(item => (
-            <button key={item.label} onClick={item.action} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground">
-              <span className="truncate">{item.label}</span>
-              <div className="flex items-center gap-1 shrink-0">
-                {item.info && <span className="text-xs text-muted-foreground truncate max-w-[120px]">{item.info}</span>}
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <section className="px-5 pb-4">
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.other}</h3>
-        <div className="glass rounded-xl shadow-card divide-y divide-border">
-          {[t.helpFeedback, t.aboutUs].map(item => (
-            <button key={item} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground">
-              <span>{item}</span>
+          <button
+            onClick={() => navigate("/onboarding")}
+            className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground"
+          >
+            <span className="truncate">{t.allergenManagement}</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-xs text-muted-foreground truncate max-w-[120px]">{profile.allergies || t.notSet}</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-          ))}
+            </div>
+          </button>
           <button
             onClick={() => navigate("/privacy")}
-            className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground border-t border-border"
+            className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground"
           >
-            <span>{locale === "zh-CN" ? "隐私政策" : "Privacy Policy"}</span>
+            <span>{t.privacy}</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>

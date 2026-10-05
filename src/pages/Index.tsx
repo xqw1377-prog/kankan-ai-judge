@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Camera, X, ImagePlus, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -11,32 +10,26 @@ import { useI18n } from "@/lib/i18n";
 import { takePhoto, pickPhoto } from "@/lib/camera";
 import { homeGate } from "@/lib/homeGate";
 import { isGuestMode } from "@/lib/localData";
+import { useAuthUserId } from "@/hooks/useAuthUser";
 
 const MAX_PHOTOS = 5;
 
 const Index = () => {
   const navigate = useNavigate();
-  const { profile, loading: profileLoading } = useProfile();
-  const { todayMeals, loading: mealsLoading, userId } = useMeals();
+  const { profile } = useProfile();
+  const { todayMeals, userId } = useMeals();
+  const { ready } = useAuthUserId();
   const summary = useDaySummary(userId, todayMeals.length);
   const { t, locale, setLocale } = useI18n();
   const [photos, setPhotos] = useState<string[]>([]);
-  const [gateReady, setGateReady] = useState(() => isGuestMode());
+  const guest = isGuestMode();
 
   useEffect(() => {
-    let cancelled = false;
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (cancelled) return;
-      const dest = homeGate({ hasSession: !!session, isGuest: isGuestMode() });
-      if (dest === "login") navigate("/login", { replace: true });
-      else setGateReady(true);
-    }).catch(() => {
-      if (cancelled) return;
-      if (isGuestMode()) setGateReady(true);
-      else navigate("/login", { replace: true });
-    });
-    return () => { cancelled = true; };
-  }, [navigate]);
+    if (!ready) return;
+    if (homeGate({ hasSession: !!userId, isGuest: isGuestMode() }) === "login") {
+      navigate("/login", { replace: true });
+    }
+  }, [ready, userId, navigate]);
 
   const handleCapture = async () => {
     if (photos.length > 0) {
@@ -57,7 +50,7 @@ const Index = () => {
     setPhotos(prev => prev.filter((_, i) => i !== idx));
   };
 
-  if (!gateReady || profileLoading || mealsLoading) {
+  if (!guest && (!ready || !userId)) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />

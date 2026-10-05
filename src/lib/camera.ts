@@ -21,29 +21,7 @@ export async function takePhoto(): Promise<string | null> {
       return null;
     }
   }
-  // Web fallback: use file input
-  return new Promise((resolve) => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.capture = "environment";
-    input.onchange = () => {
-      const file = input.files?.[0];
-      if (!file) { resolve(null); return; }
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
-      reader.readAsDataURL(file);
-    };
-    // Handle cancel
-    const onFocus = () => {
-      window.removeEventListener("focus", onFocus);
-      setTimeout(() => {
-        if (!input.files?.length) resolve(null);
-      }, 500);
-    };
-    window.addEventListener("focus", onFocus);
-    input.click();
-  });
+  return pickFile(true);
 }
 
 /**
@@ -63,25 +41,33 @@ export async function pickPhoto(): Promise<string | null> {
       return null;
     }
   }
-  // Web fallback without capture
+  return pickFile(false);
+}
+
+function pickFile(capture: boolean): Promise<string | null> {
   return new Promise((resolve) => {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/*";
-    input.onchange = () => {
+    if (capture) input.setAttribute("capture", "environment");
+    let settled = false;
+    const finish = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+    input.addEventListener("change", () => {
       const file = input.files?.[0];
-      if (!file) { resolve(null); return; }
+      if (!file) {
+        finish(null);
+        return;
+      }
       const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onload = () => finish(typeof reader.result === "string" ? reader.result : null);
+      reader.onerror = () => finish(null);
       reader.readAsDataURL(file);
-    };
-    const onFocus = () => {
-      window.removeEventListener("focus", onFocus);
-      setTimeout(() => {
-        if (!input.files?.length) resolve(null);
-      }, 500);
-    };
-    window.addEventListener("focus", onFocus);
+    });
+    input.addEventListener("cancel", () => finish(null));
     input.click();
   });
 }

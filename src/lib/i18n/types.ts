@@ -548,7 +548,9 @@ export interface Dictionary {
   resultSeen: string;
   resultProblem: string;
   resultAction: string;
+  resultMore: string;
   saveToLog: string;
+  saveNeedsSignIn: string;
   profileSaveFailed: string;
 
   // AI consent
