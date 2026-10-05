@@ -7,7 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import { useI18n } from "@/lib/i18n";
-import { hasAiConsent, revokeAiConsent } from "@/components/AiConsentDialog";
+import { getAiConsentRecord, hasAiConsent, revokeAiConsent } from "@/components/AiConsentDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { isProfileComplete } from "@/lib/nutrition";
 
@@ -216,6 +216,14 @@ const Profile = () => {
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
             </div>
           </button>
+          <p className="px-4 py-3 text-xs text-muted-foreground" data-testid="ai-consent-record">
+            {(() => {
+              const rec = aiConsentOn ? getAiConsentRecord() : null;
+              return rec
+                ? t.aiConsentRecorded(rec.version, rec.acceptedAt ? new Date(rec.acceptedAt).toLocaleDateString(locale) : "—")
+                : t.aiConsentNotGiven;
+            })()}
+          </p>
           {aiConsentOn && (
             <button
               type="button"

@@ -150,14 +150,7 @@ export default function Login() {
       {/* Header */}
       <div className="pt-[max(3rem,env(safe-area-inset-top))] px-6 text-center relative z-10">
         <div className="mx-auto mb-4 flex flex-col items-center gap-1">
-          <svg viewBox="0 0 64 40" className="h-10 w-16" aria-hidden="true">
-            <path fill="hsl(42 88% 52%)" d="M32 20C24 8 8 4 4 14c6 2 16 6 28 6z" />
-            <path fill="hsl(36 78% 42%)" d="M32 20C22 28 8 34 6 24c8-1 16-3 26-4z" />
-            <path fill="hsl(42 88% 52%)" d="M32 20c8-12 24-16 28-6-6 2-16 6-28 6z" />
-            <path fill="hsl(36 78% 42%)" d="M32 20c10 8 24 14 26 4-8-1-16-3-26-4z" />
-            <ellipse cx="32" cy="20" rx="1.6" ry="7" fill="hsl(28 35% 22%)" />
-          </svg>
-          <span className="text-lg font-black tracking-[0.28em] text-card-foreground">KK</span>
+          <img src="/favicon.png" alt="KanKan" width={72} height={72} className="h-[72px] w-[72px] rounded-2xl shadow-card" />
         </div>
         <h1 className="text-2xl font-black text-card-foreground tracking-tight">KanKan</h1>
         <p className="text-xs text-muted-foreground/60 mt-1 font-mono tracking-widest">
@@ -193,6 +186,8 @@ export default function Login() {
                   <input
                     id="login-email"
                     type="email"
+                    autoComplete="email"
+                    inputMode="email"
                     required
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -213,6 +208,7 @@ export default function Login() {
                     <input
                       id="login-password"
                       type="password"
+                      autoComplete={mode === "signup" ? "new-password" : "current-password"}
                       required
                       minLength={6}
                       value={password}
@@ -255,13 +251,14 @@ export default function Login() {
             {/* Mode switch */}
             <div className="mt-4 text-center">
               {mode === "forgot" ? (
-                <button onClick={() => setMode("signin")} className="text-xs text-primary hover:underline flex items-center justify-center gap-1 mx-auto">
+                <button onClick={() => setMode("signin")} type="button" className="min-h-11 px-3 text-sm text-primary hover:underline flex items-center justify-center gap-1 mx-auto">
                   <ArrowLeft className="w-3 h-3" /> {t.loginSwitchToSignIn}
                 </button>
               ) : (
                 <button
                   onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-                  className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                  type="button"
+                  className="min-h-11 px-3 text-sm text-muted-foreground hover:text-primary transition-colors"
                 >
                   {mode === "signin" ? t.loginSwitchToSignUp : t.loginSwitchToSignIn}
                 </button>
@@ -279,7 +276,7 @@ export default function Login() {
             markGuestMode();
             navigate("/", { replace: true });
           }}
-          className="text-sm font-semibold text-card-foreground hover:text-primary transition-colors">
+          className="min-h-11 px-4 text-sm font-semibold text-card-foreground hover:text-primary transition-colors">
           {t.loginSkip}
         </button>
         <p className="text-xs text-muted-foreground leading-relaxed">

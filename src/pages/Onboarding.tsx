@@ -75,8 +75,9 @@ const Onboarding = () => {
     navigate("/", { replace: true });
   };
   const canNext = () => {
-    if (step === 0) return !!data.gender && !!data.age;
-    if (step === 1) return !!data.height_cm && !!data.weight_kg;
+    const inRange = (v: number | undefined, a: number, b: number) => v != null && v >= a && v <= b;
+    if (step === 0) return !!data.gender && inRange(data.age, 18, 80);
+    if (step === 1) return inRange(data.height_cm, 140, 210) && inRange(data.weight_kg, 30, 150);
     if (step === 2) return !!data.activity_level;
     if (step === 3) return !!data.goal;
     return true;
@@ -94,9 +95,9 @@ const Onboarding = () => {
     <div className="h-full flex flex-col bg-background">
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2">
         {step > 0 ? (
-          <button onClick={() => setStep(step - 1)} className="p-2 text-card-foreground"><ChevronLeft className="w-5 h-5" /></button>
+          <button onClick={() => setStep(step - 1)} aria-label={t.back} className="min-h-11 min-w-11 flex items-center justify-center text-card-foreground"><ChevronLeft className="w-5 h-5" /></button>
         ) : isEditing ? (
-          <button onClick={() => navigate(-1)} className="p-2 text-card-foreground"><ChevronLeft className="w-5 h-5" /></button>
+          <button onClick={() => navigate(-1)} aria-label={t.back} className="min-h-11 min-w-11 flex items-center justify-center text-card-foreground"><ChevronLeft className="w-5 h-5" /></button>
         ) : <div className="w-9" />}
         {!isEditing && step <= 3 && <button onClick={handleSkip} className="text-sm text-muted-foreground px-3 py-1">{t.skip}</button>}
         {isEditing && <button onClick={handleSkip} className="text-sm text-muted-foreground px-3 py-1">{t.cancel}</button>}
@@ -124,7 +125,7 @@ const Onboarding = () => {
             <div>
               <label className="text-sm font-medium text-muted-foreground mb-2 block">{t.age}</label>
               <div className="flex items-center gap-4">
-                <input type="range" min={18} max={80} value={data.age ?? 28} onChange={e => update({ age: Number(e.target.value) })} className="flex-1 accent-[hsl(43,72%,52%)]" />
+                <input type="number" inputMode="numeric" min={18} max={80} value={data.age ?? ""} placeholder={t.notFilled} onChange={e => { const v = e.target.value === "" ? undefined : Number(e.target.value); update({ age: v && v >= 18 && v <= 80 ? v : v === undefined ? undefined : v }); }} className="flex-1 min-h-11 px-4 rounded-xl border border-border glass text-base text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
                 <span className="text-lg font-bold w-16 text-center text-card-foreground">{data.age ? `${data.age} ${t.ageSuffix}` : t.notFilled}</span>
               </div>
             </div>
@@ -138,14 +139,14 @@ const Onboarding = () => {
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">{t.height}</label>
                 <div className="flex items-center gap-4">
-                  <input type="range" min={140} max={210} value={data.height_cm ?? 170} onChange={e => update({ height_cm: Number(e.target.value) })} className="flex-1 accent-[hsl(43,72%,52%)]" />
+                  <input type="number" inputMode="numeric" min={140} max={210} value={data.height_cm ?? ""} placeholder={t.notFilled} onChange={e => { const v = e.target.value === "" ? undefined : Number(e.target.value); update({ height_cm: v && v >= 140 && v <= 210 ? v : v === undefined ? undefined : v }); }} className="flex-1 min-h-11 px-4 rounded-xl border border-border glass text-base text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
                   <span className="text-lg font-bold w-20 text-center text-card-foreground">{data.height_cm ? `${data.height_cm} cm` : t.notFilled}</span>
                 </div>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground mb-2 block">{t.weight}</label>
                 <div className="flex items-center gap-4">
-                  <input type="range" min={30} max={150} value={data.weight_kg ?? 65} onChange={e => update({ weight_kg: Number(e.target.value) })} className="flex-1 accent-[hsl(43,72%,52%)]" />
+                  <input type="number" inputMode="numeric" min={30} max={150} value={data.weight_kg ?? ""} placeholder={t.notFilled} onChange={e => { const v = e.target.value === "" ? undefined : Number(e.target.value); update({ weight_kg: v && v >= 30 && v <= 150 ? v : v === undefined ? undefined : v }); }} className="flex-1 min-h-11 px-4 rounded-xl border border-border glass text-base text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
                   <span className="text-lg font-bold w-20 text-center text-card-foreground">{data.weight_kg ? `${data.weight_kg} kg` : t.notFilled}</span>
                 </div>
               </div>

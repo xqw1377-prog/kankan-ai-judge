@@ -136,7 +136,8 @@ const History = () => {
         </div>
         <button
           onClick={() => setLocale(isZh ? "en-US" : "zh-CN")}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass text-[13px] font-bold text-muted-foreground tracking-wider"
+          aria-label={isZh ? "Switch to English" : "切换到中文"}
+          className="flex min-h-11 items-center gap-1 px-3 py-1.5 rounded-full glass text-[13px] font-bold text-muted-foreground tracking-wider"
         >
           <Globe className="w-3 h-3" />
           {isZh ? "EN" : "中"}
@@ -154,7 +155,7 @@ const History = () => {
                 setWeekOffset(0);
                 setMonthOffset(0);
               }}
-              className={`flex-1 py-1.5 rounded-lg text-[13px] font-semibold transition-all duration-200 ${
+              className={`flex-1 min-h-11 py-1.5 rounded-lg text-[13px] font-semibold transition-all duration-200 ${
                 filter === mode
                   ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-card-foreground"
@@ -173,7 +174,7 @@ const History = () => {
         <div className="px-5 mb-3 flex items-center justify-between">
           <button
             onClick={() => setOffset(offset + 1)}
-            className="px-3 py-1 rounded-lg glass text-[13px] font-mono font-bold text-muted-foreground active:scale-95 transition-transform"
+            className="min-h-11 px-3 py-1 rounded-lg glass text-[13px] font-mono font-bold text-muted-foreground active:scale-95 transition-transform"
           >
             ← {isZh ? "上一" : "Prev"}{filter === "week" ? (isZh ? "周" : "") : (isZh ? "月" : "")}
           </button>
@@ -181,16 +182,58 @@ const History = () => {
           <button
             onClick={() => setOffset(Math.max(0, offset - 1))}
             disabled={offset === 0}
-            className="px-3 py-1 rounded-lg glass text-[13px] font-mono font-bold text-muted-foreground disabled:opacity-30 active:scale-95 transition-transform"
+            className="min-h-11 px-3 py-1 rounded-lg glass text-[13px] font-mono font-bold text-muted-foreground disabled:opacity-30 active:scale-95 transition-transform"
           >
             {isZh ? "下一" : "Next"}{filter === "week" ? (isZh ? "周" : "") : (isZh ? "月" : "")} →
           </button>
         </div>
       )}
 
+      {meals.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-secondary/60 flex items-center justify-center mb-2">
+            <Camera className="w-7 h-7 text-muted-foreground/40" />
+          </div>
+          <p className="text-sm text-muted-foreground text-center">{t.historyNoMealsYet}</p>
+          <button
+            onClick={() => navigate("/scan")}
+            className="min-h-11 px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-2"
+          >
+            <Camera className="w-4 h-4" /> {t.takePhoto}
+          </button>
+        </div>
+      ) : filteredMeals.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 gap-3">
+          <Minus className="w-8 h-8 text-muted-foreground/20" />
+          <p className="text-sm text-muted-foreground">
+            {isZh ? "该时段暂无记录" : "No records in this period"}
+          </p>
+        </div>
+      ) : (
+        <div className="px-4 pb-6 space-y-5">
+          {Object.entries(grouped).map(([date, dateMeals]) => {
+            const dayCal = dateMeals.reduce((s, m) => s + m.calories, 0);
+            return (
+              <div key={date}>
+                <div className="flex items-center justify-between mb-2.5 px-1">
+                  <p className="text-[13px] font-semibold text-muted-foreground">{date}</p>
+                  <p className="text-xs font-mono text-muted-foreground/60">
+                    {t.historyDailySummary(dateMeals.length, dayCal)}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {dateMeals.map(meal => (
+                    <MealScoreCard key={meal.id} meal={meal} />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {/* Trend Summary Card */}
       {trendStats && filter !== "all" && (
-        <div className="px-5 mb-4">
+        <div className="px-5 mb-6" aria-hidden="true">
           <div className="glass rounded-2xl p-4 shadow-card">
             <div className="grid grid-cols-4 gap-3">
               {[
@@ -277,47 +320,12 @@ const History = () => {
         </div>
       )}
 
-      {meals.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-secondary/60 flex items-center justify-center mb-2">
-            <Camera className="w-7 h-7 text-muted-foreground/40" />
-          </div>
-          <p className="text-sm text-muted-foreground text-center">{t.historyNoMealsYet}</p>
-          <button
-            onClick={() => navigate("/scan")}
-            className="px-6 py-3 rounded-2xl bg-primary text-primary-foreground font-bold text-sm flex items-center gap-2"
-          >
-            <Camera className="w-4 h-4" /> {t.takePhoto}
-          </button>
-        </div>
-      ) : filteredMeals.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 gap-3">
-          <Minus className="w-8 h-8 text-muted-foreground/20" />
-          <p className="text-sm text-muted-foreground">
-            {isZh ? "该时段暂无记录" : "No records in this period"}
-          </p>
-        </div>
-      ) : (
-        <div className="px-4 pb-6 space-y-5">
-          {Object.entries(grouped).map(([date, dateMeals]) => {
-            const dayCal = dateMeals.reduce((s, m) => s + m.calories, 0);
-            return (
-              <div key={date}>
-                <div className="flex items-center justify-between mb-2.5 px-1">
-                  <p className="text-[13px] font-semibold text-muted-foreground">{date}</p>
-                  <p className="text-xs font-mono text-muted-foreground/60">
-                    {t.historyDailySummary(dateMeals.length, dayCal)}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  {dateMeals.map(meal => (
-                    <MealScoreCard key={meal.id} meal={meal} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      {trendStats && filter !== "all" && (
+        <p className="sr-only">
+          {isZh
+            ? `本时段 ${trendStats.mealCount} 餐，蛋白 ${Math.round(trendStats.totalProtein)} 克，脂肪 ${Math.round(trendStats.totalFat)} 克，碳水 ${Math.round(trendStats.totalCarbs)} 克。`
+            : `${trendStats.mealCount} meals this period: protein ${Math.round(trendStats.totalProtein)} g, fat ${Math.round(trendStats.totalFat)} g, carbs ${Math.round(trendStats.totalCarbs)} g.`}
+        </p>
       )}
     </div>
   );

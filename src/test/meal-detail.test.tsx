@@ -47,7 +47,7 @@ describe("meal detail without targets", () => {
         </MemoryRouter>
       </I18nProvider>,
     );
-    expect(screen.getByText("青菜")).toBeVisible();
+    expect(screen.getAllByText("青菜")[0]).toBeVisible();
     expect(screen.getByText(/80 kcal/)).toBeVisible();
   });
 });

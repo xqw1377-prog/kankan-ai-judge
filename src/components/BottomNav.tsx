@@ -24,7 +24,8 @@ const BottomNav = () => {
       <button
         key={path}
         onClick={() => navigate(path)}
-        className={`flex flex-col items-center gap-0.5 px-4 py-1 transition-colors ${
+        aria-current={active ? "page" : undefined}
+        className={`flex min-h-11 min-w-11 flex-col items-center justify-center gap-0.5 px-4 py-1 transition-colors ${
           active ? "text-primary" : "text-muted-foreground"
         }`}
       >
@@ -35,12 +36,12 @@ const BottomNav = () => {
   };
 
   return (
-    <nav className="shrink-0 flex items-center justify-around glass-strong py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <nav aria-label="KanKan" className="shrink-0 flex items-center justify-around glass-strong py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       {leftTabs.map(renderTab)}
       <button
         onClick={() => navigate("/scan")}
         aria-label={t.navScan}
-        className="flex flex-col items-center gap-0.5 px-4 py-1 transition-colors text-muted-foreground"
+        className="flex min-h-11 min-w-11 flex-col items-center gap-0.5 px-4 py-1 transition-colors text-muted-foreground"
       >
         <span className="flex items-center justify-center w-11 h-11 -mt-5 rounded-full bg-primary text-primary-foreground shadow-lg ring-4 ring-background active:scale-95 transition-transform">
           <Camera className="w-5 h-5" />

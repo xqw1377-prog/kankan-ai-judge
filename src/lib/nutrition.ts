@@ -106,7 +106,11 @@ export function getMealTypeByTime(): "breakfast" | "lunch" | "dinner" | "snack" 
   return "dinner";
 }
 
-export function getMealTypeLabel(type: string): string {
+export function getMealTypeLabel(type: string, locale: string = "zh-CN"): string {
+  if (locale.startsWith("en")) {
+    const en: Record<string, string> = { breakfast: "Breakfast", lunch: "Lunch", dinner: "Dinner", snack: "Snack" };
+    return en[type] || type;
+  }
   const map: Record<string, string> = {
     breakfast: "早餐",
     lunch: "午餐",

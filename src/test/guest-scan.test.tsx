@@ -46,7 +46,7 @@ function renderScan() {
 
 describe("guest scan limit", () => {
   beforeEach(() => {
-    localStorage.setItem("kankan_ai_consent_version", "2026-10-05");
+    localStorage.setItem("kankan_ai_consent_version", "2026-10-06");
     localStorage.removeItem("kankan_ai_consent");
     getSession.mockResolvedValue({ data: { session: null } });
     signInAnonymously.mockResolvedValue({

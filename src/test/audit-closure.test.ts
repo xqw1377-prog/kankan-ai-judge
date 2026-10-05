@@ -37,7 +37,7 @@ describe("AI consent version", () => {
     expect(hasAiConsent()).toBe(false);
     setAiConsent();
     expect(localStorage.getItem("kankan_ai_consent_version")).toBe(AI_CONSENT_VERSION);
-    expect(AI_CONSENT_VERSION).toBe("2026-10-05");
+    expect(AI_CONSENT_VERSION).toBe("2026-10-06");
     expect(localStorage.getItem("kankan_ai_consent")).toBeNull();
     expect(hasAiConsent()).toBe(true);
     revokeAiConsent();
@@ -56,13 +56,12 @@ describe("day summary date key", () => {
 describe("audit closure source", () => {
   it("centers the app shell and offers a claim retry", () => {
     const app = readFileSync("src/App.tsx", "utf8");
-    expect(app).toContain("max-w-[480px]");
-    expect(app).toContain("md:max-w-2xl");
-    expect(app).toContain("lg:max-w-3xl");
+    expect(app).toContain("sm:max-w-[560px]");
+    expect(app).toContain("lg:max-w-[640px]");
     expect(app).toContain("useGuestClaimRecovery");
     expect(app).toContain("guestClaimRetry");
     const login = readFileSync("src/pages/Login.tsx", "utf8");
-    expect(login).toContain(">KK<");
+    expect(login).toContain("/favicon.png");
     expect(login).not.toContain(">K<");
     expect(login).toContain("loginEmailLabel");
     expect(login).toContain("loginPasswordLabel");

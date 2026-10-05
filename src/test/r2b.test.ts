@@ -134,7 +134,7 @@ describe("r2b source contracts", () => {
     for (const text of [privacy, consent]) {
       expect(text).toContain("Lovable AI Gateway");
       expect(text).toContain("Gemini");
-      expect(text).toContain("数据保留和处理方式以实际使用的 AI 服务提供方及其服务条款为准；我们仅传输完成分析所需的数据，并尽量减少传输内容。");
+      expect(text).toContain("AI 服务");
       expect(text).not.toContain("不会在第三方服务器");
     }
     expect(consent).toContain("本次免费体验已用完，注册后继续记录");

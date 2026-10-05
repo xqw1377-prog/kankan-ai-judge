@@ -37,7 +37,7 @@ const Index = () => {
             {nickname ? (
               <h1 className="text-xl font-bold text-card-foreground">{nickname}</h1>
             ) : (
-              <button onClick={() => navigate("/profile")} className="text-sm text-primary font-semibold mt-0.5">
+              <button onClick={() => navigate("/profile")} className="min-h-11 text-sm text-primary font-semibold">
                 {t.nicknamePlaceholder}
               </button>
             )}
@@ -45,12 +45,13 @@ const Index = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setLocale(locale === "zh-CN" ? "en-US" : "zh-CN")}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-full glass text-[13px] font-bold text-muted-foreground tracking-wider"
+              aria-label={locale === "zh-CN" ? "Switch to English" : "切换到中文"}
+              className="flex min-h-11 items-center gap-1 px-3 py-1.5 rounded-full glass text-[13px] font-bold text-muted-foreground tracking-wider"
             >
               <Globe className="w-3 h-3" />
               {locale === "zh-CN" ? "EN" : "中"}
             </button>
-            <button onClick={() => navigate("/profile")} className="w-10 h-10 rounded-full glass flex items-center justify-center">
+            <button onClick={() => navigate("/profile")} aria-label={t.navProfile} className="w-11 h-11 rounded-full glass flex items-center justify-center">
               <span className="text-lg">👤</span>
             </button>
           </div>
@@ -108,7 +109,7 @@ const Index = () => {
                 <div className="text-left">
                   <p className="font-semibold text-sm text-card-foreground">{meal.food_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleString(locale, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    {getMealTypeLabel(meal.meal_type, locale)} · {new Date(meal.recorded_at).toLocaleString(locale, { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
                 <span className="text-sm font-bold text-primary">{meal.calories}kcal</span>
