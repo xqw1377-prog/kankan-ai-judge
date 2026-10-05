@@ -127,8 +127,7 @@ describe("r2b source contracts", () => {
     expect(profile).toContain("t.myPage");
     expect(profile).toContain("profileMissingPrompt");
     expect(profile).not.toContain("profileSetupTitle");
-    expect(profile.indexOf("<details")).toBeLessThan(profile.indexOf("<MealSequenceCoach"));
-    expect(profile.indexOf("<details")).toBeLessThan(profile.indexOf("<InvestmentReport"));
+    for (const name of ["MealSequenceCoach", "InvestmentReport", "DietRing", "DietCreditCard"]) expect(profile).not.toContain(name);
     expect(readFileSync("src/App.tsx", "utf8")).toContain('path="/audit"');
     const privacy = readFileSync("src/pages/Privacy.tsx", "utf8");
     const consent = readFileSync("src/lib/i18n/zh-CN.ts", "utf8");

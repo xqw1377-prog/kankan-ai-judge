@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Check, Plus, Trash2, Minus, Sparkles, Wand2, Loader2 } from "lucide-react";
+import { ChevronLeft, Plus, Trash2, Minus, Wand2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMeals } from "@/hooks/useMeals";
 import { useToast } from "@/hooks/use-toast";
@@ -13,16 +13,6 @@ interface Ingredient {
 }
 
 type CookingMethod = "pan_fried" | "fried" | "steamed" | "boiled" | "stir_fried" | "raw";
-
-// Oil absorption correction coefficients per cooking method
-const OIL_COEFFICIENTS: Record<CookingMethod, { fat: number; cal: number; gi_boost: number }> = {
-  pan_fried:  { fat: 1.5, cal: 1.25, gi_boost: 0.1 },
-  fried:      { fat: 1.8, cal: 1.4,  gi_boost: 0.15 },
-  stir_fried: { fat: 1.3, cal: 1.15, gi_boost: 0.05 },
-  boiled:     { fat: 1.0, cal: 1.0,  gi_boost: 0 },
-  steamed:    { fat: 1.0, cal: 1.0,  gi_boost: -0.05 },
-  raw:        { fat: 1.0, cal: 1.0,  gi_boost: -0.1 },
-};
 
 const STEP = 10;
 
@@ -45,29 +35,14 @@ const EditIngredients = () => {
   const [showAdd, setShowAdd] = useState(false);
   const [addName, setAddName] = useState("");
   const [addGrams, setAddGrams] = useState("");
-  const [showConfetti, setShowConfetti] = useState(false);
   const [cookingMethod, setCookingMethod] = useState<CookingMethod | null>(null);
   const [reInferring, setReInferring] = useState(false);
   const [analysisId, setAnalysisId] = useState<string>("");
   const [serverResult, setServerResult] = useState<FoodAnalysis | null>(null);
   const [matchedRevision, setMatchedRevision] = useState<number | null>(null);
 
-  // Real-time nutrition estimation with oil absorption correction
-  const nutrition = useMemo(() => {
-    const totalGrams = ingredients.reduce((s, i) => s + i.grams, 0);
-    const coeff = cookingMethod ? OIL_COEFFICIENTS[cookingMethod] : { fat: 1, cal: 1, gi_boost: 0 };
-    // Estimate GI value: base ~55, adjusted by cooking method and carb ratio
-    const baseGI = 55;
-    const gi_value = Math.round(Math.min(100, Math.max(20, baseGI + coeff.gi_boost * 100 + (totalGrams > 0 ? (totalGrams * 0.2 / totalGrams) * 20 - 10 : 0))));
-    return {
-      calories: Math.round(totalGrams * 1.5 * coeff.cal),
-      protein_g: Math.round(totalGrams * 0.08),
-      fat_g: Math.round(totalGrams * 0.06 * coeff.fat),
-      carbs_g: Math.round(totalGrams * 0.2),
-      cookingMethod,
-      gi_value,
-    };
-  }, [ingredients, cookingMethod]);
+  // Rough local sketch only; the server re-estimate is the fact.
+  const roughCalories = useMemo(() => Math.round(ingredients.reduce((s, i) => s + i.grams, 0) * 1.5), [ingredients]);
 
   // Every edit bumps the revision; a server reply for an older revision is discarded.
   const revisionRef = useRef(0);
@@ -177,18 +152,13 @@ const EditIngredients = () => {
       setAnalysisId(data.analysis_id);
       setServerResult(next);
       setFoodNameValue(next.food);
-      toast({ title: "✨ " + t.reInferSuccess, description: next.food });
+      
     } catch {
       toast({ title: t.reInferFailed, variant: "destructive" });
     } finally {
       setReInferring(false);
     }
   }, [reInferring, ingredients, locale, toast, t, foodNameValue, cookingMethod]);
-
-  const triggerConfetti = useCallback(() => {
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 2000);
-  }, []);
 
   const canSave = matchedRevision !== null && matchedRevision === revisionRef.current && !!analysisId && !reInferring;
 
@@ -202,15 +172,7 @@ const EditIngredients = () => {
         toast({ title: t.needServerEstimate, variant: "destructive" });
         return;
       }
-      setTimeout(() => {
-        navigate("/result", {
-          state: {
-            ...resultState,
-            result: serverResult,
-          },
-          replace: true,
-        });
-      }, 800);
+      navigate("/result", { state: { ...resultState, result: serverResult }, replace: true });
       return;
     }
     if (!mealId) return;
@@ -239,49 +201,19 @@ const EditIngredients = () => {
 
   return (
     <div className="h-full flex flex-col bg-background relative">
-      {/* Confetti overlay */}
-      {showConfetti && (
-        <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">
-          <div className="animate-scale-in flex flex-col items-center gap-2">
-            <Sparkles className="w-16 h-16 text-primary animate-pulse" />
-                      </div>
-          {Array.from({ length: 20 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 rounded-full"
-              style={{
-                background: ["#D4AF37", "#FF9800", "#39FF14", "#E91E63", "#9C27B0"][i % 5],
-                left: `${20 + Math.random() * 60}%`,
-                top: `${30 + Math.random() * 40}%`,
-                animation: `confetti-fall ${0.8 + Math.random() * 0.6}s ease-out forwards`,
-                animationDelay: `${Math.random() * 0.3}s`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-
       {/* Header */}
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0">
         <button onClick={() => navigate(-1)} className="p-2 text-muted-foreground">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <span className="font-semibold text-sm text-card-foreground">{t.editIngredientsTitle}</span>
-        <button
-          onClick={handleSave}
-          disabled={!canSave}
-          aria-label={t.done}
-          className="p-2 text-primary disabled:opacity-40"
-        >
-          <Check className="w-5 h-5" />
-        </button>
+        <span className="w-9" />
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">
         {/* Editable food name + AI re-infer */}
         <div className="text-center mb-4">
-          <span className="text-3xl">🍜</span>
-          <input
+                    <input
             type="text"
             value={foodNameValue}
             onChange={e => { setFoodNameValue(e.target.value); invalidateAnalysis(); }}
@@ -291,71 +223,33 @@ const EditIngredients = () => {
           <button
             onClick={handleReInfer}
             disabled={reInferring || ingredients.length === 0}
-            className="mt-2 flex items-center gap-1.5 mx-auto px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-semibold disabled:opacity-40 transition-all active:scale-95"
+            className="mt-3 flex items-center gap-1.5 mx-auto px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold disabled:opacity-40 transition-all active:scale-95"
           >
             {reInferring ? <Loader2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
             {reInferring ? t.reInferring : t.reInferDish}
           </button>
         </div>
 
-        {/* Real-time nutrition bar */}
-        <div className="glass rounded-xl p-3 mb-5 shadow-card">
-          <div className="flex items-center justify-between">
-            <span className="text-[13px] text-muted-foreground font-semibold uppercase tracking-wider">{t.livePreview}</span>
+        {serverResult && matchedRevision === revisionRef.current ? (
+          <div className="rounded-xl border border-primary/40 bg-primary/5 p-4 mb-5">
+            <p className="text-sm font-semibold text-muted-foreground">{t.newEstimate}</p>
+            <p className="text-base font-bold text-card-foreground mt-1">{serverResult.food}</p>
+            <p className="text-sm text-card-foreground tabular-nums mt-1">
+              {Math.round(serverResult.calories)} kcal · {t.protein} {serverResult.protein_g}g · {t.fat} {serverResult.fat_g}g · {t.carbs} {serverResult.carbs_g}g
+            </p>
+            {serverResult.verdict ? <p className="text-sm text-muted-foreground mt-2">{serverResult.verdict}</p> : null}
+            <button onClick={handleSave} disabled={!canSave} className="mt-3 w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold disabled:opacity-50">
+              {t.useThisResult}
+            </button>
           </div>
-          <p className="text-[13px] text-muted-foreground leading-relaxed mt-1">{t.localEstimateNote}</p>
-          <div className="flex items-center justify-between mt-2">
-            <div className="text-center flex-1">
-              <div className={`text-lg font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary text-glow-gold" : "text-card-foreground"}`}>
-                {nutrition.calories}
-              </div>
-              <div className="text-xs text-muted-foreground">{t.energy}</div>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center flex-1">
-              <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary" : "text-card-foreground"}`}>
-                {nutrition.protein_g}g
-              </div>
-              <div className="text-xs text-muted-foreground">{t.protein}</div>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center flex-1">
-              <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary" : "text-card-foreground"}`}>
-                {nutrition.fat_g}g
-              </div>
-              <div className="text-xs text-muted-foreground">{t.fat}</div>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center flex-1">
-              <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${modifiedIdx.size > 0 ? "text-primary" : "text-card-foreground"}`}>
-                {nutrition.carbs_g}g
-              </div>
-              <div className="text-xs text-muted-foreground">{t.carbs}</div>
-            </div>
-            <div className="w-px h-8 bg-border" />
-            <div className="text-center flex-1">
-              <div className={`text-sm font-bold tabular-nums transition-colors duration-300 ${
-                nutrition.gi_value >= 70 ? "text-destructive" : nutrition.gi_value <= 40 ? "text-success" : "text-primary"
-              }`}>
-                {nutrition.gi_value}
-              </div>
-              <div className={`text-xs font-semibold ${nutrition.gi_value >= 70 ? "text-destructive/70" : "text-muted-foreground"}`}>
-                GI {nutrition.gi_value >= 70 ? `⚠️` : ""}
-              </div>
-            </div>
-          </div>
-        </div>
+        ) : (
+          <p className="text-sm text-muted-foreground mb-5">≈ {roughCalories} kcal · {t.roughCalories}</p>
+        )}
 
         {/* Cooking method selector */}
         <div className="glass rounded-xl p-3 mb-5 shadow-card">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[13px] text-muted-foreground font-semibold uppercase tracking-wider">{t.cookingMethod}</span>
-            {(cookingMethod === "fried" || cookingMethod === "stir_fried" || cookingMethod === "pan_fried") && (
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full animate-fade-in"
-                style={{ color: "hsl(30, 90%, 50%)", background: "hsl(30 90% 50% / 0.1)", border: "1px solid hsl(30 90% 50% / 0.2)" }}>
-                🛢️ {t.oilAbsorptionHint}
-              </span>
-            )}
           </div>
           <div className="flex gap-1.5">
             {([
@@ -434,7 +328,7 @@ const EditIngredients = () => {
                           <Minus className="w-3 h-3 text-muted-foreground" />
                         </button>
                         <span className={`text-sm font-semibold w-12 text-center tabular-nums transition-colors duration-300 ${
-                          isModified ? "text-primary text-glow-gold" : "text-card-foreground"
+                          isModified ? "text-primary" : "text-card-foreground"
                         }`}>
                           {item.grams}g
                         </span>

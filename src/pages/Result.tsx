@@ -45,6 +45,9 @@ const Result = () => {
   }
 
   const [seen, problem, action] = mealResultLines(result);
+  const openEdit = () => navigate("/edit-ingredients", {
+    state: { foodName: result.food, ingredients: result.ingredients, fromResult: true, resultState: location.state },
+  });
 
   const handleSave = async () => {
     if (saving || saved) return;
@@ -91,7 +94,12 @@ const Result = () => {
           <img src={heroImage} alt={seen} className="w-full max-h-56 object-cover rounded-2xl mb-5" />
         )}
         <div className="space-y-4 text-base leading-relaxed text-card-foreground">
-          <p><span className="text-muted-foreground">{t.resultSeen}：</span>{seen}</p>
+          <div className="flex items-start gap-3">
+            <p className="flex-1"><span className="text-muted-foreground">{t.resultSeen}：</span>{seen}</p>
+            <button type="button" onClick={openEdit} className="shrink-0 px-3 py-1.5 rounded-full border border-primary/40 text-primary text-sm font-semibold">
+              {t.resultEditShort}
+            </button>
+          </div>
           <p><span className="text-muted-foreground">{t.resultProblem}：</span>{problem}</p>
           <p><span className="text-muted-foreground">{t.resultAction}：</span>{action}</p>
         </div>
@@ -111,20 +119,6 @@ const Result = () => {
             )}
             {result.verdict ? <p>{result.verdict}</p> : null}
             {result.suggestion ? <p>{result.suggestion}</p> : null}
-            <button
-              type="button"
-              onClick={() => navigate("/edit-ingredients", {
-                state: {
-                  foodName: result.food,
-                  ingredients: result.ingredients,
-                  fromResult: true,
-                  resultState: location.state,
-                },
-              })}
-              className="text-sm font-semibold text-primary"
-            >
-              {t.editIngredientsTitle}
-            </button>
           </div>
         </details>
       </div>
@@ -153,7 +147,7 @@ const Result = () => {
             {t.saveToLog}
           </button>
         )}
-        <button onClick={() => navigate("/", { replace: true })} className="w-full text-sm text-muted-foreground">
+        <button onClick={() => navigate("/scan", { replace: true })} className="w-full text-sm text-muted-foreground">
           {t.retake}
         </button>
       </div>

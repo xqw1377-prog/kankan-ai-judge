@@ -73,7 +73,7 @@ describe("audit closure source", () => {
     expect(profile).toContain("aiConsentRevoke");
   });
 
-  it("keeps the named experimental reports collapsed and off the home and result pages", () => {
+  it("removes the named experimental reports from home, result and profile", () => {
     const index = readFileSync("src/pages/Index.tsx", "utf8");
     const result = readFileSync("src/pages/Result.tsx", "utf8");
     const profile = readFileSync("src/pages/Profile.tsx", "utf8");
@@ -81,10 +81,7 @@ describe("audit closure source", () => {
       expect(index).not.toContain(name);
       expect(result).not.toContain(name);
     }
-    const details = profile.indexOf("<details");
-    expect(details).toBeGreaterThan(-1);
-    expect(profile.indexOf("<MealSequenceCoach")).toBeGreaterThan(details);
-    expect(profile.indexOf("<InvestmentReport")).toBeGreaterThan(details);
+    for (const name of ["MealSequenceCoach", "InvestmentReport", "DietRing", "DietCreditCard"]) expect(profile).not.toContain(name);
   });
 
   it("keeps product type at the support and interaction floors", () => {
