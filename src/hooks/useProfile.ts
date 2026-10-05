@@ -29,7 +29,7 @@ export function useProfile() {
   useEffect(() => {
     if (!ready) return;
     if (!userId) {
-      setProfile(null);
+      setProfile(readProfile(scope));
       setResolvedScope(scope);
       return;
     }
