@@ -26,7 +26,7 @@ export default function PostMealAudit({ mealId, foodName, triggered, delayMs }: 
     return () => clearTimeout(timer);
   }, [triggered, submitted, mealId, delay]);
 
-  const handleSelect = useCallback(() => {
+  const handleSelect = useCallback((_feeling: Feeling) => {
     setSubmitted(true);
     setShow(false);
   }, []);
