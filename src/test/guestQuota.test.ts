@@ -60,6 +60,4 @@ describe("analysis session", () => {
     expect(await ensureAnalysisSession({ getSession: async () => ({ data: { session: null } }) })).toBe("signin");
     expect(await ensureAnalysisSession({ getSession: async () => ({ data: { session: { user: { id: "a", is_anonymous: true } } } }) })).toBe("signin");
   });
-    expect(result).toBe("signin");
-  });
 });
