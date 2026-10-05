@@ -19,6 +19,8 @@ export type Database = {
           created_at: string
           id: string
           kind: string
+          lease_generation: number | null
+          lease_id: string | null
           status: string | null
           user_id: string
         }
@@ -26,6 +28,8 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: string
+          lease_generation?: number | null
+          lease_id?: string | null
           status?: string | null
           user_id: string
         }
@@ -33,6 +37,8 @@ export type Database = {
           created_at?: string
           id?: string
           kind?: string
+          lease_generation?: number | null
+          lease_id?: string | null
           status?: string | null
           user_id?: string
         }
@@ -365,8 +371,8 @@ export type Database = {
         Returns: Json
       }
       complete_guest_food_slot: {
-        Args: { p_user_id: string }
-        Returns: undefined
+        Args: { p_lease_id: string; p_user_id: string }
+        Returns: boolean
       }
       consume_analysis_into_meal: {
         Args: {
@@ -382,10 +388,29 @@ export type Database = {
         Returns: string
       }
       release_guest_food_slot: {
-        Args: { p_user_id: string }
-        Returns: undefined
+        Args: { p_lease_id: string; p_user_id: string }
+        Returns: boolean
       }
-      reserve_guest_food_slot: { Args: { p_user_id: string }; Returns: string }
+      reserve_guest_food_slot: { Args: { p_user_id: string }; Returns: Json }
+      store_guest_analysis_with_lease: {
+        Args: {
+          p_calories: number
+          p_carbs_g: number
+          p_fat_g: number
+          p_food_name: string
+          p_idempotency_key: string
+          p_ingredients: Json
+          p_lease_id: string
+          p_model: string
+          p_protein_g: number
+          p_provider: string
+          p_suggestion: string
+          p_uncertainty: string
+          p_user_id: string
+          p_verdict: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
