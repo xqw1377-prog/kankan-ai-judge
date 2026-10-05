@@ -4,7 +4,6 @@ import { type UserProfile } from "@/lib/nutrition";
 import {
   GUEST_SCOPE,
   hydrateProfile,
-  isGuestMode,
   profileFromServer,
   readProfile,
   writeProfile,
@@ -22,15 +21,16 @@ export function useProfile() {
   // Anonymous sessions exist only so one food scan can call the API. Profile stays on this device.
   const userId = sessionUserId && !isAnonymous ? sessionUserId : null;
   const scope = userId ?? GUEST_SCOPE;
-  const [profile, setProfile] = useState<FullProfile | null>(() => (
-    isGuestMode() ? readProfile(GUEST_SCOPE) : null
-  ));
-  const loading = !ready && !isGuestMode();
+  const [profile, setProfile] = useState<FullProfile | null>(null);
+  // Auth ready is not profile resolved: stay loading until the server answers for this account.
+  const [resolvedScope, setResolvedScope] = useState<string | null>(null);
+  const loading = !ready || (!!userId && resolvedScope !== scope);
 
   useEffect(() => {
     if (!ready) return;
     if (!userId) {
-      setProfile(readProfile(scope));
+      setProfile(null);
+      setResolvedScope(scope);
       return;
     }
     const cached = readProfile(scope);
@@ -42,7 +42,9 @@ export function useProfile() {
         .select("*")
         .eq("user_id", userId)
         .maybeSingle();
-      if (cancelled || error || !data) return;
+      if (cancelled) return;
+      setResolvedScope(scope);
+      if (error || !data) return;
       const full = profileFromServer(data as Record<string, unknown>) as FullProfile;
       full.id = typeof (data as { id?: string }).id === "string" ? (data as { id: string }).id : undefined;
       writeProfile(scope, full);
