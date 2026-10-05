@@ -19,19 +19,46 @@ export type Database = {
           created_at: string
           id: string
           kind: string
+          status: string | null
           user_id: string
         }
         Insert: {
           created_at?: string
           id?: string
           kind?: string
+          status?: string | null
           user_id: string
         }
         Update: {
           created_at?: string
           id?: string
           kind?: string
+          status?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      guest_claim_tokens: {
+        Row: {
+          anonymous_user_id: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          token: string
+        }
+        Insert: {
+          anonymous_user_id: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          token: string
+        }
+        Update: {
+          anonymous_user_id?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          token?: string
         }
         Relationships: []
       }
@@ -86,10 +113,16 @@ export type Database = {
           fat_g: number
           food_name: string
           id: string
+          idempotency_key: string | null
           ingredients: Json
+          meal_id: string | null
+          model: string | null
           protein_g: number
+          provider: string | null
           suggestion: string | null
+          uncertainty: string | null
           user_id: string
+          validation_status: string | null
           verdict: string | null
         }
         Insert: {
@@ -100,10 +133,16 @@ export type Database = {
           fat_g: number
           food_name: string
           id?: string
+          idempotency_key?: string | null
           ingredients?: Json
+          meal_id?: string | null
+          model?: string | null
           protein_g: number
+          provider?: string | null
           suggestion?: string | null
+          uncertainty?: string | null
           user_id: string
+          validation_status?: string | null
           verdict?: string | null
         }
         Update: {
@@ -114,13 +153,27 @@ export type Database = {
           fat_g?: number
           food_name?: string
           id?: string
+          idempotency_key?: string | null
           ingredients?: Json
+          meal_id?: string | null
+          model?: string | null
           protein_g?: number
+          provider?: string | null
           suggestion?: string | null
+          uncertainty?: string | null
           user_id?: string
+          validation_status?: string | null
           verdict?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "meal_analyses_meal_id_fkey"
+            columns: ["meal_id"]
+            isOneToOne: false
+            referencedRelation: "meal_records"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meal_feedbacks: {
         Row: {
@@ -307,7 +360,32 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_guest_meals: {
+        Args: { p_owner_id: string; p_token: string }
+        Returns: Json
+      }
+      complete_guest_food_slot: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      consume_analysis_into_meal: {
+        Args: {
+          p_analysis_id: string
+          p_meal_type: string
+          p_replace_meal_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      issue_guest_claim_token: {
+        Args: { p_anonymous_user_id: string }
+        Returns: string
+      }
+      release_guest_food_slot: {
+        Args: { p_user_id: string }
+        Returns: undefined
+      }
+      reserve_guest_food_slot: { Args: { p_user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
