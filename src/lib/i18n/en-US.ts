@@ -570,4 +570,5 @@ export const enUS: Dictionary = {
   roughCalories: "Rough gram-based sketch (re-estimate is the real number)",
   todayProgress: "Today's goal progress",
   mealsLogged: (n) => `${n} meals logged`,
+  recordStats: "Your records",
 };

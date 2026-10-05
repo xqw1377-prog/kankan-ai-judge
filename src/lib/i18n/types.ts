@@ -583,4 +583,5 @@ export interface Dictionary {
   roughCalories: string;
   todayProgress: string;
   mealsLogged: (n: number) => string;
+  recordStats: string;
 }

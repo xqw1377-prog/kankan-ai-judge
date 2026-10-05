@@ -25,7 +25,7 @@ function calcStreak(dates: string[]): number {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { profile, authReady, profileReady, saveProfile, userId } = useProfile();
+  const { profile, authReady, profileReady, saveProfile } = useProfile();
   const { meals } = useMeals();
   const { t, locale, setLocale } = useI18n();
   const [editingNickname, setEditingNickname] = useState(false);

@@ -570,4 +570,5 @@ export const zhCN: Dictionary = {
   roughCalories: "按克重粗略换算（仅供参考，以重新估算为准）",
   todayProgress: "今日目标进度",
   mealsLogged: (n) => `已记 ${n} 餐`,
+  recordStats: "记录统计",
 };
