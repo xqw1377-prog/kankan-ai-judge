@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { enforceGuestFoodQuota, recordGuestFoodSuccess } from "../_shared/guestFoodQuota.ts";
 import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
 import { parseImages, toImageContents } from "../_shared/images.ts";
 import { storeAnalysis } from "../_shared/storeAnalysis.ts";
@@ -18,6 +19,8 @@ serve(async (req) => {
     const body = await req.json();
     const auth = await requireUser(req, corsHeaders);
     if (auth instanceof Response) return auth;
+    const guestBlocked = await enforceGuestFoodQuota(auth.supabase, auth.userId, auth.isAnonymous, corsHeaders);
+    if (guestBlocked) return guestBlocked;
     const limited = await enforceAiRateLimit(auth.supabase, auth.userId, corsHeaders);
     if (limited) return limited;
 
@@ -205,6 +208,8 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
         suggestion: result.suggestion,
       });
       if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
+      const recorded = await recordGuestFoodSuccess(auth.supabase, auth.userId, auth.isAnonymous, corsHeaders);
+      if (recorded) return recorded;
       return json(200, { ...result, analysis_id: analysisId }, corsHeaders);
     }
 

@@ -5,8 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useProfile } from "@/hooks/useProfile";
 import { useI18n } from "@/lib/i18n";
 import AiConsentDialog, { hasAiConsent } from "@/components/AiConsentDialog";
+import { ensureAnalysisSession } from "@/lib/ensureAnalysisSession";
 import { toFoodAnalysis } from "@/lib/foodAnalysis";
+import { GUEST_FREE_LIMIT } from "@/lib/guestQuota";
 import { inspectImages } from "@/lib/imageGuard";
+import { readInvokeFailure } from "@/lib/invokeFailure";
 
 const Scan = () => {
   const location = useLocation();
@@ -26,9 +29,9 @@ const Scan = () => {
   const [currentPreview, setCurrentPreview] = useState(0);
   const [showConsent, setShowConsent] = useState(false);
   const [consentGranted, setConsentGranted] = useState(hasAiConsent());
-  const [failure, setFailure] = useState<"missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | null>(null);
+  const [failure, setFailure] = useState<"missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit" | null>(null);
   const [imageError, setImageError] = useState("");
-  type Outcome = { ok: true; result: ReturnType<typeof toFoodAnalysis> } | { ok: false; code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image"; message?: string };
+  type Outcome = { ok: true; result: ReturnType<typeof toFoodAnalysis> } | { ok: false; code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit"; message?: string };
   const startedRef = useRef(false);
   const resultReadyRef = useRef<Outcome | null>(null);
   const minTimeRef = useRef(false);
@@ -44,7 +47,7 @@ const Scan = () => {
   const finish = useCallback((outcome: Outcome) => {
     if (cancelled) return;
     if (!outcome.ok) {
-      const failed = outcome as { code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image"; message?: string };
+      const failed = outcome as { code: "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit"; message?: string };
       if (failed.message) setImageError(failed.message);
       setFailure(failed.code);
       return;
@@ -72,8 +75,8 @@ const Scan = () => {
       return;
     }
 
-    const { data: sessionData } = await supabase.auth.getSession();
-    if (!sessionData.session) {
+    const session = await ensureAnalysisSession(supabase.auth);
+    if (session === "signin") {
       const outcome = { ok: false as const, code: "signin" as const };
       if (minTimeRef.current) finish(outcome);
       else resultReadyRef.current = outcome;
@@ -92,15 +95,16 @@ const Scan = () => {
         ? { imageBase64: images[0], userContext, language: locale }
         : { imagesBase64: images, userContext, language: locale };
       const { data, error } = await supabase.functions.invoke("analyze-food", { body });
-      const message = (data && typeof data === "object" && typeof (data as { error?: string }).error === "string")
-        ? (data as { error: string }).error
-        : error?.message || "";
-      if (error || (data && typeof data === "object" && "error" in data && (data as { error?: string }).error)) {
-        const code = /LOVABLE_API_KEY|not configured|api[_ ]?key/i.test(message)
-          ? "missing_key" as const
-          : /没能识别|无法识别|不是食物|unrecognized/i.test(message)
-            ? "unrecognized" as const
-            : "unavailable" as const;
+      const failure = await readInvokeFailure(data, error);
+      const message = failure.message;
+      if (error || failure.code || message) {
+        const code = failure.code === GUEST_FREE_LIMIT
+          ? "guest_limit" as const
+          : /LOVABLE_API_KEY|not configured|api[_ ]?key/i.test(message)
+            ? "missing_key" as const
+            : /没能识别|无法识别|不是食物|unrecognized/i.test(message)
+              ? "unrecognized" as const
+              : "unavailable" as const;
         outcome = { ok: false, code };
       } else {
         const result = toFoodAnalysis(data);
@@ -184,9 +188,20 @@ const Scan = () => {
 
       {failure ? (
         <div className="flex flex-col items-center gap-4 max-w-sm text-center">
-          <p className="text-base font-semibold text-card-foreground">没能完成估算</p>
-          <p className="text-sm text-muted-foreground leading-relaxed">{failureText}</p>
-          {failure === "signin" ? (
+          <p className="text-base font-semibold text-card-foreground">
+            {failure === "guest_limit" ? t.guestFreeLimit : "没能完成估算"}
+          </p>
+          {failure !== "guest_limit" && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{failureText}</p>
+          )}
+          {failure === "guest_limit" ? (
+            <button
+              onClick={() => navigate("/login", { state: { upgrade: true } })}
+              className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
+            >
+              {t.loginSignUp}
+            </button>
+          ) : failure === "signin" ? (
             <button onClick={() => navigate("/login")} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
               {t.loginSignIn}
             </button>

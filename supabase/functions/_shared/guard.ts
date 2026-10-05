@@ -10,7 +10,7 @@ export function json(status: number, body: Record<string, unknown>, cors: Record
 }
 
 export async function requireUser(req: Request, cors: Record<string, string>): Promise<
-  | { userId: string; supabase: SupabaseClient }
+  | { userId: string; supabase: SupabaseClient; isAnonymous: boolean }
   | Response
 > {
   const header = req.headers.get("Authorization") ?? "";
@@ -28,12 +28,16 @@ export async function requireUser(req: Request, cors: Record<string, string>): P
   });
   const { data, error } = await supabase.auth.getUser(token);
   if (error || !data.user) return json(401, { error: "需要登录" }, cors);
-  return { userId: data.user.id, supabase };
+  return {
+    userId: data.user.id,
+    supabase,
+    isAnonymous: data.user.is_anonymous === true,
+  };
 }
 
 /**
  * Service role bypasses RLS. Call it only after requireUser succeeds.
- * Anonymous requests never reach this.
+ * Requests without a verified user never reach this.
  */
 export function serviceDb(): SupabaseClient | null {
   const url = Deno.env.get("SUPABASE_URL") ?? "";

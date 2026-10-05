@@ -100,15 +100,15 @@ const Profile = () => {
       <header className="px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-card-foreground">{t.myPage}</h1>
         <div className="flex items-center gap-2">
-          {!authUser && (
+          {(!authUser || authUser.is_anonymous) && (
             <button
-              onClick={() => navigate("/login")}
+              onClick={() => navigate("/login", { state: authUser?.is_anonymous ? { upgrade: true } : undefined })}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-semibold text-primary border border-primary/20"
             >
-              🔑 {t.loginSignIn}
+              🔑 {authUser?.is_anonymous ? t.loginSignUp : t.loginSignIn}
             </button>
           )}
-          {authUser && (
+          {authUser && !authUser.is_anonymous && (
             <span className="text-[10px] text-muted-foreground truncate max-w-[120px]">
               {authUser.email}
             </span>

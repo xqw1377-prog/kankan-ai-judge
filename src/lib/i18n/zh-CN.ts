@@ -539,6 +539,7 @@ export const zhCN: Dictionary = {
   resultMore: "更多细节",
   saveToLog: "记到记录",
   saveNeedsSignIn: "先登录，才能把这餐记到记录。",
+  guestFreeLimit: "免费体验已用完，注册后继续记录",
   profileSaveFailed: "档案没能保存，请再试一次。",
 
   aiConsentTitle: "AI 数据使用说明",
