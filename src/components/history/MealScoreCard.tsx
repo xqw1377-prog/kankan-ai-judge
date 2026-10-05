@@ -2,7 +2,6 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import { MealRecord } from "@/hooks/useMeals";
 import { getMealTypeLabel } from "@/lib/nutrition";
-import { getSequenceGrade, getSequenceGradeInfo } from "@/lib/sequenceScore";
 import { useI18n } from "@/lib/i18n";
 
 interface MealScoreCardProps {
@@ -12,7 +11,6 @@ interface MealScoreCardProps {
 export default function MealScoreCard({ meal }: MealScoreCardProps) {
   const navigate = useNavigate();
   const { t, locale } = useI18n();
-  const isZh = locale === "zh-CN";
 
   const totalMacro = meal.protein_g + meal.fat_g + meal.carbs_g;
   const proteinPct = totalMacro > 0 ? (meal.protein_g / totalMacro) * 100 : 0;
@@ -32,19 +30,7 @@ export default function MealScoreCard({ meal }: MealScoreCardProps) {
               {meal.food_name}
             </p>
             <p className="text-[13px] font-mono text-muted-foreground mt-0.5 flex items-center gap-1.5">
-              {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
-              {meal.sequence_score != null && (() => {
-                const grade = getSequenceGrade(meal.sequence_score);
-                const info = getSequenceGradeInfo(grade, isZh);
-                return (
-                  <span
-                    className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs font-bold"
-                    style={{ background: `${info.color}15`, color: info.color }}
-                  >
-                    {info.icon} {info.label}
-                  </span>
-                );
-              })()}
+              {getMealTypeLabel(meal.meal_type, locale)} · {new Date(meal.recorded_at).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
             </p>
           </div>
 

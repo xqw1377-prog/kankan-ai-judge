@@ -1,4 +1,25 @@
 import { Component, type ReactNode } from "react";
+import { useI18n } from "@/lib/i18n";
+
+function ErrorFallback() {
+  const { t } = useI18n();
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center" role="alert">
+      <p className="text-base font-semibold text-card-foreground">{t.routeErrorTitle}</p>
+      <p className="text-sm text-muted-foreground">{t.routeErrorBody}</p>
+      <button
+        type="button"
+        className="min-h-11 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold"
+        onClick={() => {
+          sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+          window.location.reload();
+        }}
+      >
+        {t.routeErrorReload}
+      </button>
+    </div>
+  );
+}
 
 type Props = { children: ReactNode };
 type State = { error: Error | null };
@@ -26,21 +47,6 @@ export class RouteErrorBoundary extends Component<Props, State> {
 
   render() {
     if (!this.state.error) return this.props.children;
-    return (
-      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-base font-semibold text-card-foreground">页面没有加载出来</p>
-        <p className="text-sm text-muted-foreground">请重新加载。如果刚更新过应用，这通常是旧页面缓存。</p>
-        <button
-          type="button"
-          className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold"
-          onClick={() => {
-            sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-            window.location.reload();
-          }}
-        >
-          重新加载
-        </button>
-      </div>
-    );
+    return <ErrorFallback />;
   }
 }

@@ -114,7 +114,7 @@ const EditIngredients = () => {
     if (reInferring || ingredients.length === 0) return;
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData.session) {
-      toast({ title: "需要先登录才能重新估算", variant: "destructive" });
+      toast({ title: t.reestimateNeedsSignIn, variant: "destructive" });
       return;
     }
     if (sessionData.session.user.is_anonymous) {
@@ -203,7 +203,7 @@ const EditIngredients = () => {
     <div className="h-full flex flex-col bg-background relative">
       {/* Header */}
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0">
-        <button onClick={() => navigate(-1)} className="p-2 text-muted-foreground">
+        <button onClick={() => navigate(-1)} aria-label={t.back} className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground">
           <ChevronLeft className="w-5 h-5" />
         </button>
         <span className="font-semibold text-sm text-card-foreground">{t.editIngredientsTitle}</span>

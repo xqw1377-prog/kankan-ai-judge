@@ -52,9 +52,10 @@ function ClaimRetryBar() {
 }
 
 function Page({ children }: { children: ReactNode }) {
+  const { t } = useI18n();
   return (
     <RouteErrorBoundary>
-      <Suspense fallback={<div className="flex-1 flex items-center justify-center text-muted-foreground">加载中…</div>}>
+      <Suspense fallback={<div className="flex-1 flex items-center justify-center text-muted-foreground">{t.loadingText}</div>}>
         {children}
       </Suspense>
     </RouteErrorBoundary>
@@ -69,7 +70,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <div className="h-full bg-muted">
-            <div className="mx-auto flex h-full w-full max-w-[480px] flex-col bg-background md:max-w-2xl lg:max-w-3xl">
+            <div className="mx-auto flex h-full w-full flex-col bg-background sm:max-w-[560px] sm:shadow-card lg:max-w-[640px]">
             <ClaimRetryBar />
             <GuestUpgradeWatcher />
             <Routes>

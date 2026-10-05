@@ -589,4 +589,23 @@ export interface Dictionary {
   appendMergeSave: string;
   scanLimitReached: (max: number) => string;
   scanReplaceOldest: string;
+  loadingText: string;
+  routeErrorTitle: string;
+  routeErrorBody: string;
+  routeErrorReload: string;
+  analysisFailedTitle: string;
+  reestimateNeedsSignIn: string;
+  scanCloudNeedsSignIn: string;
+  mealNotFound: string;
+  back: string;
+  deleteMealConfirm: string;
+  mealDeleted: string;
+  mealDetailTitle: string;
+  allergenTitle: (list: string) => string;
+  allergenDesc: string;
+  ingredientList: string;
+  editIngredientsBtn: string;
+  deleteMealBtn: string;
+  aiConsentRecorded: (version: string, date: string) => string;
+  aiConsentNotGiven: string;
 }

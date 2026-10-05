@@ -144,7 +144,7 @@ const Scan = () => {
   };
 
   const failureText = failure === "signin"
-    ? "估算会调用云端分析，需要先登录。未登录时照片和记录只留在这台设备上。"
+    ? t.scanCloudNeedsSignIn
     : failure === "image"
       ? imageError
       : failure === "missing_key"
@@ -250,7 +250,7 @@ const Scan = () => {
       {failure ? (
         <div className="flex flex-col items-center gap-4 max-w-sm text-center">
           <p className="text-base font-semibold text-card-foreground">
-            {failure === "guest_limit" ? t.guestFreeLimit : "没能完成估算"}
+            {failure === "guest_limit" ? t.guestFreeLimit : t.analysisFailedTitle}
           </p>
           {failure !== "guest_limit" && (
             <p className="text-sm text-muted-foreground leading-relaxed">{failureText}</p>

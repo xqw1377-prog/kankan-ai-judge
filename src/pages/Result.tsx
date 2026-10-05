@@ -38,7 +38,7 @@ const Result = () => {
   if (isPlaceholderAnalysis(result)) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <p className="text-base font-semibold text-card-foreground">没能完成估算</p>
+        <p className="text-base font-semibold text-card-foreground">{t.analysisFailedTitle}</p>
         <p className="text-sm text-muted-foreground leading-relaxed">{t.analysisUnrecognized}</p>
         <button onClick={() => navigate("/", { replace: true })} className="text-sm text-primary underline">
           {t.backHome}
@@ -99,10 +99,10 @@ const Result = () => {
   return (
     <div className="h-full flex flex-col bg-background">
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0">
-        <button onClick={() => navigate(-1)} className="p-2 text-muted-foreground" aria-label={t.backHome}>
+        <button onClick={() => navigate(-1)} className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground" aria-label={t.backHome}>
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <button onClick={() => navigate("/")} className="p-2 text-muted-foreground" aria-label={t.backHome}>
+        <button onClick={() => navigate("/")} className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground" aria-label={t.backHome}>
           <Home className="w-5 h-5" />
         </button>
       </header>

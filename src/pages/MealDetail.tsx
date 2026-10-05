@@ -1,18 +1,33 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Pencil, Trash2, PlusCircle } from "lucide-react";
+import { ChevronLeft, Trash2, PlusCircle } from "lucide-react";
 import { appendTargetFromMeal } from "@/lib/mealAppend";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import NutritionBar from "@/components/NutritionBar";
 import { getMealTypeLabel } from "@/lib/nutrition";
+import { mealResultLines } from "@/lib/foodAnalysis";
 import { useToast } from "@/hooks/use-toast";
+import { useI18n } from "@/lib/i18n";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
+/** Same reading order as Result: 看到 / 问题 / 这一口, numbers under 更多细节. */
 const MealDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { meals, deleteMeal } = useMeals();
   const { profile } = useProfile();
   const { toast } = useToast();
+  const { t, locale } = useI18n();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const meal = meals.find(m => m.id === id);
 
@@ -24,16 +39,22 @@ const MealDetail = () => {
   if (!meal) {
     return (
       <div className="h-full flex flex-col items-center justify-center gap-3">
-        <p className="text-muted-foreground">记录不存在</p>
-        <button onClick={() => navigate(-1)} className="text-primary text-sm font-semibold">返回</button>
+        <p className="text-muted-foreground">{t.mealNotFound}</p>
+        <button onClick={() => navigate(-1)} className="min-h-11 px-4 text-primary text-sm font-semibold">{t.back}</button>
       </div>
     );
   }
 
+  const [seen, problem, action] = mealResultLines({
+    food: meal.food_name,
+    ingredients: meal.ingredients,
+    verdict: meal.verdict ?? undefined,
+    suggestion: meal.suggestion ?? undefined,
+  });
+
   const handleDelete = async () => {
-    if (!confirm("确定删除这条记录吗？")) return;
     await deleteMeal(meal.id);
-    toast({ title: "已删除" });
+    toast({ title: t.mealDeleted });
     navigate(-1);
   };
 
@@ -46,97 +67,98 @@ const MealDetail = () => {
   return (
     <div className="h-full flex flex-col bg-background">
       <header className="flex items-center justify-between px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2 shrink-0">
-        <button onClick={() => navigate(-1)} className="p-2 text-muted-foreground"><ChevronLeft className="w-5 h-5" /></button>
-        <span className="font-semibold text-sm text-card-foreground">餐品详情</span>
-        <button onClick={handleEdit} className="p-2 text-primary"><Pencil className="w-4 h-4" /></button>
+        <button onClick={() => navigate(-1)} aria-label={t.back} className="min-h-11 min-w-11 flex items-center justify-center text-muted-foreground">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h1 className="font-semibold text-sm text-card-foreground">{t.mealDetailTitle}</h1>
+        <span className="min-w-11" aria-hidden="true" />
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-6">
-        <div className="text-center mb-6">
-          <span className="text-4xl">🍜</span>
-          <h1 className="text-2xl font-bold mt-2 text-card-foreground">{meal.food_name}</h1>
+        <div className="mb-5">
+          <h2 className="text-2xl font-bold text-card-foreground">{meal.food_name}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleString("zh-CN")}
+            {getMealTypeLabel(meal.meal_type, locale)} · {new Date(meal.recorded_at).toLocaleString(locale)}
           </p>
+        </div>
+
+        {allergenWarnings.length > 0 && (
+          <div role="alert" className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5">
+            <p className="text-sm font-semibold text-destructive">{t.allergenTitle(allergenWarnings.join("、"))}</p>
+            <p className="text-sm text-destructive/80 mt-1">{t.allergenDesc}</p>
+          </div>
+        )}
+
+        <div className="space-y-4 text-base leading-relaxed text-card-foreground">
+          <div className="flex items-start gap-3">
+            <p className="flex-1"><span className="text-muted-foreground">{t.resultSeen}：</span>{seen}</p>
+            <button type="button" onClick={handleEdit} className="shrink-0 min-h-11 px-3 rounded-full border border-primary/40 text-primary text-sm font-semibold">
+              {t.resultEditShort}
+            </button>
+          </div>
+          <p><span className="text-muted-foreground">{t.resultProblem}：</span>{problem}</p>
+          <p><span className="text-muted-foreground">{t.resultAction}：</span>{action}</p>
         </div>
 
         <button
           onClick={() => navigate("/scan", { state: { appendTo: appendTargetFromMeal(meal) } })}
-          className="w-full mb-5 py-3 rounded-xl border border-primary/40 text-primary text-sm font-semibold flex items-center justify-center gap-2"
+          className="w-full mt-6 min-h-11 py-3 rounded-xl border border-primary/40 text-primary text-sm font-semibold flex items-center justify-center gap-2"
         >
-          <PlusCircle className="w-4 h-4" /> 继续加一道（同餐再拍）
+          <PlusCircle className="w-4 h-4" /> {t.appendSameMeal}
         </button>
 
-        {allergenWarnings.length > 0 && (
-          <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 animate-fade-in">
-            <p className="text-sm font-semibold text-destructive">⚠️ 检测到可能的过敏食材：{allergenWarnings.join("、")}</p>
-            <p className="text-xs text-destructive/70 mt-1">您在画像中标记了对以上食材过敏，请谨慎食用</p>
-          </div>
-        )}
-
-        {meal.ingredients.length > 0 && (
-          <section className="mb-5">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">食材清单</h3>
-            <div className="glass rounded-xl p-4 shadow-card">
-              {meal.ingredients.map((item, i) => (
-                <div key={i} className="flex justify-between py-1.5 border-b border-border last:border-0">
-                  <span className="text-sm flex items-center gap-1 text-card-foreground">
-                    {allergenWarnings.includes(item.name) && <span className="text-destructive">⚠️</span>}
-                    {item.name}
-                  </span>
-                  <span className="text-sm text-muted-foreground">{item.grams}g</span>
-                </div>
-              ))}
-            </div>
-            <button onClick={handleEdit} className="flex items-center gap-1 text-primary text-xs font-semibold mt-2 ml-1">
-              <Pencil className="w-3 h-3" /> 编辑食材
-            </button>
-          </section>
-        )}
-
-        <section className="mb-5">
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3">营养素分析</h3>
-          <div className="glass rounded-xl p-4 shadow-card space-y-3">
+        <details open className="mt-6 glass rounded-2xl p-4">
+          <summary className="cursor-pointer min-h-11 flex items-center text-sm font-semibold text-muted-foreground">{t.resultMore}</summary>
+          <div className="mt-3 space-y-3 text-sm text-card-foreground">
             {profile?.targets && profile.targets.calories > 0 ? (
               <>
-                <NutritionBar label="能量" current={meal.calories} target={profile.targets.calories} unit="kcal" />
-                <NutritionBar label="蛋白" current={meal.protein_g} target={profile.targets.protein_g} unit="g" />
-                <NutritionBar label="脂肪" current={meal.fat_g} target={profile.targets.fat_g} unit="g" />
-                <NutritionBar label="碳水" current={meal.carbs_g} target={profile.targets.carbs_g} unit="g" />
+                <NutritionBar label={t.energy} current={meal.calories} target={profile.targets.calories} unit="kcal" />
+                <NutritionBar label={t.protein} current={meal.protein_g} target={profile.targets.protein_g} unit="g" />
+                <NutritionBar label={t.fat} current={meal.fat_g} target={profile.targets.fat_g} unit="g" />
+                <NutritionBar label={t.carbs} current={meal.carbs_g} target={profile.targets.carbs_g} unit="g" />
               </>
             ) : (
-              <p className="text-sm text-card-foreground">
-                {meal.calories} kcal · 蛋白 {Math.round(meal.protein_g)}g · 脂肪 {Math.round(meal.fat_g)}g · 碳水 {Math.round(meal.carbs_g)}g
+              <p className="tabular-nums">
+                {meal.calories} kcal · {t.protein} {Math.round(meal.protein_g)}g · {t.fat} {Math.round(meal.fat_g)}g · {t.carbs} {Math.round(meal.carbs_g)}g
               </p>
             )}
+            {meal.ingredients.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-muted-foreground mb-1">{t.ingredientList}</h3>
+                <ul className="space-y-1 text-muted-foreground">
+                  {meal.ingredients.map((item, i) => (
+                    <li key={i} className="flex justify-between">
+                      <span className={allergenWarnings.includes(item.name) ? "text-destructive" : ""}>{item.name}</span>
+                      <span>{item.grams}g</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-        </section>
-
-        {meal.verdict && (
-          <section className="mb-5">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">营养判决</h3>
-            <div className="glass rounded-xl p-4">
-              <p className="text-sm text-card-foreground">⚠️ {meal.verdict}</p>
-            </div>
-          </section>
-        )}
-
-        {meal.suggestion && (
-          <section className="mb-5">
-            <h3 className="text-sm font-semibold text-muted-foreground mb-3">修复建议</h3>
-            <div className="glass rounded-xl p-4 shadow-card">
-              <p className="text-sm text-card-foreground">💡 {meal.suggestion}</p>
-            </div>
-          </section>
-        )}
+        </details>
 
         <button
-          onClick={handleDelete}
-          className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 mt-4"
+          onClick={() => setConfirmOpen(true)}
+          className="w-full min-h-11 py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 mt-6"
         >
-          <Trash2 className="w-4 h-4" /> 删除记录
+          <Trash2 className="w-4 h-4" /> {t.deleteMealBtn}
         </button>
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent className="max-w-sm rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.deleteMealConfirm}</AlertDialogTitle>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t.back}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleDelete()} className="bg-destructive text-destructive-foreground">
+              {t.deleteMealBtn}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
