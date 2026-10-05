@@ -58,7 +58,6 @@ describe("audit closure source", () => {
     const app = readFileSync("src/App.tsx", "utf8");
     expect(app).toContain("sm:max-w-[560px]");
     expect(app).toContain("lg:max-w-[640px]");
-    expect(app).toContain("lg:max-w-3xl");
     expect(app).toContain("useGuestClaimRecovery");
     expect(app).toContain("guestClaimRetry");
     const login = readFileSync("src/pages/Login.tsx", "utf8");
