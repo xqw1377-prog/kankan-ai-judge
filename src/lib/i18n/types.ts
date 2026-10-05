@@ -597,13 +597,11 @@ export interface Dictionary {
   reestimateNeedsSignIn: string;
   scanCloudNeedsSignIn: string;
   mealNotFound: string;
-  back: string;
   deleteMealConfirm: string;
   mealDeleted: string;
   mealDetailTitle: string;
   allergenTitle: (list: string) => string;
   allergenDesc: string;
-  ingredientList: string;
   editIngredientsBtn: string;
   deleteMealBtn: string;
   aiConsentRecorded: (version: string, date: string) => string;

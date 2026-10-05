@@ -56,7 +56,7 @@ describe("day summary date key", () => {
 describe("audit closure source", () => {
   it("centers the app shell and offers a claim retry", () => {
     const app = readFileSync("src/App.tsx", "utf8");
-    expect(app).toContain("max-w-[480px]");
+    expect(app).toContain("sm:max-w-[560px]");
     expect(app).toContain("md:max-w-2xl");
     expect(app).toContain("lg:max-w-3xl");
     expect(app).toContain("useGuestClaimRecovery");
