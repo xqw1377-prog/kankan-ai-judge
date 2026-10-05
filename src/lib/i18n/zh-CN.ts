@@ -563,7 +563,7 @@ export const zhCN: Dictionary = {
   scanTakeAnother: "再拍一张",
   scanTakePhotoBtn: "拍照",
   scanAddFromAlbum: "从相册添加",
-  scanCaptureHint: (max) => `拍下这一顿，最多 ${max} 张`,
+  scanCaptureHint: (max) => `一道菜一张更准，本轮最多 ${max} 张；一桌很多菜请分次拍`,
   resultEditShort: "不对？修改",
   useThisResult: "使用这次结果",
   newEstimate: "新的估算",
@@ -571,4 +571,9 @@ export const zhCN: Dictionary = {
   todayProgress: "今日目标进度",
   mealsLogged: (n) => `已记 ${n} 餐`,
   recordStats: "记录统计",
+  appendBanner: (food) => `同餐续拍：将合并进「${food}」`,
+  appendSameMeal: "继续加一道（同餐再拍）",
+  appendMergeSave: "合并进这一餐",
+  scanLimitReached: (max) => `本轮最多 ${max} 张，已达上限。可以先开始分析，或替换最旧的一张；一桌菜很多请分次拍，再用「继续加一道」合并进同一餐。`,
+  scanReplaceOldest: "替换最旧一张",
 };

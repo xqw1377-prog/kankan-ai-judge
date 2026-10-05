@@ -12,6 +12,7 @@ import { inspectImages } from "@/lib/imageGuard";
 import { readInvokeFailure } from "@/lib/invokeFailure";
 import { scanAttemptKey } from "@/lib/scanAttempt";
 import { takePhoto, pickPhoto } from "@/lib/camera";
+import type { AppendTarget } from "@/lib/mealAppend";
 
 const MAX_PHOTOS = 5;
 type FailCode = "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit";
@@ -29,7 +30,9 @@ const Scan = () => {
     return raw && raw.length > 0 ? raw.slice(0, MAX_PHOTOS) : one ? [one] : [];
   })();
 
+  const appendTo = location.state?.appendTo as AppendTarget | undefined;
   const [images, setImages] = useState<string[]>(initial);
+  const [limitPrompt, setLimitPrompt] = useState(false);
   const [phase, setPhase] = useState<"capture" | "analyzing">(initial.length > 0 ? "analyzing" : "capture");
   const [slowLevel, setSlowLevel] = useState(0);
   const [currentPreview, setCurrentPreview] = useState(0);
@@ -97,7 +100,7 @@ const Scan = () => {
         const result = toFoodAnalysis(data);
         if (!result) return fail("unrecognized");
         if (cancelledRef.current) return;
-        navigate("/result", { state: { images, imageData: images[0], result }, replace: true });
+        navigate("/result", { state: { images, imageData: images[0], result, appendTo }, replace: true });
       } catch {
         fail("unavailable");
       }
@@ -106,7 +109,7 @@ const Scan = () => {
       clearTimeout(t6);
       runningRef.current = false;
     }
-  }, [images, profile, locale, navigate]);
+  }, [images, profile, locale, navigate, appendTo]);
 
   // Auto-start when an entry point already handed over photos.
   const autoStartedRef = useRef(false);
@@ -124,9 +127,15 @@ const Scan = () => {
   };
 
   const addPhoto = async (fromCamera: boolean) => {
-    if (images.length >= MAX_PHOTOS) return;
+    if (images.length >= MAX_PHOTOS) { setLimitPrompt(true); return; }
     const data = fromCamera ? await takePhoto() : await pickPhoto();
     if (data) setImages((prev) => (prev.length < MAX_PHOTOS ? [...prev, data] : prev));
+  };
+
+  const replaceOldest = async () => {
+    setLimitPrompt(false);
+    const data = await takePhoto();
+    if (data) setImages((prev) => [...prev.slice(1), data]);
   };
 
   const handleCancel = () => {
@@ -155,6 +164,9 @@ const Scan = () => {
       <div className="h-full flex flex-col bg-background relative px-6 pt-[max(4rem,calc(env(safe-area-inset-top)+3rem))] pb-[max(1.5rem,env(safe-area-inset-bottom))]">
         {closeBtn}
         <h1 className="text-xl font-bold text-card-foreground">{t.takePhoto}</h1>
+        {appendTo && (
+          <p className="mt-2 text-sm font-semibold text-primary">{t.appendBanner(appendTo.food)}</p>
+        )}
         <p className="text-sm text-muted-foreground mt-1">{t.scanCaptureHint(MAX_PHOTOS)}</p>
 
         <div className="flex-1 flex flex-col justify-center">
@@ -185,6 +197,15 @@ const Scan = () => {
         </div>
 
         <div className="space-y-3">
+          {limitPrompt && (
+            <div role="alert" className="rounded-xl border border-primary/40 bg-primary/5 p-4 space-y-3">
+              <p className="text-sm text-card-foreground leading-relaxed">{t.scanLimitReached(MAX_PHOTOS)}</p>
+              <div className="flex gap-2">
+                <button onClick={replaceOldest} className="flex-1 py-2.5 rounded-lg border border-border text-sm font-semibold text-card-foreground">{t.scanReplaceOldest}</button>
+                <button onClick={() => setLimitPrompt(false)} className="flex-1 py-2.5 rounded-lg border border-border text-sm font-semibold text-muted-foreground">{t.cancel}</button>
+              </div>
+            </div>
+          )}
           {images.length > 0 && (
             <button
               onClick={startAnalysis}
@@ -196,14 +217,12 @@ const Scan = () => {
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => addPhoto(true)}
-              disabled={images.length >= MAX_PHOTOS}
               className="py-3 rounded-xl border border-border text-sm font-semibold text-card-foreground flex items-center justify-center gap-2 disabled:opacity-40"
             >
               <Camera className="w-4 h-4" /> {images.length === 0 ? t.scanTakePhotoBtn : t.scanTakeAnother}
             </button>
             <button
               onClick={() => addPhoto(false)}
-              disabled={images.length >= MAX_PHOTOS}
               className="py-3 rounded-xl border border-border text-sm font-semibold text-card-foreground flex items-center justify-center gap-2 disabled:opacity-40"
             >
               <ImagePlus className="w-4 h-4" /> {t.scanAddFromAlbum}
