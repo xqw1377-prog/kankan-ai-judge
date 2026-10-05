@@ -1,26 +1,24 @@
 # Roadmap
 
-## Phase 1 — G0-R2B Truth Closure (UI changes frozen)
-- [x] A1 Close the unchecked /audit AI path (route now redirects home)
-- [x] A2 Edited dish name sent to server re-estimate and kept as the dish name
-- [x] A3 Cooking method sent to server re-estimate
-- [x] A4 Stale re-estimate replies discarded after newer edits
-- [x] A5 Remove fake learning / +0.5% / EXP copy from edit flow
-- [x] A6 Signed-out: browse home; AI analysis requires a real account (no anonymous sign-in)
-- [x] A7 Profile loading race (auth ready != profile resolved)
-- [ ] A8 Privacy / AI consent matches the real data flow — needs review of AI providers and retention
-- [ ] A9/A10 Rebase latest main + full CI — done from GitHub side
+Updated 2026-10-05. Scope freeze lifted by commander's UX-CORE-1 and 大桌多菜 orders.
 
-## Frozen until user notifies (PR #5 merged)
-While GitHub draft PR #5 (G0-R2B Truth Closure) is open — Cursor is fixing merge blockers and UX/Consent — do NOT edit main, deploy, or run SQL in this thread. After the merge notice, execute in order:
-1. Apply the 4 migration SQL statements they paste (in order)
-2. Redeploy the six edge functions: analyze-food, audit-confirm, audit-standalone, re-infer-dish, save-profile, day-summary
-3. Publish
+## Done
+- G0-R2B Truth Closure (PR #5) + G0-R2B-FIX merged to main (e340699), synced
+- All migrations 090000–180000 applied; 7 edge functions deployed (verify_jwt on); published
+- UX-CORE-1 Golden Path Closure: /scan single capture flow, unified entries, Result "最大问题/怎么吃", removed old modules (MealSequenceCoach, InvestmentReport, DietRing, sequence score), minTimer removed, 最近记录 from meals, "先免费试一次" copy. Published.
+- 大桌多菜 + 同餐续拍: 5-photo cap with limit prompt, 同餐再拍 merge via re-infer-dish. Published.
+- Bottom camera entry fixed (capture flow).
 
-Then product backlog (post-merge only, avoid Cursor conflicts): profile page not blocking, login-page KK gold butterfly icon, minimum font sizes, Consent versioning, app centered shell.
+## Open — product backlog (post-merge, not blocking)
+- [ ] Login page KK gold butterfly icon
+- [ ] Minimum font-size baseline (audit findings)
+- [ ] Consent versioning (store version with consent)
+- [ ] App centered shell (desktop width cap)
+- [ ] A8: privacy/AI consent wording matches real data flow (AI provider + retention review)
 
-## Proposed — SEQ-1 Meal Sequence Engine (not started; waits for PR #5 merge + scope-freeze lift)
-- Spec uploaded by user (KANKAN SEQ-1). Replaces old sequenceScore with a pre-meal ordering engine: metabolic phase axis (veg → protein → starch → sweets) + digestive-comfort axis within phase; record execution.
+## Open — Phase 2 G0-UX1 Mobile Product Closure
+- [ ] UX1-01..12 per the uploaded plan (unify all camera entries to /scan, home camera dual-role, min analysis delay UX)
 
-## Phase 2 — G0-UX1 Mobile Product Closure (after Phase 1 passes)
-- UX1-01..12 per the uploaded plan
+## Waiting on user
+- [ ] SEQ-1 Meal Sequence Engine — spec approved (DESIGN PASS), waits for 开工信号
+- [ ] Security re-scan recommended before wide sharing
