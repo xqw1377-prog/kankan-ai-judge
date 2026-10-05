@@ -68,11 +68,11 @@ const Result = () => {
       const merged = await estimateMergedMeal(appendTo, result, locale);
       if (!merged.ok) {
         setSaving(false);
-        if (merged.reason === "guest") { setNeedSignIn(true); toast({ title: t.guestFreeLimit }); }
+        if ((merged as { reason: string }).reason === "guest") { setNeedSignIn(true); toast({ title: t.guestFreeLimit }); }
         else toast({ title: t.saveMealFailed, variant: "destructive" });
         return;
       }
-      const { error: mergeError } = await replaceMeal(appendTo.mealId, merged.result.analysis_id!);
+      const { error: mergeError } = await replaceMeal(appendTo.mealId, (merged as { result: { analysis_id?: string } }).result.analysis_id!);
       setSaving(false);
       if (mergeError) { toast({ title: t.saveMealFailed, variant: "destructive" }); return; }
       navigate(`/meal/${appendTo.mealId}`, { replace: true });
