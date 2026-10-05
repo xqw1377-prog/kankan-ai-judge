@@ -89,10 +89,18 @@ const MealDetail = () => {
         <section className="mb-5">
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">营养素分析</h3>
           <div className="glass rounded-xl p-4 shadow-card space-y-3">
-            <NutritionBar label="能量" current={meal.calories} target={profile?.targets?.calories || 2100} unit="kcal" />
-            <NutritionBar label="蛋白" current={meal.protein_g} target={profile?.targets?.protein_g || 120} unit="g" />
-            <NutritionBar label="脂肪" current={meal.fat_g} target={profile?.targets?.fat_g || 58} unit="g" />
-            <NutritionBar label="碳水" current={meal.carbs_g} target={profile?.targets?.carbs_g || 263} unit="g" />
+            {profile?.targetsFromServer && profile.targets.calories > 0 ? (
+              <>
+                <NutritionBar label="能量" current={meal.calories} target={profile.targets.calories} unit="kcal" />
+                <NutritionBar label="蛋白" current={meal.protein_g} target={profile.targets.protein_g} unit="g" />
+                <NutritionBar label="脂肪" current={meal.fat_g} target={profile.targets.fat_g} unit="g" />
+                <NutritionBar label="碳水" current={meal.carbs_g} target={profile.targets.carbs_g} unit="g" />
+              </>
+            ) : (
+              <p className="text-sm text-card-foreground">
+                {meal.calories} kcal · 蛋白 {Math.round(meal.protein_g)}g · 脂肪 {Math.round(meal.fat_g)}g · 碳水 {Math.round(meal.carbs_g)}g
+              </p>
+            )}
           </div>
         </section>
 

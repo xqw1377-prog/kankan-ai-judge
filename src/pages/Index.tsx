@@ -1,39 +1,35 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { Camera, X, ImagePlus, Globe } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import NutritionBar from "@/components/NutritionBar";
-import PerformanceStatus from "@/components/PerformanceStatus";
 import { getMealTypeLabel } from "@/lib/nutrition";
+import { useDaySummary } from "@/hooks/useDaySummary";
 import { useI18n } from "@/lib/i18n";
 import { takePhoto, pickPhoto } from "@/lib/camera";
+import { homeGate } from "@/lib/homeGate";
+import { isGuestMode } from "@/lib/localData";
+import { useAuthUserId } from "@/hooks/useAuthUser";
 
 const MAX_PHOTOS = 5;
 
 const Index = () => {
   const navigate = useNavigate();
-  const { profile, loading: profileLoading } = useProfile();
-  const { todayMeals, todayTotals, loading: mealsLoading } = useMeals();
+  const { profile } = useProfile();
+  const { todayMeals, userId } = useMeals();
+  const { ready } = useAuthUserId();
+  const summary = useDaySummary(userId, todayMeals.length);
   const { t, locale, setLocale } = useI18n();
   const [photos, setPhotos] = useState<string[]>([]);
+  const guest = isGuestMode();
 
   useEffect(() => {
-    if (profileLoading) return;
-    if (!profile) {
-      // Check if user is authenticated but has no profile yet → go to onboarding
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          navigate("/onboarding", { replace: true });
-        } else {
-          navigate("/login", { replace: true });
-        }
-      });
-    } else if (!profile.onboarding_completed) {
-      navigate("/onboarding", { replace: true });
+    if (!ready) return;
+    if (homeGate({ hasSession: !!userId, isGuest: isGuestMode() }) === "login") {
+      navigate("/login", { replace: true });
     }
-  }, [profile, profileLoading, navigate]);
+  }, [ready, userId, navigate]);
 
   const handleCapture = async () => {
     if (photos.length > 0) {
@@ -54,7 +50,7 @@ const Index = () => {
     setPhotos(prev => prev.filter((_, i) => i !== idx));
   };
 
-  if (profileLoading || mealsLoading) {
+  if (!guest && (!ready || !userId)) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
@@ -62,9 +58,9 @@ const Index = () => {
     );
   }
 
-  if (!profile) return null;
-
-  const nickname = (profile as any).nickname || "";
+  const targets = summary?.targets && summary.targets.calories > 0 ? summary.targets : null;
+  const dayScore = summary?.score;
+  const nickname = profile?.nickname || "";
   const hour = new Date().getHours();
   const greeting = hour < 11 ? t.greetingMorning : hour < 14 ? t.greetingNoon : hour < 18 ? t.greetingAfternoon : t.greetingEvening;
 
@@ -98,7 +94,30 @@ const Index = () => {
       </header>
 
       <section className="px-5 mb-6">
-        <PerformanceStatus todayTotals={todayTotals} targets={profile.targets} />
+        {todayMeals.length === 0 ? (
+          <div className="glass rounded-2xl p-5 shadow-card text-sm text-muted-foreground leading-relaxed">
+            {t.todayEmpty}
+          </div>
+        ) : (
+          <div className="glass rounded-2xl p-5 shadow-card space-y-3">
+            {typeof dayScore === "number" && targets ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">{t.todayScore}</span>
+                  <span className="text-2xl font-black text-primary tabular-nums">{dayScore}</span>
+                </div>
+                <NutritionBar label={t.energy} current={summary?.totals.calories ?? 0} target={targets.calories} unit="kcal" />
+                <NutritionBar label={t.protein} current={summary?.totals.protein_g ?? 0} target={targets.protein_g} unit="g" />
+                <NutritionBar label={t.fat} current={summary?.totals.fat_g ?? 0} target={targets.fat_g} unit="g" />
+                <NutritionBar label={t.carbs} current={summary?.totals.carbs_g ?? 0} target={targets.carbs_g} unit="g" />
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {locale === "zh-CN" ? `今天记下了 ${todayMeals.length} 餐。` : `${todayMeals.length} meals logged today.`}
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       {photos.length > 0 && (
@@ -141,6 +160,13 @@ const Index = () => {
         <p className="text-sm text-muted-foreground mt-3">
           {photos.length === 0 ? t.takePhoto : t.startRecognize(photos.length)}
         </p>
+        <button
+          type="button"
+          onClick={handleAddMore}
+          className="mt-3 text-sm font-semibold text-primary"
+        >
+          {t.uploadPhoto}
+        </button>
       </section>
 
       <section className="px-5 pb-6">

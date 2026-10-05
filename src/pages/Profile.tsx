@@ -13,20 +13,7 @@ import InvestmentReport from "@/components/InvestmentReport";
 import MealSequenceCoach from "@/components/MealSequenceCoach";
 import { useI18n } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
-
-function calcHealthScore(
-  totalMeals: number, uniqueDays: number,
-  t: { levelGold: string; levelGoldDesc: string; levelSilver: string; levelSilverDesc: string; levelBronze: string; levelBronzeDesc: string; levelNewbie: string; levelNewbieDesc: string }
-) {
-  const base = Math.min(totalMeals * 50, 3000) + uniqueDays * 100;
-  const score = Math.min(base, 9999);
-  let level: string, levelDesc: string;
-  if (score >= 5000) { level = t.levelGold; levelDesc = t.levelGoldDesc; }
-  else if (score >= 2000) { level = t.levelSilver; levelDesc = t.levelSilverDesc; }
-  else if (score >= 500) { level = t.levelBronze; levelDesc = t.levelBronzeDesc; }
-  else { level = t.levelNewbie; levelDesc = t.levelNewbieDesc; }
-  return { score, level, levelDesc };
-}
+import { useDaySummary } from "@/hooks/useDaySummary";
 
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
@@ -42,7 +29,8 @@ function calcStreak(dates: string[]): number {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { profile, saveProfile } = useProfile();
+  const { profile, loading, saveProfile, userId } = useProfile();
+  const summary = useDaySummary(userId);
   const { meals } = useMeals();
   const { t, locale, setLocale } = useI18n();
   const [editingNickname, setEditingNickname] = useState(false);
@@ -59,10 +47,25 @@ const Profile = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  if (loading) {
+    return (
+      <div className="h-full flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   if (!profile) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+      <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+        <h1 className="text-lg font-bold text-card-foreground">{t.profileSetupTitle}</h1>
+        <p className="text-sm text-muted-foreground leading-relaxed">{t.profileSetupHint}</p>
+        <button
+          onClick={() => navigate("/onboarding")}
+          className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold"
+        >
+          {t.fillProfile}
+        </button>
       </div>
     );
   }
@@ -72,7 +75,7 @@ const Profile = () => {
   const genderLabel = profile.gender === "female" ? t.female : t.male;
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
   const streak = calcStreak(meals.map(m => m.recorded_at));
-  const { score, level, levelDesc } = calcHealthScore(meals.length, uniqueDays, t);
+  const score = summary?.score;
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -120,10 +123,11 @@ const Profile = () => {
         </div>
       </header>
 
-      {/* Diet Credit Card */}
-      <section className="px-5 mb-6">
-        <DietCreditCard score={score} level={level} levelDesc={levelDesc} beatText={t.dietCreditBeat} />
-      </section>
+      {typeof score === "number" && (
+        <section className="px-5 mb-6">
+          <DietCreditCard score={score} level={t.todayScore} levelDesc={t.dietCreditBeat} beatText={t.dietCreditBeat} />
+        </section>
+      )}
 
       <section className="px-5 mb-6">
         <div className="glass rounded-2xl p-5 shadow-card">
@@ -197,18 +201,17 @@ const Profile = () => {
 
       <section className="px-5 mb-6">
         <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.healthAssets}</h3>
-        <div className="glass rounded-2xl p-5 shadow-card mb-3">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-primary" />
-              <span className="text-sm font-semibold text-card-foreground">{t.healthScore}</span>
+        {typeof score === "number" && (
+          <div className="glass rounded-2xl p-5 shadow-card mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Award className="w-5 h-5 text-primary" />
+                <span className="text-sm font-semibold text-card-foreground">{t.todayScore}</span>
+              </div>
+              <AnimatedScore target={score} />
             </div>
-            <AnimatedScore target={score} />
           </div>
-          <p className="text-xs text-muted-foreground">
-            {level} · {levelDesc}
-          </p>
-        </div>
+        )}
         <div className="grid grid-cols-3 gap-3">
           {[
             { icon: Calendar, value: streak, label: t.consecutiveDays },
@@ -224,44 +227,33 @@ const Profile = () => {
         </div>
       </section>
 
-      {/* Investment Report */}
       <section className="px-5 mb-6">
-        <InvestmentReport meals={meals} score={score} />
-      </section>
-
-      <section className="px-5 mb-3">
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.preferences}</h3>
-        <div className="glass rounded-xl shadow-card divide-y divide-border">
-          {[
-            { label: t.allergenManagement, info: profile.allergies || t.notSet, action: undefined },
-            { label: t.reminderSettings, info: "", action: undefined },
-            { label: t.privacy, info: "", action: () => navigate("/privacy") },
-          ].map(item => (
-            <button key={item.label} onClick={item.action} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground">
-              <span className="truncate">{item.label}</span>
-              <div className="flex items-center gap-1 shrink-0">
-                {item.info && <span className="text-xs text-muted-foreground truncate max-w-[120px]">{item.info}</span>}
-                <ChevronRight className="w-4 h-4 text-muted-foreground" />
-              </div>
-            </button>
-          ))}
-        </div>
+        <details className="glass rounded-2xl p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-muted-foreground">实验性指标（未验证，默认收起）</summary>
+          <div className="mt-4">
+            <InvestmentReport meals={meals} score={score ?? 0} />
+          </div>
+        </details>
       </section>
 
       <section className="px-5 pb-4">
-        <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.other}</h3>
+        <h3 className="text-sm font-semibold text-muted-foreground mb-3">{t.preferences}</h3>
         <div className="glass rounded-xl shadow-card divide-y divide-border">
-          {[t.helpFeedback, t.aboutUs].map(item => (
-            <button key={item} className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground">
-              <span>{item}</span>
+          <button
+            onClick={() => navigate("/onboarding")}
+            className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground"
+          >
+            <span className="truncate">{t.allergenManagement}</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <span className="text-xs text-muted-foreground truncate max-w-[120px]">{profile.allergies || t.notSet}</span>
               <ChevronRight className="w-4 h-4 text-muted-foreground" />
-            </button>
-          ))}
+            </div>
+          </button>
           <button
             onClick={() => navigate("/privacy")}
-            className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground border-t border-border"
+            className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground"
           >
-            <span>{locale === "zh-CN" ? "隐私政策" : "Privacy Policy"}</span>
+            <span>{t.privacy}</span>
             <ChevronRight className="w-4 h-4 text-muted-foreground" />
           </button>
         </div>

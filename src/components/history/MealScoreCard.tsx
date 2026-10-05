@@ -5,47 +5,6 @@ import { getMealTypeLabel } from "@/lib/nutrition";
 import { getSequenceGrade, getSequenceGradeInfo } from "@/lib/sequenceScore";
 import { useI18n } from "@/lib/i18n";
 
-type ScoreGrade = "excellent" | "good" | "fair" | "poor";
-
-function computeBpi(meal: MealRecord): number {
-  const raw = 50 + meal.protein_g * 0.6 - meal.carbs_g * 0.15 - meal.fat_g * 0.15;
-  return Math.max(0, Math.min(100, Math.round(raw)));
-}
-
-function getGrade(score: number): ScoreGrade {
-  if (score >= 75) return "excellent";
-  if (score >= 55) return "good";
-  if (score >= 35) return "fair";
-  return "poor";
-}
-
-const GRADE_CONFIG: Record<ScoreGrade, { color: string; bg: string; border: string; bar: string }> = {
-  excellent: {
-    color: "text-[hsl(var(--success))]",
-    bg: "bg-[hsl(var(--success)/0.08)]",
-    border: "border-[hsl(var(--success)/0.2)]",
-    bar: "bg-[hsl(var(--success))]",
-  },
-  good: {
-    color: "text-primary",
-    bg: "bg-primary/8",
-    border: "border-primary/20",
-    bar: "bg-primary",
-  },
-  fair: {
-    color: "text-[hsl(var(--warning))]",
-    bg: "bg-[hsl(var(--warning)/0.08)]",
-    border: "border-[hsl(var(--warning)/0.2)]",
-    bar: "bg-[hsl(var(--warning))]",
-  },
-  poor: {
-    color: "text-destructive",
-    bg: "bg-destructive/8",
-    border: "border-destructive/20",
-    bar: "bg-destructive",
-  },
-};
-
 interface MealScoreCardProps {
   meal: MealRecord;
 }
@@ -54,14 +13,6 @@ export default function MealScoreCard({ meal }: MealScoreCardProps) {
   const navigate = useNavigate();
   const { t, locale } = useI18n();
   const isZh = locale === "zh-CN";
-  const bpi = computeBpi(meal);
-  const grade = getGrade(bpi);
-  const cfg = GRADE_CONFIG[grade];
-
-  const gradeLabel = grade === "excellent" ? t.historyScoreExcellent
-    : grade === "good" ? t.historyScoreGood
-    : grade === "fair" ? t.historyScoreFair
-    : t.historyScorePoor;
 
   const totalMacro = meal.protein_g + meal.fat_g + meal.carbs_g;
   const proteinPct = totalMacro > 0 ? (meal.protein_g / totalMacro) * 100 : 0;
@@ -73,7 +24,7 @@ export default function MealScoreCard({ meal }: MealScoreCardProps) {
       onClick={() => navigate(`/meal/${meal.id}`)}
       className="w-full text-left group"
     >
-      <div className={`rounded-xl border ${cfg.border} ${cfg.bg} p-3.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.98]`}>
+      <div className="rounded-xl border border-border bg-card p-3.5 transition-all duration-200 hover:scale-[1.01] active:scale-[0.98]">
         {/* Top row: name + time + score */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
@@ -98,15 +49,7 @@ export default function MealScoreCard({ meal }: MealScoreCardProps) {
           </div>
 
           {/* Score badge */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="text-right">
-              <span className={`text-xl font-black font-mono tabular-nums leading-none ${cfg.color}`}>
-                {bpi}
-              </span>
-              <p className={`text-[8px] font-mono mt-0.5 ${cfg.color} opacity-70`}>{gradeLabel}</p>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-primary/60 transition-colors" />
-          </div>
+          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/30 group-hover:text-primary/60 transition-colors shrink-0" />
         </div>
 
         {/* Macro split bar */}

@@ -1,7 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { useI18n } from "@/lib/i18n";
-import { supabase } from "@/integrations/supabase/client";
-import { getDeviceId } from "@/lib/device";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription } from "@/components/ui/alert-dialog";
 
 interface Props {
@@ -17,8 +14,7 @@ interface Props {
 
 type Feeling = "great" | "ok" | "crash";
 
-export default function PostMealAudit({ mealId, foodName, triggered, delayMs, ingredients, predictedFeeling }: Props) {
-  const { t } = useI18n();
+export default function PostMealAudit({ mealId, foodName, triggered, delayMs }: Props) {
   const [show, setShow] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -30,62 +26,10 @@ export default function PostMealAudit({ mealId, foodName, triggered, delayMs, in
     return () => clearTimeout(timer);
   }, [triggered, submitted, mealId, delay]);
 
-  const handleSelect = useCallback(async (feeling: Feeling) => {
+  const handleSelect = useCallback(() => {
     setSubmitted(true);
     setShow(false);
-
-    if (!mealId) return;
-
-    try {
-      const deviceId = getDeviceId();
-      const predicted = predictedFeeling || "ok";
-      const isCorrect = predicted === feeling;
-
-      // 1. Store feedback in meal_feedbacks table
-      await (supabase.from("meal_feedbacks" as any) as any).insert({
-        device_id: deviceId,
-        meal_id: mealId,
-        food_name: foodName,
-        predicted_feeling: predicted,
-        actual_feeling: feeling,
-        ingredients: ingredients || [],
-        prediction_correct: isCorrect,
-        damage_adjustment: !isCorrect && feeling === "crash" ? 0.15 : !isCorrect && feeling === "great" ? -0.1 : 0,
-      });
-
-      // 2. Update meal verdict with audit tag
-      const { data: meal } = await supabase
-        .from("meal_records")
-        .select("verdict")
-        .eq("id", mealId)
-        .single();
-
-      const mismatchTag = !isCorrect
-        ? feeling === "crash"
-          ? ` [⚠️ 预测偏差：预估${predicted === "great" ? "满血" : "正常"}→实际宕机，已上调损耗系数+15%]`
-          : feeling === "great" && predicted === "crash"
-            ? ` [✅ 预测偏差：预估宕机→实际满血，已下调损耗系数-10%]`
-            : ""
-        : "";
-
-      const feedbackTag = feeling === "crash"
-        ? `[POST-AUDIT: 💤 ${t.postMealCrash} — ${t.postMealNegativeFlag}]${mismatchTag}`
-        : feeling === "great"
-          ? `[POST-AUDIT: 🚀 ${t.postMealGreat}]${mismatchTag}`
-          : `[POST-AUDIT: 😐 ${t.postMealOk}]`;
-
-      const updatedVerdict = meal?.verdict
-        ? `${meal.verdict}\n${feedbackTag}`
-        : feedbackTag;
-
-      await supabase
-        .from("meal_records")
-        .update({ verdict: updatedVerdict })
-        .eq("id", mealId);
-    } catch (err) {
-      console.warn("Post-meal audit save failed:", err);
-    }
-  }, [mealId, t, foodName, ingredients, predictedFeeling]);
+  }, []);
 
   if (!triggered || submitted) return null;
 

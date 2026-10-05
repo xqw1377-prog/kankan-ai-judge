@@ -182,6 +182,8 @@ export interface Dictionary {
   // Edit Ingredients
   editIngredientsTitle: string;
   livePreview: string;
+  localEstimateNote: string;
+  needServerEstimate: string;
   editIngredientName: string;
   editGrams: string;
   editAddIngredient: string;
@@ -526,6 +528,30 @@ export interface Dictionary {
   loginNewPassword: string;
   loginNewPasswordPlaceholder: string;
   loginNewPasswordSaved: string;
+
+  uploadPhoto: string;
+  todayScore: string;
+  todayEmpty: string;
+  profileSetupTitle: string;
+  profileSetupHint: string;
+  analysisMissingKey: string;
+  analysisUnavailable: string;
+  analysisUnrecognized: string;
+  saveMealFailed: string;
+  chartEmpty: string;
+  notFoundTitle: string;
+  notFoundBody: string;
+  backHome: string;
+  defaultTargetNote: string;
+  fillProfile: string;
+  viewHistory: string;
+  resultSeen: string;
+  resultProblem: string;
+  resultAction: string;
+  resultMore: string;
+  saveToLog: string;
+  saveNeedsSignIn: string;
+  profileSaveFailed: string;
 
   // AI consent
   aiConsentTitle: string;

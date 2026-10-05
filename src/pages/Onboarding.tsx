@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
 import { useI18n } from "@/lib/i18n";
+import { useToast } from "@/hooks/use-toast";
 import type { UserProfile } from "@/lib/nutrition";
 
 const Onboarding = () => {
   const navigate = useNavigate();
   const { profile, saveProfile } = useProfile();
   const { t } = useI18n();
+  const { toast } = useToast();
   const isEditing = !!profile?.onboarding_completed;
 
   const ACTIVITY_OPTIONS = [
@@ -44,10 +46,22 @@ const Onboarding = () => {
 
   const update = (partial: Partial<UserProfile>) => setData(prev => ({ ...prev, ...partial }));
   const handleNext = () => { if (step < 4) setStep(step + 1); };
-  const handleFinish = async () => { await saveProfile({ ...data, onboarding_completed: true }); navigate("/", { replace: true }); };
+  const handleFinish = async () => {
+    const { error } = await saveProfile({ ...data, onboarding_completed: true });
+    if (error) {
+      toast({ title: t.profileSaveFailed, variant: "destructive" });
+      return;
+    }
+    navigate("/", { replace: true });
+  };
   const handleSkip = async () => {
-    if (isEditing) { navigate(-1); }
-    else { await saveProfile({ onboarding_completed: true }); navigate("/", { replace: true }); }
+    if (isEditing) { navigate(-1); return; }
+    const { error } = await saveProfile({ onboarding_completed: true, details_skipped: true });
+    if (error) {
+      toast({ title: t.profileSaveFailed, variant: "destructive" });
+      return;
+    }
+    navigate("/", { replace: true });
   };
   const canNext = () => {
     if (step === 0) return !!data.gender;

@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { FlaskConical, ShieldCheck } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import { useNumberRoll } from "@/hooks/useNumberRoll";
@@ -12,17 +11,7 @@ interface SpatialAuditLogsProps {
 const SpatialAuditLogs = ({ integrityScore, hasData, auditing }: SpatialAuditLogsProps) => {
   const { t } = useI18n();
   const displayScore = useNumberRoll(integrityScore, hasData, 1400);
-  const [jumpScore, setJumpScore] = useState(0);
-
-  useEffect(() => {
-    if (!auditing) return;
-    const interval = setInterval(() => {
-      setJumpScore(Math.round(Math.random() * 100));
-    }, 120);
-    return () => clearInterval(interval);
-  }, [auditing]);
-
-  const shownScore = auditing ? jumpScore : displayScore;
+  const shownScore = auditing ? "…" : displayScore;
   const scoreColor =
     integrityScore >= 80 ? "text-success" : integrityScore >= 50 ? "text-primary" : "text-destructive";
 

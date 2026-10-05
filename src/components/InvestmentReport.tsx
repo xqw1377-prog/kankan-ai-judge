@@ -34,62 +34,46 @@ const RED_DIM = "hsl(0, 72%, 55%, 0.15)";
 const DARK_BG = "hsl(220 15% 6% / 0.8)";
 const CARD_BORDER = "hsl(43 72% 52% / 0.1)";
 
-// Generate GL (Glycemic Load) weekly data for 12 weeks
-function generateGLData(): { week: number; gl: number; predicted?: boolean }[] {
-  const data: { week: number; gl: number; predicted?: boolean }[] = [];
-  let v = 48;
-  for (let i = 1; i <= 12; i++) {
-    v += (Math.random() - 0.45) * 10;
-    v = Math.max(20, Math.min(90, v));
-    data.push({ week: i, gl: Math.round(v) });
+function glFromMeals(meals: Meal[]): { week: number; gl: number; predicted?: boolean }[] {
+  const buckets = new Map<number, { carbs: number; count: number }>();
+  for (const meal of meals) {
+    const date = new Date(meal.recorded_at);
+    if (Number.isNaN(date.getTime())) continue;
+    const day = date.getDay() || 7;
+    const monday = new Date(date);
+    monday.setHours(0, 0, 0, 0);
+    monday.setDate(date.getDate() - day + 1);
+    const key = monday.getTime();
+    const bucket = buckets.get(key) ?? { carbs: 0, count: 0 };
+    bucket.carbs += meal.carbs_g || 0;
+    bucket.count += 1;
+    buckets.set(key, bucket);
   }
-  // Add 4 predicted weeks
-  for (let i = 13; i <= 16; i++) {
-    v += (Math.random() - 0.55) * 7;
-    v = Math.max(20, Math.min(85, v));
-    data.push({ week: i, gl: Math.round(v), predicted: true });
-  }
-  return data;
-}
-
-// Generate mock correction records
-function generateCorrectionRecords() {
-  const now = Date.now();
-  const DAY = 86400000;
-  return [
-    { date: new Date(now - DAY * 2).toLocaleDateString(), pct: "3.2", action: "调整烹饪方式：炸→蒸" },
-    { date: new Date(now - DAY * 5).toLocaleDateString(), pct: "1.8", action: "修正克重：鸡胸肉 200g→150g" },
-    { date: new Date(now - DAY * 9).toLocaleDateString(), pct: "2.5", action: "新增食材：西兰花 100g" },
-  ];
+  return [...buckets.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .slice(-12)
+    .map(([, bucket], index) => ({
+      week: index + 1,
+      gl: bucket.count ? Math.round((bucket.carbs / bucket.count) * 0.5) : 0,
+    }));
 }
 
 // ──── Balance Sheet Section ────
 function BalanceSheet({ meals, t }: { meals: Meal[]; t: any }) {
   const stats = useMemo(() => {
-    if (meals.length === 0) {
-      return { protein: 0, fiber: 0, sodium: 0, sugar: 0, satFat: 0 };
-    }
-    const totals = meals.reduce(
-      (a, m) => ({ p: a.p + m.protein_g, f: a.f + m.fat_g, c: a.c + m.carbs_g, cal: a.cal + m.calories }),
-      { p: 0, f: 0, c: 0, cal: 0 }
-    );
-    return {
-      protein: Math.round(totals.p),
-      fiber: Math.round(totals.c * 0.08), // estimate
-      sodium: Math.round(meals.length * 420), // ~420mg per meal estimate
-      sugar: Math.round(totals.c * 0.15), // estimate refined sugar
-      satFat: Math.round(totals.f * 0.35), // estimate saturated fat
-    };
+    if (meals.length === 0) return { protein: 0 };
+    const protein = meals.reduce((sum, meal) => sum + meal.protein_g, 0);
+    return { protein: Math.round(protein) };
   }, [meals]);
 
   const assets = [
-    { label: t.proteinAsset, value: `${stats.protein}g`, good: true },
-    { label: t.fiberAsset, value: `${stats.fiber}g`, good: true },
+    { label: t.proteinAsset, value: `${stats.protein}g`, bad: false },
+    { label: t.fiberAsset, value: "—", bad: false },
   ];
   const liabilities = [
-    { label: t.sodiumLiability, value: `${stats.sodium}mg`, bad: stats.sodium > 2000 },
-    { label: t.refinedSugarLiability, value: `${stats.sugar}g`, bad: stats.sugar > 50 },
-    { label: t.saturatedFatLiability, value: `${stats.satFat}g`, bad: stats.satFat > 20 },
+    { label: t.sodiumLiability, value: "—", bad: false },
+    { label: t.refinedSugarLiability, value: "—", bad: false },
+    { label: t.saturatedFatLiability, value: "—", bad: false },
   ];
 
   return (
@@ -329,23 +313,25 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
   const reportCardRef = useRef<HTMLDivElement>(null);
   const [generating, setGenerating] = useState(false);
 
-  const glData = useMemo(() => generateGLData(), []);
-  const correctionRecords = useMemo(() => generateCorrectionRecords(), []);
+  const glData = useMemo(() => glFromMeals(meals), [meals]);
+  const correctionRecords = useMemo(() => [] as { date: string; pct: string; action: string }[], []);
 
   const avgGI = useMemo(() => {
     const historical = glData.filter(d => !d.predicted);
+    if (historical.length === 0) return 0;
     return Math.round(historical.reduce((s, d) => s + d.gl, 0) / historical.length);
   }, [glData]);
 
   const giVolatility = useMemo(() => {
     const historical = glData.filter(d => !d.predicted).map(d => d.gl);
+    if (historical.length === 0) return 0;
     const mean = historical.reduce((s, v) => s + v, 0) / historical.length;
     const variance = historical.reduce((s, v) => s + Math.pow(v - mean, 2), 0) / historical.length;
     return Math.round(Math.sqrt(variance) * 10) / 10;
   }, [glData]);
 
   const macroBalance = useMemo(() => {
-    if (meals.length === 0) return { protein: 0.5, fat: 0.5, carbs: 0.5, fiber: 0.3, vitamins: 0.4, score: 65 };
+    if (meals.length === 0) return { protein: 0, fat: 0, carbs: 0, fiber: 0, vitamins: 0, score: 0 };
     const totals = meals.reduce(
       (acc, m) => ({ p: acc.p + m.protein_g, f: acc.f + m.fat_g, c: acc.c + m.carbs_g }),
       { p: 0, f: 0, c: 0 }
@@ -362,8 +348,8 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
       protein: Math.min(1, pRatio * 3),
       fat: Math.min(1, fRatio * 3.5),
       carbs: Math.min(1, cRatio * 2),
-      fiber: 0.3 + Math.random() * 0.3,
-      vitamins: 0.4 + Math.random() * 0.25,
+      fiber: Math.max(0, Math.min(1, (totals.c * 0.08) / (meals.length * 30 || 1))),
+      vitamins: 0,
       score: balScore,
     };
   }, [meals]);
@@ -536,6 +522,9 @@ export default function InvestmentReport({ meals, score }: InvestmentReportProps
           suggestions={suggestions}
           locale={locale}
           totalMeals={meals.length}
+          recordedProtein={meals.reduce((sum, meal) => sum + meal.protein_g, 0)}
+          recordedCarbs={meals.reduce((sum, meal) => sum + meal.carbs_g, 0)}
+          recordedFat={meals.reduce((sum, meal) => sum + meal.fat_g, 0)}
         />
       </div>
     </section>
