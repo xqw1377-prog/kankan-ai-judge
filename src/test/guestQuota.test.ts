@@ -50,12 +50,30 @@ describe("analysis session", () => {
     const signInAnonymously = vi.fn();
     const result = await ensureAnalysisSession({
       getSession: async () => ({ data: { session: { user: { id: "already" } } } }),
+      signInAnonymously,
     });
     expect(result).toBe("ready");
+    expect(signInAnonymously).not.toHaveBeenCalled();
   });
 
-  it("asks for sign-in when there is no session or only an anonymous one", async () => {
-    expect(await ensureAnalysisSession({ getSession: async () => ({ data: { session: null } }) })).toBe("signin");
-    expect(await ensureAnalysisSession({ getSession: async () => ({ data: { session: { user: { id: "a", is_anonymous: true } } } }) })).toBe("signin");
+  it("signs in anonymously only when there is no session", async () => {
+    const signInAnonymously = vi.fn(async () => ({
+      data: { session: { user: { id: "anon" } } },
+      error: null,
+    }));
+    const result = await ensureAnalysisSession({
+      getSession: async () => ({ data: { session: null } }),
+      signInAnonymously,
+    });
+    expect(result).toBe("ready");
+    expect(signInAnonymously).toHaveBeenCalledOnce();
+  });
+
+  it("asks for sign-in when anonymous sign-in fails", async () => {
+    const result = await ensureAnalysisSession({
+      getSession: async () => ({ data: { session: null } }),
+      signInAnonymously: async () => ({ data: { session: null }, error: { message: "disabled" } }),
+    });
+    expect(result).toBe("signin");
   });
 });

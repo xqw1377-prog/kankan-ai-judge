@@ -21,15 +21,7 @@ const Index = () => {
   const { t, locale, setLocale } = useI18n();
   const [photos, setPhotos] = useState<string[]>([]);
 
-  const signedIn = ready && !!userId && !isAnonymous;
-  const requireSignIn = () => {
-    if (signedIn) return false;
-    navigate("/login");
-    return true;
-  };
-
   const handleCapture = async () => {
-    if (requireSignIn()) return;
     if (photos.length > 0) {
       navigate("/scan", { state: { images: photos } });
       return;
@@ -39,7 +31,6 @@ const Index = () => {
   };
 
   const handleAddMore = async () => {
-    if (requireSignIn()) return;
     if (photos.length >= MAX_PHOTOS) return;
     const data = await pickPhoto();
     if (data) setPhotos(prev => prev.length < MAX_PHOTOS ? [...prev, data] : prev);
