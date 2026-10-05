@@ -7,6 +7,7 @@ import { canonicalPath } from "@/lib/routes";
 import { Suspense, type ReactNode } from "react";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { useGuestClaimRecovery } from "@/hooks/useGuestClaimRecovery";
+import { useVerifiedUpgradeHandoff } from "@/hooks/useVerifiedUpgradeHandoff";
 import BottomNav from "@/components/BottomNav";
 import { RouteErrorBoundary } from "@/components/RouteErrorBoundary";
 import { lazyWithRetry } from "@/lib/lazyWithRetry";
@@ -25,6 +26,11 @@ const Privacy = lazyWithRetry(() => import("./pages/Privacy"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
+
+function GuestUpgradeWatcher() {
+  useVerifiedUpgradeHandoff();
+  return null;
+}
 
 function ClaimRetryBar() {
   const { t } = useI18n();
@@ -65,6 +71,7 @@ const App = () => (
           <div className="h-full bg-muted">
             <div className="mx-auto flex h-full w-full max-w-[480px] flex-col bg-background md:max-w-2xl lg:max-w-3xl">
             <ClaimRetryBar />
+            <GuestUpgradeWatcher />
             <Routes>
               <Route path="/onboarding" element={<Page><Onboarding /></Page>} />
               <Route path="/" element={<Page><Index /></Page>} />

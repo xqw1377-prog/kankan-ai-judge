@@ -33,6 +33,14 @@ const GOAL_ADJUSTMENTS = {
   maintain: 0,
 };
 
+/** Daily targets need activity as well as sex, age, height, weight, and goal. */
+export function isProfileComplete(profile: UserProfile | null | undefined): boolean {
+  if (!profile?.gender || !profile.age || !profile.height_cm || !profile.weight_kg || !profile.activity_level || !profile.goal) {
+    return false;
+  }
+  return calculateNutrition(profile) != null;
+}
+
 export function calculateNutrition(profile: UserProfile): NutritionTargets | null {
   const gender = profile.gender === "male" || profile.gender === "female" ? profile.gender : null;
   const activity = profile.activity_level && profile.activity_level in ACTIVITY_MULTIPLIERS ? profile.activity_level : null;

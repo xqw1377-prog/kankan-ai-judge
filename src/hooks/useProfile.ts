@@ -16,6 +16,21 @@ export interface FullProfile extends StoredProfile {
   id?: string;
 }
 
+/** A failed fetch keeps the cached profile, including one whose targets are still null. */
+export function resolveProfileLoad(
+  cached: FullProfile | null,
+  outcome: { failed: boolean; row: Record<string, unknown> | null },
+): { profile: FullProfile | null; ready: boolean } {
+  if (outcome.failed) {
+    if (cached) return { profile: cached, ready: true };
+    return { profile: null, ready: false };
+  }
+  if (!outcome.row) return { profile: cached, ready: true };
+  const full = profileFromServer(outcome.row) as FullProfile;
+  full.id = typeof outcome.row.id === "string" ? outcome.row.id : undefined;
+  return { profile: full, ready: true };
+}
+
 export function useProfile() {
   const { ready, userId: sessionUserId, isAnonymous } = useAuthUserId();
   // Anonymous sessions exist only so one food scan can call the API. Profile stays on this device.
@@ -36,7 +51,7 @@ export function useProfile() {
       return;
     }
     const cached = readProfile(scope);
-    setProfile(cached?.targetsFromServer && cached.targets ? cached : null);
+    setProfile(cached);
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase
@@ -45,12 +60,14 @@ export function useProfile() {
         .eq("user_id", userId)
         .maybeSingle();
       if (cancelled) return;
+      const resolved = resolveProfileLoad(cached, {
+        failed: Boolean(error),
+        row: !error && data ? data as Record<string, unknown> : null,
+      });
+      if (!resolved.ready) return;
       setResolvedScope(scope);
-      if (error || !data) return;
-      const full = profileFromServer(data as Record<string, unknown>) as FullProfile;
-      full.id = typeof (data as { id?: string }).id === "string" ? (data as { id: string }).id : undefined;
-      writeProfile(scope, full);
-      setProfile(full);
+      setProfile(resolved.profile);
+      if (resolved.profile && !error && data) writeProfile(scope, resolved.profile);
     })();
     return () => { cancelled = true; };
   }, [ready, scope, userId]);

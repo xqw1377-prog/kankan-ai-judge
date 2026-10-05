@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
-  completeGuestFoodSlot,
   GUEST_LIMIT_BODY,
   guestSuccessCount,
   releaseGuestFoodSlot,
@@ -13,7 +12,7 @@ import { parseImages, toImageContents } from "../_shared/images.ts";
 import { validateAnalysis } from "../_shared/analysisContract.ts";
 import { ANALYSIS_PROVIDER, completeToolCall, VISUAL_UNCERTAINTY } from "../_shared/analysisProvider.ts";
 import { serverProfileNote } from "../_shared/profileContext.ts";
-import { storeAnalysis } from "../_shared/storeAnalysis.ts";
+import { storeAnalysis, storeGuestAnalysisWithLease } from "../_shared/storeAnalysis.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -26,12 +25,12 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  let guestHold: { userId: string; db: NonNullable<ReturnType<typeof serviceDb>> } | null = null;
+  let guestHold: { userId: string; db: NonNullable<ReturnType<typeof serviceDb>>; leaseId: string } | null = null;
   const abandonGuestSlot = async () => {
     if (!guestHold) return;
     const hold = guestHold;
     guestHold = null;
-    await releaseGuestFoodSlot(hold.db, hold.userId);
+    await releaseGuestFoodSlot(hold.db, hold.userId, hold.leaseId);
   };
 
   try {
@@ -62,17 +61,18 @@ serve(async (req) => {
     if (!parsed.ok) return json(parsed.status, { error: parsed.error }, corsHeaders);
     if (auth.isAnonymous && admin) {
       const reserved = await reserveGuestFoodSlot(admin, auth.userId);
-      const again = reserved === "taken"
+      const again = reserved.status === "taken"
         ? await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey)
         : null;
       const slot = resolveGuestReservation({
-        reserved,
+        reserved: reserved.status,
         hasStoredAnalysis: Boolean(again),
       });
       if (slot === "unavailable") return json(503, { error: "暂时无法校验调用次数" }, corsHeaders);
       if (slot === "replay" && again) return json(200, again, corsHeaders);
       if (slot === "block") return json(403, GUEST_LIMIT_BODY, corsHeaders);
-      guestHold = { userId: auth.userId, db: admin };
+      if (!reserved.leaseId) return json(503, { error: "暂时无法校验调用次数" }, corsHeaders);
+      guestHold = { userId: auth.userId, db: admin, leaseId: reserved.leaseId };
     }
     const imageContents = toImageContents(parsed.images);
     const language = body.language === "en-US" ? "en-US" : "zh-CN";
@@ -201,17 +201,34 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
       await abandonGuestSlot();
       return json(422, { error: "没能识别这餐" }, corsHeaders);
     }
-    const stored = await storeAnalysis(auth.userId, checked.value, {
-      provider: ANALYSIS_PROVIDER,
-      model,
-      uncertainty: VISUAL_UNCERTAINTY,
-    }, idempotencyKey || null);
-    if (!stored) {
-      await abandonGuestSlot();
-      return json(500, { error: "没能保存分析结果" }, corsHeaders);
+    let stored: { id: string; reused: boolean } | null = null;
+    if (guestHold) {
+      const saved = await storeGuestAnalysisWithLease(guestHold.db, guestHold.userId, guestHold.leaseId, checked.value, {
+        provider: ANALYSIS_PROVIDER,
+        model,
+        uncertainty: VISUAL_UNCERTAINTY,
+      }, idempotencyKey || null);
+      if (!saved.ok && saved.reason === "stale_lease") {
+        guestHold = null;
+        return json(409, { error: "试用名额已经交给更新的请求" }, corsHeaders);
+      }
+      if (!saved.ok) {
+        await abandonGuestSlot();
+        return json(500, { error: "没能保存分析结果" }, corsHeaders);
+      }
+      stored = { id: saved.id, reused: saved.reused };
+      guestHold = null;
+    } else {
+      stored = await storeAnalysis(auth.userId, checked.value, {
+        provider: ANALYSIS_PROVIDER,
+        model,
+        uncertainty: VISUAL_UNCERTAINTY,
+      }, idempotencyKey || null);
+      if (!stored) {
+        await abandonGuestSlot();
+        return json(500, { error: "没能保存分析结果" }, corsHeaders);
+      }
     }
-    if (auth.isAnonymous && admin) await completeGuestFoodSlot(admin, auth.userId);
-    guestHold = null;
     if (stored.reused && idempotencyKey) {
       const replay = await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey);
       if (replay) return json(200, replay, corsHeaders);

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
@@ -8,7 +8,7 @@ import { calculateNutrition, type UserProfile } from "@/lib/nutrition";
 
 const Onboarding = () => {
   const navigate = useNavigate();
-  const { profile, saveProfile } = useProfile();
+  const { profile, profileReady, saveProfile } = useProfile();
   const { t } = useI18n();
   const { toast } = useToast();
   const isEditing = !!profile?.onboarding_completed;
@@ -32,17 +32,24 @@ const Onboarding = () => {
   const COOKING_OPTIONS = [t.cookSelf, t.cookCanteen, t.cookFamily];
 
   const [step, setStep] = useState(0);
-  const [data, setData] = useState<UserProfile>({
-    gender: profile?.gender,
-    age: profile?.age,
-    height_cm: profile?.height_cm,
-    weight_kg: profile?.weight_kg,
-    activity_level: profile?.activity_level,
-    goal: profile?.goal,
-    diet_preference: profile?.diet_preference,
-    cooking_source: profile?.cooking_source,
-    allergies: profile?.allergies || "",
-  });
+  const [formReady, setFormReady] = useState(false);
+  const [data, setData] = useState<UserProfile>({ allergies: "" });
+
+  useEffect(() => {
+    if (!profileReady || formReady) return;
+    setData({
+      gender: profile?.gender,
+      age: profile?.age,
+      height_cm: profile?.height_cm,
+      weight_kg: profile?.weight_kg,
+      activity_level: profile?.activity_level,
+      goal: profile?.goal,
+      diet_preference: profile?.diet_preference,
+      cooking_source: profile?.cooking_source,
+      allergies: profile?.allergies || "",
+    });
+    setFormReady(true);
+  }, [formReady, profile, profileReady]);
 
   const update = (partial: Partial<UserProfile>) => setData(prev => ({ ...prev, ...partial }));
   const handleNext = () => { if (step < 4) setStep(step + 1); };
@@ -74,6 +81,14 @@ const Onboarding = () => {
     if (step === 3) return !!data.goal;
     return true;
   };
+
+  if (!profileReady || !formReady) {
+    return (
+      <div className="h-full flex items-center justify-center" data-testid="onboarding-loading">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col bg-background">

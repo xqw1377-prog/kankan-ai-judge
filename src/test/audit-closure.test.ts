@@ -18,12 +18,12 @@ const PRODUCT_FILES = [
 describe("guest claim recovery", () => {
   it("keeps the token until the server claim succeeds", async () => {
     forgetClaimToken();
-    expect(await retryStoredGuestClaim(async () => ({ error: null, status: "claimed" }))).toBe("none");
-    rememberClaimToken("tok");
+    expect(await retryStoredGuestClaim(async () => ({ error: null, status: "claimed" }), "owner-a")).toBe("none");
+    rememberClaimToken("tok", "owner-a");
     expect(claimSucceeded(new Error("no"), "claimed")).toBe(false);
-    expect(await retryStoredGuestClaim(async () => ({ error: new Error("no"), status: "" }))).toBe("failed");
+    expect(await retryStoredGuestClaim(async () => ({ error: new Error("no"), status: "" }), "owner-a")).toBe("failed");
     expect(readClaimToken()).toBe("tok");
-    expect(await retryStoredGuestClaim(async () => ({ error: null, status: "claimed" }))).toBe("claimed");
+    expect(await retryStoredGuestClaim(async () => ({ error: null, status: "claimed" }), "owner-a")).toBe("claimed");
     expect(readClaimToken()).toBeNull();
   });
 });
@@ -67,7 +67,7 @@ describe("audit closure source", () => {
     expect(login).toContain("loginEmailLabel");
     expect(login).toContain("loginPasswordLabel");
     expect(login).toContain("text-base");
-    expect(login).toContain("retryStoredGuestClaim");
+    expect(login).toContain("handoffExistingAccountSignIn");
     const profile = readFileSync("src/pages/Profile.tsx", "utf8");
     expect(profile).toContain("revokeAiConsent");
     expect(profile).toContain("aiConsentRevoke");

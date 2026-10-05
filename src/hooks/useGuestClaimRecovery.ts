@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { readClaimToken, retryStoredGuestClaim } from "@/lib/guestClaim";
-import { adoptGuestLocalData } from "@/lib/guestHandoff";
+import {
+  acceptClaimedGuestMeals,
+  applyPendingClaimSession,
+  readPendingClaim,
+  retryStoredGuestClaim,
+} from "@/lib/guestClaim";
 import { useAuthUserId } from "@/hooks/useAuthUser";
 
 async function invokeClaim(token: string) {
@@ -10,24 +14,35 @@ async function invokeClaim(token: string) {
   return { error: result.error, status };
 }
 
-/** Retries a stored guest-meal claim once when a real account session is ready. */
+/** Retries a stored guest-meal claim only for the account the token was issued toward. */
 export function useGuestClaimRecovery() {
   const { ready, userId, isAnonymous } = useAuthUserId();
   const [needsRetry, setNeedsRetry] = useState(false);
   const [pending, setPending] = useState(false);
 
   const finish = useCallback(async (user: string) => {
-    const result = await retryStoredGuestClaim(invokeClaim);
-    if (result === "claimed") {
-      adoptGuestLocalData(user, { includeProfile: false });
+    const gate = applyPendingClaimSession({ userId: user, isAnonymous: false });
+    if (gate !== "retry") {
       setNeedsRetry(false);
       return;
     }
-    setNeedsRetry(result === "failed" && Boolean(readClaimToken()));
+    const result = await retryStoredGuestClaim(invokeClaim, user);
+    if (result === "claimed") {
+      acceptClaimedGuestMeals(user);
+      setNeedsRetry(false);
+      return;
+    }
+    setNeedsRetry(result === "failed" && Boolean(readPendingClaim()));
   }, []);
 
   useEffect(() => {
-    if (!ready || !userId || isAnonymous || !readClaimToken()) return;
+    if (!ready) return;
+    const gate = applyPendingClaimSession({ userId, isAnonymous });
+    if (gate === "clear" || gate === "skip") {
+      setNeedsRetry(false);
+      return;
+    }
+    if (!userId) return;
     let cancelled = false;
     setPending(true);
     finish(userId).finally(() => {
