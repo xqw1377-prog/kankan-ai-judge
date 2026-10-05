@@ -554,7 +554,7 @@ export const zhCN: Dictionary = {
   profileSaveFailed: "档案没能保存，请再试一次。",
 
   aiConsentTitle: "AI 数据使用说明",
-  aiConsentBody: "为了分析您拍摄的食物照片，KanKan 会经 Lovable AI Gateway 将照片发送给 Gemini。若资料里已有目标、过敏、饮食偏好和活动水平，这些内容也可能随照片一起发送。数据保留和处理方式以实际使用的 AI 服务提供方及其服务条款为准；我们仅传输完成分析所需的数据，并尽量减少传输内容。",
+  aiConsentBody: "为了分析您拍摄的食物照片，KanKan 服务端会经 Lovable AI Gateway 将照片发送给 Google Gemini。若资料里已有目标、过敏、饮食偏好和活动水平，也会一并发送；不发送邮箱或昵称。照片不存入文件存储，AI 服务方按其条款处理数据。同意的版本和时间会记录在本机，可在“我的”页随时撤回。",
   aiConsentAgree: "我已了解，继续使用",
   aiConsentDecline: "暂不使用",
   aiConsentPrivacy: "查看隐私政策",

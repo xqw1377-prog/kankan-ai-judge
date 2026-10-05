@@ -37,7 +37,7 @@ describe("AI consent version", () => {
     expect(hasAiConsent()).toBe(false);
     setAiConsent();
     expect(localStorage.getItem("kankan_ai_consent_version")).toBe(AI_CONSENT_VERSION);
-    expect(AI_CONSENT_VERSION).toBe("2026-10-05");
+    expect(AI_CONSENT_VERSION).toBe("2026-10-06");
     expect(localStorage.getItem("kankan_ai_consent")).toBeNull();
     expect(hasAiConsent()).toBe(true);
     revokeAiConsent();

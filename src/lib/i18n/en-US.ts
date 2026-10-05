@@ -554,7 +554,7 @@ export const enUS: Dictionary = {
   profileSaveFailed: "The profile could not be saved. Try again.",
 
   aiConsentTitle: "AI Data Usage Notice",
-  aiConsentBody: "To analyze a food photo, KanKan sends it through the Lovable AI Gateway to Gemini. If a profile exists, the request may also include your goal, allergies, diet preference, and activity level. Retention and processing follow the AI provider actually used and its terms. We send only what the analysis needs, and we keep that payload as small as we can.",
+  aiConsentBody: "To analyze a food photo, the KanKan server sends it through the Lovable AI Gateway to Google Gemini, plus your goal, allergies, diet preference and activity level if your profile has them. Email and nickname are not sent. Photos are not kept in file storage; the AI provider processes data under its terms. The accepted version and time are recorded on this device, and you can revoke consent on the Profile page.",
   aiConsentAgree: "I understand, continue",
   aiConsentDecline: "Not now",
   aiConsentPrivacy: "View Privacy Policy",
