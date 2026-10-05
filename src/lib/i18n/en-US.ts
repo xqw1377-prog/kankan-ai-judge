@@ -593,4 +593,7 @@ export const enUS: Dictionary = {
   deleteMealBtn: "Delete record",
   aiConsentRecorded: (version, date) => `AI data notice accepted (version ${version}, ${date})`,
   aiConsentNotGiven: "Current AI data notice not accepted yet; you'll be asked before the next analysis",
+  mealSavedToast: "Saved to your log ✓",
+  savingNow: "Saving…",
+  savingWait: "Saving — please wait before leaving",
 };

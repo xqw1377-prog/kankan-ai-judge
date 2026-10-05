@@ -593,4 +593,7 @@ export const zhCN: Dictionary = {
   deleteMealBtn: "删除记录",
   aiConsentRecorded: (version, date) => `已同意 AI 数据说明（版本 ${version}，${date}）`,
   aiConsentNotGiven: "尚未同意当前版本的 AI 数据说明，下次分析前会询问",
+  mealSavedToast: "已记到记录 ✓",
+  savingNow: "正在保存…",
+  savingWait: "正在保存，请稍候再离开",
 };
