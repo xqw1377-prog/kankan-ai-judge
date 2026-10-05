@@ -563,7 +563,7 @@ export const enUS: Dictionary = {
   scanTakeAnother: "Take another",
   scanTakePhotoBtn: "Take photo",
   scanAddFromAlbum: "From album",
-  scanCaptureHint: (max) => `Snap this meal, up to ${max} photos`,
+  scanCaptureHint: (max) => `One photo per dish is most accurate, up to ${max} per round; shoot big tables in rounds`,
   resultEditShort: "Wrong? Edit",
   useThisResult: "Use this result",
   newEstimate: "New estimate",
@@ -571,4 +571,9 @@ export const enUS: Dictionary = {
   todayProgress: "Today's goal progress",
   mealsLogged: (n) => `${n} meals logged`,
   recordStats: "Your records",
+  appendBanner: (food) => `Same meal: will merge into "${food}"`,
+  appendSameMeal: "Add another dish (same meal)",
+  appendMergeSave: "Merge into this meal",
+  scanLimitReached: (max) => `This round is capped at ${max} photos. Analyze now or replace the oldest; for a big table, shoot in rounds and use "Add another dish" to merge.`,
+  scanReplaceOldest: "Replace oldest",
 };

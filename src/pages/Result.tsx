@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ChevronLeft, Home } from "lucide-react";
+import { ChevronLeft, Home, PlusCircle } from "lucide-react";
+import { appendTargetFromMeal, estimateMergedMeal, type AppendTarget } from "@/lib/mealAppend";
 import { useMeals } from "@/hooks/useMeals";
 import { useToast } from "@/hooks/use-toast";
 import { useI18n } from "@/lib/i18n";
@@ -9,15 +10,17 @@ import { isPlaceholderAnalysis, mealResultLines, type FoodAnalysis } from "@/lib
 const Result = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { saveMeal, userId } = useMeals();
+  const { saveMeal, replaceMeal, userId } = useMeals();
   const { toast } = useToast();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const appendTo = location.state?.appendTo as AppendTarget | undefined;
   const result = location.state?.result as FoodAnalysis | undefined;
   const imageData = location.state?.imageData as string | undefined;
   const allImages: string[] = location.state?.images || (imageData ? [imageData] : []);
   const heroImage = allImages[0] || imageData;
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedTarget, setSavedTarget] = useState<AppendTarget | null>(null);
   const [needSignIn, setNeedSignIn] = useState(false);
 
   useEffect(() => {
@@ -61,6 +64,20 @@ const Result = () => {
       return;
     }
     setSaving(true);
+    if (appendTo) {
+      const merged = await estimateMergedMeal(appendTo, result, locale);
+      if (!merged.ok) {
+        setSaving(false);
+        if (merged.reason === "guest") { setNeedSignIn(true); toast({ title: t.guestFreeLimit }); }
+        else toast({ title: t.saveMealFailed, variant: "destructive" });
+        return;
+      }
+      const { error: mergeError } = await replaceMeal(appendTo.mealId, merged.result.analysis_id!);
+      setSaving(false);
+      if (mergeError) { toast({ title: t.saveMealFailed, variant: "destructive" }); return; }
+      navigate(`/meal/${appendTo.mealId}`, { replace: true });
+      return;
+    }
     const { data, error } = await saveMeal(result.analysis_id);
     setSaving(false);
     const message = error && typeof error === "object" && "message" in error
@@ -76,6 +93,7 @@ const Result = () => {
       return;
     }
     setSaved(true);
+    setSavedTarget(appendTargetFromMeal(data));
   };
 
   return (
@@ -90,6 +108,11 @@ const Result = () => {
       </header>
 
       <div className="flex-1 overflow-y-auto px-5 pb-4">
+        {appendTo && (
+          <p className="mb-3 rounded-xl border border-primary/40 bg-primary/5 px-4 py-2.5 text-sm text-primary font-semibold">
+            {t.appendBanner(appendTo.food)}
+          </p>
+        )}
         {heroImage && (
           <img src={heroImage} alt={seen} className="w-full max-h-56 object-cover rounded-2xl mb-5" />
         )}
@@ -125,12 +148,22 @@ const Result = () => {
 
       <div className="px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] shrink-0 space-y-3">
         {saved ? (
-          <button
-            onClick={() => navigate("/history")}
-            className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold"
-          >
-            {t.viewHistory}
-          </button>
+          <>
+            {savedTarget && (
+              <button
+                onClick={() => navigate("/scan", { state: { appendTo: savedTarget } })}
+                className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold flex items-center justify-center gap-2"
+              >
+                <PlusCircle className="w-5 h-5" /> {t.appendSameMeal}
+              </button>
+            )}
+            <button
+              onClick={() => navigate("/history")}
+              className="w-full py-3 rounded-2xl border border-border text-card-foreground font-semibold"
+            >
+              {t.viewHistory}
+            </button>
+          </>
         ) : needSignIn ? (
           <button
             onClick={() => navigate("/login")}
@@ -144,7 +177,7 @@ const Result = () => {
             disabled={saving}
             className="w-full py-4 rounded-2xl bg-primary text-primary-foreground font-bold disabled:opacity-60"
           >
-            {t.saveToLog}
+            {appendTo ? t.appendMergeSave : t.saveToLog}
           </button>
         )}
         <button onClick={() => navigate("/scan", { replace: true })} className="w-full text-sm text-muted-foreground">

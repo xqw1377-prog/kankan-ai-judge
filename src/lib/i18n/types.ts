@@ -584,4 +584,9 @@ export interface Dictionary {
   todayProgress: string;
   mealsLogged: (n: number) => string;
   recordStats: string;
+  appendBanner: (food: string) => string;
+  appendSameMeal: string;
+  appendMergeSave: string;
+  scanLimitReached: (max: number) => string;
+  scanReplaceOldest: string;
 }

@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ChevronLeft, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, Pencil, Trash2, PlusCircle } from "lucide-react";
+import { appendTargetFromMeal } from "@/lib/mealAppend";
 import { useMeals } from "@/hooks/useMeals";
 import { useProfile } from "@/hooks/useProfile";
 import NutritionBar from "@/components/NutritionBar";
@@ -58,6 +59,13 @@ const MealDetail = () => {
             {getMealTypeLabel(meal.meal_type)} · {new Date(meal.recorded_at).toLocaleString("zh-CN")}
           </p>
         </div>
+
+        <button
+          onClick={() => navigate("/scan", { state: { appendTo: appendTargetFromMeal(meal) } })}
+          className="w-full mb-5 py-3 rounded-xl border border-primary/40 text-primary text-sm font-semibold flex items-center justify-center gap-2"
+        >
+          <PlusCircle className="w-4 h-4" /> 继续加一道（同餐再拍）
+        </button>
 
         {allergenWarnings.length > 0 && (
           <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 animate-fade-in">
