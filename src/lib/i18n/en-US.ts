@@ -580,7 +580,7 @@ export const enUS: Dictionary = {
   routeErrorTitle: "This page didn't load",
   routeErrorBody: "Please reload. After an app update this is usually a stale cache.",
   routeErrorReload: "Reload",
-  analysisFailedTitle: "Couldn"t finish the estimate",
+  analysisFailedTitle: "Couldn't finish the estimate",
   reestimateNeedsSignIn: "Sign in to re-estimate",
   scanCloudNeedsSignIn: "Estimates run in the cloud and need you to sign in first.",
   mealNotFound: "Record not found",
@@ -594,5 +594,5 @@ export const enUS: Dictionary = {
   editIngredientsBtn: "Edit ingredients",
   deleteMealBtn: "Delete record",
   aiConsentRecorded: (version, date) => `AI data notice accepted (version ${version}, ${date})`,
-  aiConsentNotGiven: "Current AI data notice not accepted yet; you"ll be asked before the next analysis",
+  aiConsentNotGiven: "Current AI data notice not accepted yet; you'll be asked before the next analysis",
 };
