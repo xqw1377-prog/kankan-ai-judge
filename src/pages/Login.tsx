@@ -4,7 +4,9 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
-import { clearGuestMode, markGuestMode } from "@/lib/localData";
+import { clearGuestMode, markGuestMode, readProfile } from "@/lib/localData";
+import { adoptGuestLocalData } from "@/lib/guestHandoff";
+import { profileSaveBody } from "@/lib/serverWrites";
 
 export default function Login() {
   const { t } = useI18n();
@@ -21,14 +23,26 @@ export default function Login() {
   const handleSignIn = async () => {
     if (!email || !password) return;
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: before } = await supabase.auth.getSession();
+    let claimToken: string | null = null;
+    if (before.session?.user?.is_anonymous) {
+      const issued = await supabase.functions.invoke("claim-guest-meal", { body: { action: "issue" } });
+      const token = issued.data && typeof issued.data === "object" ? (issued.data as { token?: unknown }).token : null;
+      claimToken = typeof token === "string" ? token : null;
+    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
     if (error) {
       toast({ title: t.loginError, description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: t.loginSuccess, description: t.loginWelcomeBack });
-      navigate("/", { replace: true });
+      return;
     }
+    if (claimToken) {
+      await supabase.functions.invoke("claim-guest-meal", { body: { action: "claim", token: claimToken } });
+    }
+    if (data.user) adoptGuestLocalData(data.user.id, { includeProfile: false });
+    else clearGuestMode();
+    toast({ title: t.loginSuccess, description: t.loginWelcomeBack });
+    navigate("/", { replace: true });
   };
 
   const handleSignUp = async () => {
@@ -50,7 +64,16 @@ export default function Login() {
         toast({ title: t.loginSignUpSuccess, description: t.loginSignUpSuccessDesc });
         return;
       }
-      clearGuestMode();
+      if (data.user) {
+        const carried = adoptGuestLocalData(data.user.id, { includeProfile: true });
+        if (carried.profile) {
+          await supabase.functions.invoke("save-profile", {
+            body: profileSaveBody({ ...carried.profile } as Record<string, unknown>),
+          });
+        }
+      } else {
+        clearGuestMode();
+      }
       toast({ title: t.loginSignUpSuccess, description: t.loginWelcomeBack });
       navigate("/", { replace: true });
       return;
@@ -64,6 +87,7 @@ export default function Login() {
     if (error) {
       toast({ title: t.loginError, description: error.message, variant: "destructive" });
     } else {
+      clearGuestMode();
       toast({ title: t.loginSignUpSuccess, description: t.loginSignUpSuccessDesc });
       setMode("signin");
     }

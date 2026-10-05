@@ -17,3 +17,6 @@ verify_jwt = true
 
 [functions.day-summary]
 verify_jwt = true
+
+[functions.claim-guest-meal]
+verify_jwt = true

@@ -50,6 +50,7 @@ const EditIngredients = () => {
   const [reInferring, setReInferring] = useState(false);
   const [analysisId, setAnalysisId] = useState<string>("");
   const [serverResult, setServerResult] = useState<FoodAnalysis | null>(null);
+  const [matchedRevision, setMatchedRevision] = useState<number | null>(null);
 
   // Real-time nutrition estimation with oil absorption correction
   const nutrition = useMemo(() => {
@@ -72,6 +73,7 @@ const EditIngredients = () => {
   const revisionRef = useRef(0);
   const invalidateAnalysis = () => {
     revisionRef.current += 1;
+    setMatchedRevision(null);
     setAnalysisId("");
     setServerResult(null);
   };
@@ -166,6 +168,7 @@ const EditIngredients = () => {
         suggestion: String(data.suggestion || ""),
         analysis_id: data.analysis_id,
       };
+      setMatchedRevision(revision);
       setAnalysisId(data.analysis_id);
       setServerResult(next);
       setFoodNameValue(next.food);
@@ -182,10 +185,16 @@ const EditIngredients = () => {
     setTimeout(() => setShowConfetti(false), 2000);
   }, []);
 
+  const canSave = matchedRevision !== null && matchedRevision === revisionRef.current && !!analysisId && !reInferring;
+
   const handleSave = async () => {
+    if (!canSave) {
+      toast({ title: t.needServerEstimate, variant: "destructive" });
+      return;
+    }
     if (fromResult && resultState) {
       if (!serverResult?.analysis_id) {
-        navigate("/result", { state: resultState, replace: true });
+        toast({ title: t.needServerEstimate, variant: "destructive" });
         return;
       }
       setTimeout(() => {
@@ -253,7 +262,12 @@ const EditIngredients = () => {
           <ChevronLeft className="w-5 h-5" />
         </button>
         <span className="font-semibold text-sm text-card-foreground">{t.editIngredientsTitle}</span>
-        <button onClick={handleSave} className="p-2 text-primary">
+        <button
+          onClick={handleSave}
+          disabled={!canSave}
+          aria-label={t.done}
+          className="p-2 text-primary disabled:opacity-40"
+        >
           <Check className="w-5 h-5" />
         </button>
       </header>

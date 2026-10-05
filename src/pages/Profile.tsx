@@ -29,7 +29,7 @@ function calcStreak(dates: string[]): number {
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { profile, loading, saveProfile, userId } = useProfile();
+  const { profile, authReady, profileReady, saveProfile, userId } = useProfile();
   const summary = useDaySummary(userId);
   const { meals } = useMeals();
   const { t, locale, setLocale } = useI18n();
@@ -47,7 +47,7 @@ const Profile = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
+  if (!authReady || !profileReady) {
     return (
       <div className="h-full flex flex-col items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -70,9 +70,14 @@ const Profile = () => {
     );
   }
 
-  const nickname = (profile as any).nickname || "";
-  const avatarUrl = (profile as any).avatar_url;
-  const genderLabel = profile.gender === "female" ? t.female : t.male;
+  const nickname = profile.nickname || "";
+  const avatarUrl = profile.avatar_url;
+  const genderLabel = profile.gender === "female" ? t.female : profile.gender === "male" ? t.male : "";
+  const bodyBits = [
+    profile.age ? `${profile.age}${t.ageSuffix}` : "",
+    genderLabel,
+    profile.height_cm && profile.weight_kg ? `${profile.height_cm}cm / ${profile.weight_kg}kg` : "",
+  ].filter(Boolean);
   const uniqueDays = new Set(meals.map(m => new Date(m.recorded_at).toDateString())).size;
   const streak = calcStreak(meals.map(m => m.recorded_at));
   const score = summary?.score;
@@ -83,14 +88,14 @@ const Profile = () => {
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result as string;
-      await saveProfile({ avatar_url: dataUrl } as any);
+      await saveProfile({ avatar_url: dataUrl });
     };
     reader.readAsDataURL(file);
   };
 
   const handleNicknameSave = async () => {
     if (nicknameValue.trim()) {
-      await saveProfile({ nickname: nicknameValue.trim() } as any);
+      await saveProfile({ nickname: nicknameValue.trim() });
     }
     setEditingNickname(false);
   };
@@ -173,12 +178,14 @@ const Profile = () => {
                   <h2 className="font-bold text-lg text-muted-foreground/50">{t.nicknamePlaceholder}</h2>
                 </button>
               )}
-              <p className="text-sm text-muted-foreground">
-                {profile.age}{t.ageSuffix} · {genderLabel} · {profile.height_cm}cm / {profile.weight_kg}kg
-              </p>
-              <p className="text-sm text-primary font-semibold mt-0.5">
-                {t.goal}：{t.goalLabels[profile.goal || "maintain"]}
-              </p>
+              {bodyBits.length > 0 && (
+                <p className="text-sm text-muted-foreground">{bodyBits.join(" · ")}</p>
+              )}
+              {profile.goal && t.goalLabels[profile.goal] && (
+                <p className="text-sm text-primary font-semibold mt-0.5">
+                  {t.goal}：{t.goalLabels[profile.goal]}
+                </p>
+              )}
             </div>
           </div>
           <button onClick={() => navigate("/onboarding")} className="mt-4 w-full py-2.5 rounded-xl border border-border text-sm font-semibold active:scale-[0.98] transition-all text-card-foreground">

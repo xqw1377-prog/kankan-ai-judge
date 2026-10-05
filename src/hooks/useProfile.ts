@@ -22,9 +22,11 @@ export function useProfile() {
   const userId = sessionUserId && !isAnonymous ? sessionUserId : null;
   const scope = userId ?? GUEST_SCOPE;
   const [profile, setProfile] = useState<FullProfile | null>(null);
-  // Auth ready is not profile resolved: stay loading until the server answers for this account.
+  // Auth ready is not profile resolved: stay loading until this scope has been read.
   const [resolvedScope, setResolvedScope] = useState<string | null>(null);
-  const loading = !ready || (!!userId && resolvedScope !== scope);
+  const authReady = ready;
+  const profileReady = authReady && resolvedScope === scope;
+  const loading = !authReady || !profileReady;
 
   useEffect(() => {
     if (!ready) return;
@@ -93,5 +95,5 @@ export function useProfile() {
     }
   }, [profile, scope, userId]);
 
-  return { profile, loading, saveProfile, userId };
+  return { profile, loading, authReady, profileReady, saveProfile, userId };
 }

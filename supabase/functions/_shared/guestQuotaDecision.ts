@@ -9,7 +9,8 @@ export type GuestQuotaDecision =
 
 /**
  * Permanent users are not capped here.
- * An anonymous user may complete this many successful analyses, then must register.
+ * One anonymous trial on a device may complete this many successful analyses.
+ * This is not a lifetime limit on a person.
  */
 export function guestQuotaDecision(input: {
   isAnonymous: boolean;
@@ -20,4 +21,16 @@ export function guestQuotaDecision(input: {
     return { allow: false, status: 403, code: GUEST_FREE_LIMIT };
   }
   return { allow: true };
+}
+
+/** A lost response should replay the stored trial result instead of looking like a new denial. */
+export function guestRetryDecision(input: {
+  isAnonymous: boolean;
+  hasStoredAnalysis: boolean;
+  quotaAllows: boolean;
+}): "analyze" | "replay" | "block" {
+  if (!input.isAnonymous) return "analyze";
+  if (input.hasStoredAnalysis) return "replay";
+  if (!input.quotaAllows) return "block";
+  return "analyze";
 }

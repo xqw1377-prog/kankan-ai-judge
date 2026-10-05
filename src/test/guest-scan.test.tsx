@@ -57,7 +57,7 @@ describe("guest scan limit", () => {
       error: {
         message: "Edge Function returned a non-2xx status code",
         context: new Response(JSON.stringify({
-          error: "免费体验已用完，注册后继续记录",
+          error: "每台设备的一次试用已用完，注册后继续记录",
           code: GUEST_FREE_LIMIT,
         }), { status: 403 }),
       },
@@ -66,12 +66,12 @@ describe("guest scan limit", () => {
 
   it("shows the free-try prompt and opens registration for the same anonymous user", async () => {
     renderScan();
-    expect(await screen.findByText("免费体验已用完，注册后继续记录", {}, { timeout: 4000 })).toBeVisible();
+    expect(await screen.findByText("每台设备的一次试用已用完，注册后继续记录", {}, { timeout: 4000 })).toBeVisible();
     expect(signInAnonymously).toHaveBeenCalledOnce();
     expect(invoke).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "注册" }));
     expect(await screen.findByRole("button", { name: "注册" })).toBeVisible();
-    expect(screen.getByText("免费体验已用完，注册后继续记录")).toBeVisible();
+    expect(screen.getByText("每台设备的一次试用已用完，注册后继续记录")).toBeVisible();
     expect(screen.queryByText("结果页")).not.toBeInTheDocument();
   });
 });

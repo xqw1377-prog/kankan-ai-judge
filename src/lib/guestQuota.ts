@@ -3,5 +3,6 @@ export {
   GUEST_FREE_LIMIT,
   GUEST_SUCCESS_KIND,
   guestQuotaDecision,
+  guestRetryDecision,
 } from "../../supabase/functions/_shared/guestQuotaDecision.ts";
 export type { GuestQuotaDecision } from "../../supabase/functions/_shared/guestQuotaDecision.ts";

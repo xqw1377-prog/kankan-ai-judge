@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { denyAnonymousAi } from "../_shared/guestFoodQuota.ts";
 import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
+import { validateAnalysis, validateIngredientList } from "../_shared/analysisContract.ts";
+import { ANALYSIS_PROVIDER, completeToolCall, VISUAL_UNCERTAINTY } from "../_shared/analysisProvider.ts";
 import { storeAnalysis } from "../_shared/storeAnalysis.ts";
 
 const corsHeaders = {
@@ -16,7 +18,7 @@ serve(async (req) => {
 
   try {
     const { ingredients, language = "zh-CN", dishName: rawDish, cookingMethod: rawCook } = await req.json();
-    const dishName = typeof rawDish === "string" ? rawDish.trim().slice(0, 40) : "";
+    const dishName = typeof rawDish === "string" ? rawDish.trim().slice(0, 80) : "";
     const cookingMethod = typeof rawCook === "string" ? rawCook.trim().slice(0, 30) : "";
     const auth = await requireUser(req, corsHeaders);
     if (auth instanceof Response) return auth;
@@ -25,20 +27,11 @@ serve(async (req) => {
     const limited = await enforceAiRateLimit(auth.supabase, auth.userId, corsHeaders);
     if (limited) return limited;
 
-    if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
-      return new Response(JSON.stringify({ error: "No ingredients provided" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    const listed = validateIngredientList(ingredients);
+    if (listed.ok === false) return json(400, { error: listed.error }, corsHeaders);
 
     const isEnglish = language === "en-US";
-    const ingredientList = ingredients.map((i: any) => `${i.name} ${i.grams}g`).join(", ");
+    const ingredientList = listed.value.map((item) => `${item.name} ${item.grams}g`).join(", ");
 
     const systemPrompt = isEnglish
       ? `You are a professional food analyst. Given a list of ingredients with weights, infer the most likely dish name and recalculate accurate nutrition data. Be precise and practical.`
@@ -51,20 +44,16 @@ serve(async (req) => {
       dishName ? (isEnglish ? `User-confirmed dish name: ${dishName}. Use it as the dish name.` : `用户确认的菜名：${dishName}，请以此为菜名。`) : "",
       cookingMethod ? (isEnglish ? `Cooking method: ${cookingMethod}. Account for its oil and nutrition impact.` : `烹饪方式：${cookingMethod}，请计入其用油和营养影响。`) : "",
     ].filter(Boolean).join("\n");
+    const userContent = extra ? `${userMessage}\n\n${extra}` : userMessage;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: extra ? `${userMessage}\n\n${extra}` : userMessage },
-        ],
-        tools: [
+    const model = "google/gemini-2.5-flash-lite";
+    const completed = await completeToolCall({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userContent },
+      ],
+      tools: [
           {
             type: "function",
             function: {
@@ -86,44 +75,25 @@ serve(async (req) => {
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "dish_inference" } },
-      }),
+      toolChoice: { type: "function", function: { name: "dish_inference" } },
     });
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error("AI gateway error:", response.status, text);
-      throw new Error(`AI gateway error: ${response.status}`);
-    }
+    if (completed.ok === false) return json(completed.status, { error: completed.error }, corsHeaders);
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-
-    if (toolCall?.function?.arguments) {
-      const result = JSON.parse(toolCall.function.arguments);
-      const foodName = dishName || String(result?.food ?? "").trim();
-      const calories = Number(result?.calories) || 0;
-      const protein = Number(result?.protein_g) || 0;
-      const fat = Number(result?.fat_g) || 0;
-      const carbs = Number(result?.carbs_g) || 0;
-      if (!foodName || /^(未知菜品|未知食物|unknown)$/i.test(foodName) || (calories <= 0 && protein <= 0 && fat <= 0 && carbs <= 0)) {
-        return json(422, { error: "没能识别这餐" }, corsHeaders);
-      }
-      const analysisId = await storeAnalysis(auth.userId, {
-        food: foodName,
-        calories,
-        protein_g: protein,
-        fat_g: fat,
-        carbs_g: carbs,
-        ingredients,
-        verdict: result.verdict,
-        suggestion: result.suggestion,
-      });
-      if (!analysisId) return json(500, { error: "没能保存分析结果" }, corsHeaders);
-      return json(200, { ...result, food: foodName, analysis_id: analysisId }, corsHeaders);
-    }
-
-    return json(422, { error: "没能识别这餐" }, corsHeaders);
+    const result = JSON.parse(completed.arguments);
+    const checked = validateAnalysis({ ...result, ingredients: listed.value });
+    if (!checked.ok) return json(422, { error: "没能识别这餐" }, corsHeaders);
+    const confirmedName = dishName && !/^(未知食物|未知菜品|unknown|unknown food)$/i.test(dishName)
+      ? dishName
+      : checked.value.food;
+    const persisted = { ...checked.value, food: confirmedName };
+    const stored = await storeAnalysis(auth.userId, persisted, {
+      provider: ANALYSIS_PROVIDER,
+      model,
+      uncertainty: VISUAL_UNCERTAINTY,
+    });
+    if (!stored) return json(500, { error: "没能保存分析结果" }, corsHeaders);
+    return json(200, { ...persisted, cooking_method: cookingMethod || null, analysis_id: stored.id }, corsHeaders);
   } catch (e) {
     console.error("re-infer-dish error:", e);
     return new Response(

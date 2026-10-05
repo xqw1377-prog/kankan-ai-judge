@@ -34,7 +34,7 @@ export interface StoredProfile extends UserProfile {
   onboarding_completed: boolean;
   /** User skipped sex / age / height / weight / goal. Do not present defaults as facts. */
   details_skipped?: boolean;
-  targets: NutritionTargets;
+  targets: NutritionTargets | null;
   nickname?: string;
   avatar_url?: string;
   /** Targets were stored by save-profile. Do not recalculate them on this device. */
@@ -67,50 +67,68 @@ function writeJson(key: string, value: unknown) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+function knownNumber(value: unknown, min: number, max: number): number | undefined {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < min || n > max) return undefined;
+  return n;
+}
+
 export function hydrateProfile(raw: Partial<StoredProfile> & { device_id?: string }): StoredProfile {
-  const profileData: UserProfile = {
-    gender: raw.gender === "female" ? "female" : "male",
-    age: raw.age || 28,
-    height_cm: raw.height_cm || 170,
-    weight_kg: raw.weight_kg || 65,
-    activity_level: raw.activity_level || "light",
-    goal: raw.goal || "maintain",
-    diet_preference: raw.diet_preference,
-    cooking_source: raw.cooking_source,
-    allergies: raw.allergies,
+  const skipped = raw.details_skipped === true;
+  const optional = {
+    diet_preference: typeof raw.diet_preference === "string" ? raw.diet_preference : undefined,
+    cooking_source: typeof raw.cooking_source === "string" ? raw.cooking_source : undefined,
+    allergies: typeof raw.allergies === "string" ? raw.allergies : undefined,
+  };
+  const profileData: UserProfile = skipped ? optional : {
+    gender: raw.gender === "female" || raw.gender === "male" ? raw.gender : undefined,
+    age: knownNumber(raw.age, 10, 100),
+    height_cm: knownNumber(raw.height_cm, 100, 230),
+    weight_kg: knownNumber(raw.weight_kg, 30, 250),
+    activity_level: raw.activity_level,
+    goal: raw.goal,
+    ...optional,
   };
   return {
     ...profileData,
     device_id: raw.device_id || "",
     onboarding_completed: raw.onboarding_completed ?? false,
-    details_skipped: raw.details_skipped ?? false,
+    details_skipped: skipped,
     nickname: raw.nickname,
     avatar_url: raw.avatar_url,
-    targets: calculateNutrition(profileData),
+    targets: skipped ? null : calculateNutrition(profileData),
   };
 }
 
 export function profileFromServer(row: Record<string, unknown>): StoredProfile {
-  const calories = Number(row.target_calories);
-  const targets = Number.isFinite(calories) && calories > 0
-    ? {
-      tdee: Number(row.tdee) || 0,
-      calories,
-      protein_g: Number(row.target_protein_g) || 0,
-      fat_g: Number(row.target_fat_g) || 0,
-      carbs_g: Number(row.target_carbs_g) || 0,
-    }
-    : { tdee: 0, calories: 0, protein_g: 0, fat_g: 0, carbs_g: 0 };
-  return {
-    gender: row.gender === "female" ? "female" : "male",
-    age: Number(row.age) || 0,
-    height_cm: Number(row.height_cm) || 0,
-    weight_kg: Number(row.weight_kg) || 0,
-    activity_level: (row.activity_level as StoredProfile["activity_level"]) || "light",
-    goal: (row.goal as StoredProfile["goal"]) || "maintain",
+  const profileData: UserProfile = {
+    gender: row.gender === "female" || row.gender === "male" ? row.gender : undefined,
+    age: knownNumber(row.age, 10, 100),
+    height_cm: knownNumber(row.height_cm, 100, 230),
+    weight_kg: knownNumber(row.weight_kg, 30, 250),
+    activity_level: row.activity_level === "sedentary" || row.activity_level === "light" || row.activity_level === "moderate" || row.activity_level === "high" || row.activity_level === "extreme"
+      ? row.activity_level
+      : undefined,
+    goal: row.goal === "fat_loss" || row.goal === "muscle_gain" || row.goal === "sugar_control" || row.goal === "maintain"
+      ? row.goal
+      : undefined,
     diet_preference: typeof row.diet_preference === "string" ? row.diet_preference : undefined,
     cooking_source: typeof row.cooking_source === "string" ? row.cooking_source : undefined,
     allergies: typeof row.allergies === "string" ? row.allergies : undefined,
+  };
+  const ready = calculateNutrition(profileData);
+  const calories = Number(row.target_calories);
+  const targets = ready && Number.isFinite(calories) && calories > 0
+    ? {
+      tdee: Number(row.tdee) || ready.tdee,
+      calories,
+      protein_g: Number(row.target_protein_g) || ready.protein_g,
+      fat_g: Number(row.target_fat_g) || ready.fat_g,
+      carbs_g: Number(row.target_carbs_g) || ready.carbs_g,
+    }
+    : null;
+  return {
+    ...profileData,
     device_id: "",
     onboarding_completed: Boolean(row.onboarding_completed),
     nickname: typeof row.nickname === "string" ? row.nickname : undefined,

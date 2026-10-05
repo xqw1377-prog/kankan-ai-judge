@@ -52,6 +52,7 @@ export interface Dictionary {
   onboardingTitle5Desc: string;
   age: string;
   ageSuffix: string;
+  notFilled: string;
   height: string;
   weight: string;
   male: string;

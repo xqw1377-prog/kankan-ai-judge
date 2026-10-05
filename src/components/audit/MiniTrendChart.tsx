@@ -30,7 +30,8 @@ const MiniTrendChart = () => {
         continue;
       }
       const totalCal = dayMeals.reduce((s, m) => s + m.calories, 0);
-      const targetCal = (profile as any)?.target_calories || 2000;
+      const targetCal = profile?.targets?.calories ?? 0;
+      if (targetCal <= 0) { days.push({ label: dayLabel, rate: 0 }); continue; }
       const ratio = totalCal / targetCal;
       const rate = Math.max(0, Math.min(100, Math.round(ratio <= 1 ? ratio * 100 : Math.max(0, 200 - ratio * 100))));
       days.push({ label: dayLabel, rate });
@@ -40,18 +41,18 @@ const MiniTrendChart = () => {
 
   // Today's goal achievement rings
   const goalRings = useMemo<GoalRing[]>(() => {
-    const p = profile as any;
-    if (!p) return [];
+    const targets = profile?.targets;
+    if (!targets || targets.calories <= 0) return [];
     const totalPro = todayMeals.reduce((s, m) => s + m.protein_g, 0);
     const totalFat = todayMeals.reduce((s, m) => s + m.fat_g, 0);
     const totalCarbs = todayMeals.reduce((s, m) => s + m.carbs_g, 0);
     const totalCal = todayMeals.reduce((s, m) => s + m.calories, 0);
 
     return [
-      { label: isZh ? "热量" : "Cal", pct: Math.min(100, Math.round((totalCal / (p.target_calories || 2000)) * 100)), color: "hsl(var(--primary))" },
-      { label: isZh ? "蛋白" : "Pro", pct: Math.min(100, Math.round((totalPro / (p.target_protein_g || 100)) * 100)), color: "hsl(160 60% 45%)" },
-      { label: isZh ? "脂肪" : "Fat", pct: Math.min(100, Math.round((totalFat / (p.target_fat_g || 60)) * 100)), color: "hsl(var(--warning))" },
-      { label: isZh ? "碳水" : "Carb", pct: Math.min(100, Math.round((totalCarbs / (p.target_carbs_g || 200)) * 100)), color: "hsl(var(--info))" },
+      { label: isZh ? "热量" : "Cal", pct: Math.min(100, Math.round((totalCal / targets.calories) * 100)), color: "hsl(var(--primary))" },
+      { label: isZh ? "蛋白" : "Pro", pct: Math.min(100, Math.round((totalPro / targets.protein_g) * 100)), color: "hsl(160 60% 45%)" },
+      { label: isZh ? "脂肪" : "Fat", pct: Math.min(100, Math.round((totalFat / targets.fat_g) * 100)), color: "hsl(var(--warning))" },
+      { label: isZh ? "碳水" : "Carb", pct: Math.min(100, Math.round((totalCarbs / targets.carbs_g) * 100)), color: "hsl(var(--info))" },
     ];
   }, [todayMeals, profile, isZh]);
 

@@ -11,24 +11,16 @@ interface BrainBatteryProps {
 const BrainBattery = ({ calories, fat_g, carbs_g, protein_g, gi_value }: BrainBatteryProps) => {
   const [showHedge, setShowHedge] = useState(false);
 
-  const { level, isSurplus, focusMin, crashTime, dropPct } = useMemo(() => {
-    // Base battery 100%. Deductions: high sugar (carbs>60 or gi>70), high fat (fat>25), high cal (>800)
+  const { level, isSurplus } = useMemo(() => {
     let drain = 0;
     if (carbs_g > 60) drain += 15;
     if ((gi_value ?? 55) > 70) drain += 20;
     if (fat_g > 25) drain += 15;
     if (calories > 800) drain += 10;
     if (calories > 1200) drain += 10;
-    // Protein bonus
     const proteinBoost = Math.min(10, protein_g * 0.2);
     const level = Math.max(5, Math.min(100, 100 - drain + proteinBoost));
-    const isSurplus = level >= 60;
-    const focusMin = Math.round(level * 3); // up to 300min
-    const now = new Date();
-    const crashHour = now.getHours() + Math.round(level / 30);
-    const crashTime = `${Math.min(23, crashHour)}:${String(now.getMinutes()).padStart(2, "0")}`;
-    const dropPct = Math.round((100 - level) * 0.6);
-    return { level, isSurplus, focusMin, crashTime, dropPct };
+    return { level, isSurplus: level >= 60 };
   }, [calories, fat_g, carbs_g, protein_g, gi_value]);
 
   const barColor = isSurplus
@@ -77,20 +69,7 @@ const BrainBattery = ({ calories, fat_g, carbs_g, protein_g, gi_value }: BrainBa
 
         {/* Status text */}
         <div className="mt-3">
-          {isSurplus ? (
-            <p className="text-xs font-semibold text-success leading-relaxed">
-              🟢 今日生理性能处于牛市，专注力预计增值 <span className="font-mono font-bold">{focusMin}min</span>。
-            </p>
-          ) : (
-            <>
-              <p className="text-xs font-semibold text-destructive leading-relaxed animate-pulse">
-                🔴 当前处于生理空头，下午 <span className="font-mono font-bold">{crashTime}</span> 存在宕机风险，建议立即补救。
-              </p>
-              <p className="text-[9px] font-mono text-destructive/70 mt-1">
-                决策性能将下降 {dropPct}% · 预计高效时长减少 2h
-              </p>
-            </>
-          )}
+          <p className="text-xs text-muted-foreground leading-relaxed">没有测到专注或决策表现的变化。</p>
         </div>
 
         {/* Hedge button for deficit */}
@@ -110,19 +89,19 @@ const BrainBattery = ({ calories, fat_g, carbs_g, protein_g, gi_value }: BrainBa
                   <div className="flex items-start gap-2">
                     <span className="text-sm">💧</span>
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      立即补充 <span className="font-bold text-primary">500ml 水</span>，可稀释血糖峰值，挽回 <span className="font-bold text-success">~15%</span> 损耗
+                      可以喝水。这不是测到的效果。
                     </p>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-sm">🚶</span>
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      进行 <span className="font-bold text-primary">10 分钟快走</span>，加速葡萄糖利用，挽回 <span className="font-bold text-success">~30%</span> 损耗
+                      可以走动。这不是测到的效果。
                     </p>
                   </div>
                   <div className="flex items-start gap-2">
                     <span className="text-sm">🧘</span>
                     <p className="text-[10px] text-muted-foreground leading-relaxed">
-                      <span className="font-bold text-primary">5 分钟深呼吸</span>，降低皮质醇，恢复专注力基线
+                      可以休息。这不是测到的效果。
                     </p>
                   </div>
                 </div>

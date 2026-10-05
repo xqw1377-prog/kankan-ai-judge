@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { ensureAnalysisSession } from "@/lib/ensureAnalysisSession";
-import { GUEST_FREE_LIMIT, guestQuotaDecision } from "@/lib/guestQuota";
+import { GUEST_FREE_LIMIT, guestQuotaDecision, guestRetryDecision } from "@/lib/guestQuota";
 import { readInvokeFailure } from "@/lib/invokeFailure";
 
 describe("guest food quota", () => {
@@ -28,10 +28,19 @@ describe("guest food quota", () => {
   });
 });
 
+describe("lost guest response", () => {
+  it("replays a stored anonymous analysis instead of blocking the retry", () => {
+    expect(guestRetryDecision({ isAnonymous: false, hasStoredAnalysis: true, quotaAllows: false })).toBe("analyze");
+    expect(guestRetryDecision({ isAnonymous: true, hasStoredAnalysis: true, quotaAllows: false })).toBe("replay");
+    expect(guestRetryDecision({ isAnonymous: true, hasStoredAnalysis: false, quotaAllows: false })).toBe("block");
+    expect(guestRetryDecision({ isAnonymous: true, hasStoredAnalysis: false, quotaAllows: true })).toBe("analyze");
+  });
+});
+
 describe("function error body", () => {
   it("reads GUEST_FREE_LIMIT from the response", async () => {
     const context = new Response(JSON.stringify({
-      error: "免费体验已用完，注册后继续记录",
+      error: "每台设备的一次试用已用完，注册后继续记录",
       code: GUEST_FREE_LIMIT,
     }), { status: 403 });
     const failure = await readInvokeFailure(null, {
@@ -39,7 +48,7 @@ describe("function error body", () => {
       context,
     });
     expect(failure).toEqual({
-      message: "免费体验已用完，注册后继续记录",
+      message: "每台设备的一次试用已用完，注册后继续记录",
       code: GUEST_FREE_LIMIT,
     });
   });
