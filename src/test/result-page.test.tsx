@@ -62,10 +62,9 @@ describe("result page", () => {
     expect(await screen.findByRole("button", { name: "登录" })).toBeVisible();
   });
 
-  it("opens ingredient editing from the collapsed section", () => {
+  it("opens ingredient editing from the first-level edit button", () => {
     renderResult();
-    fireEvent.click(screen.getByText("更多细节"));
-    fireEvent.click(screen.getByRole("button", { name: "编辑食材" }));
+    fireEvent.click(screen.getByRole("button", { name: "不对？修改" }));
     expect(screen.getByText("编辑食材页")).toBeVisible();
   });
 });
