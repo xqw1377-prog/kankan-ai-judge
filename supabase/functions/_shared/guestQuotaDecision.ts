@@ -34,3 +34,18 @@ export function guestRetryDecision(input: {
   if (!input.quotaAllows) return "block";
   return "analyze";
 }
+
+/** After the atomic guest slot insert: one winner analyses, a loser replays only an exact key. */
+export function resolveGuestReservation(input: {
+  reserved: "reserved" | "taken" | "error";
+  hasStoredAnalysis: boolean;
+}): "analyze" | "replay" | "block" | "unavailable" {
+  if (input.reserved === "error") return "unavailable";
+  if (input.reserved === "reserved") return "analyze";
+  const retry = guestRetryDecision({
+    isAnonymous: true,
+    hasStoredAnalysis: input.hasStoredAnalysis,
+    quotaAllows: false,
+  });
+  return retry === "replay" ? "replay" : "block";
+}

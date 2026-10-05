@@ -1,5 +1,5 @@
 import {
-  clearGuestMode,
+  clearGuestLocalData,
   GUEST_SCOPE,
   readHabits,
   readMeals,
@@ -27,6 +27,6 @@ export function adoptGuestLocalData(userId: string, options: { includeProfile: b
   const carried = meals.filter((meal) => !ids.has(meal.id));
   if (carried.length) writeMeals(userId, [...carried, ...existingMeals]);
   if (habits.length && readHabits(userId).length === 0) writeHabits(userId, habits);
-  clearGuestMode();
+  clearGuestLocalData();
   return { profile, meals: carried, habits };
 }

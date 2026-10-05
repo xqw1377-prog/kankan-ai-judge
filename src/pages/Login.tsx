@@ -4,8 +4,9 @@ import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
-import { clearGuestMode, markGuestMode, readProfile } from "@/lib/localData";
+import { clearGuestMode, markGuestMode } from "@/lib/localData";
 import { adoptGuestLocalData } from "@/lib/guestHandoff";
+import { forgetClaimToken, readClaimToken, rememberClaimToken } from "@/lib/guestClaim";
 import { profileSaveBody } from "@/lib/serverWrites";
 
 export default function Login() {
@@ -24,11 +25,14 @@ export default function Login() {
     if (!email || !password) return;
     setLoading(true);
     const { data: before } = await supabase.auth.getSession();
-    let claimToken: string | null = null;
+    let claimToken = readClaimToken();
     if (before.session?.user?.is_anonymous) {
       const issued = await supabase.functions.invoke("claim-guest-meal", { body: { action: "issue" } });
       const token = issued.data && typeof issued.data === "object" ? (issued.data as { token?: unknown }).token : null;
-      claimToken = typeof token === "string" ? token : null;
+      if (typeof token === "string") {
+        claimToken = token;
+        rememberClaimToken(token);
+      }
     }
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
@@ -36,12 +40,19 @@ export default function Login() {
       toast({ title: t.loginError, description: error.message, variant: "destructive" });
       return;
     }
+    let claimed = !claimToken;
     if (claimToken) {
-      await supabase.functions.invoke("claim-guest-meal", { body: { action: "claim", token: claimToken } });
+      const result = await supabase.functions.invoke("claim-guest-meal", { body: { action: "claim", token: claimToken } });
+      const status = result.data && typeof result.data === "object" ? (result.data as { status?: unknown }).status : "";
+      claimed = !result.error && status === "claimed";
+      if (claimed) forgetClaimToken();
     }
-    if (data.user) adoptGuestLocalData(data.user.id, { includeProfile: false });
-    else clearGuestMode();
-    toast({ title: t.loginSuccess, description: t.loginWelcomeBack });
+    if (claimed && data.user) adoptGuestLocalData(data.user.id, { includeProfile: false });
+    else if (claimed) clearGuestMode();
+    toast({
+      title: claimed ? t.loginSuccess : t.guestClaimPending,
+      description: claimed ? t.loginWelcomeBack : t.guestClaimPendingDesc,
+    });
     navigate("/", { replace: true });
   };
 

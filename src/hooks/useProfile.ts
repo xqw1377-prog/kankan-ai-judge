@@ -36,7 +36,7 @@ export function useProfile() {
       return;
     }
     const cached = readProfile(scope);
-    setProfile(cached?.targetsFromServer ? cached : null);
+    setProfile(cached?.targetsFromServer && cached.targets ? cached : null);
     let cancelled = false;
     (async () => {
       const { data, error } = await supabase

@@ -4,5 +4,6 @@ export {
   GUEST_SUCCESS_KIND,
   guestQuotaDecision,
   guestRetryDecision,
+  resolveGuestReservation,
 } from "../../supabase/functions/_shared/guestQuotaDecision.ts";
 export type { GuestQuotaDecision } from "../../supabase/functions/_shared/guestQuotaDecision.ts";

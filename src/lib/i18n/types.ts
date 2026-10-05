@@ -553,6 +553,8 @@ export interface Dictionary {
   saveToLog: string;
   saveNeedsSignIn: string;
   guestFreeLimit: string;
+  guestClaimPending: string;
+  guestClaimPendingDesc: string;
   profileSaveFailed: string;
 
   // AI consent

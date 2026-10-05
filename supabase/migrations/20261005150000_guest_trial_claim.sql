@@ -13,8 +13,19 @@ CREATE TABLE IF NOT EXISTS public.guest_claim_tokens (
   token uuid PRIMARY KEY,
   anonymous_user_id uuid NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
+  expires_at timestamptz NOT NULL DEFAULT now() + interval '7 days',
   consumed_at timestamptz
 );
+
+ALTER TABLE public.guest_claim_tokens
+  ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+UPDATE public.guest_claim_tokens
+  SET expires_at = created_at + interval '7 days'
+  WHERE expires_at IS NULL;
+ALTER TABLE public.guest_claim_tokens
+  ALTER COLUMN expires_at SET DEFAULT now() + interval '7 days';
+ALTER TABLE public.guest_claim_tokens
+  ALTER COLUMN expires_at SET NOT NULL;
 
 ALTER TABLE public.guest_claim_tokens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.guest_claim_tokens FORCE ROW LEVEL SECURITY;
@@ -59,6 +70,9 @@ BEGIN
 
   IF NOT FOUND OR claim.consumed_at IS NOT NULL OR claim.anonymous_user_id = p_owner_id THEN
     RETURN jsonb_build_object('status', 'invalid');
+  END IF;
+  IF claim.expires_at <= now() THEN
+    RETURN jsonb_build_object('status', 'expired');
   END IF;
 
   UPDATE public.meal_records

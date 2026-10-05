@@ -66,6 +66,16 @@ if [[ "$meal_count" != "1" ]]; then
   echo "concurrent consume created $meal_count meals" >&2
   exit 1
 fi
+psql "$DATABASE_URL" -c "INSERT INTO public.ai_usage (user_id, kind) VALUES ('11111111-1111-1111-1111-111111111111', 'guest_success');" > /tmp/kankan-guest-a.txt 2>&1 &
+psql "$DATABASE_URL" -c "INSERT INTO public.ai_usage (user_id, kind) VALUES ('11111111-1111-1111-1111-111111111111', 'guest_success');" > /tmp/kankan-guest-b.txt 2>&1 &
+wait || true
+guest_slots=$(psql "$DATABASE_URL" -tA -c "SELECT count(*) FROM public.ai_usage WHERE user_id = '11111111-1111-1111-1111-111111111111' AND kind = 'guest_success'")
+if [[ "$guest_slots" != "1" ]]; then
+  echo "concurrent guest reservations created $guest_slots rows" >&2
+  cat /tmp/kankan-guest-a.txt /tmp/kankan-guest-b.txt >&2
+  exit 1
+fi
 echo "RLS isolation passed"
 echo "analysis single-consumption passed"
 echo "guest claim passed"
+echo "guest slot single-reservation passed"

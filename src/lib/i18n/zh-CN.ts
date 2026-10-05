@@ -541,6 +541,8 @@ export const zhCN: Dictionary = {
   saveToLog: "记到记录",
   saveNeedsSignIn: "先登录，才能把这餐记到记录。",
   guestFreeLimit: "每台设备的一次试用已用完，注册后继续记录",
+  guestClaimPending: "试用记录还没带到这个账号",
+  guestClaimPendingDesc: "登录已经成功。可以再登录一次重试，这台设备上的试用餐还会保留。",
   profileSaveFailed: "档案没能保存，请再试一次。",
 
   aiConsentTitle: "AI 数据使用说明",

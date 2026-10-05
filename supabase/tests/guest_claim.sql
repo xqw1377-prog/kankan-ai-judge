@@ -65,4 +65,15 @@ BEGIN
   IF has_function_privilege('authenticated', 'public.consume_analysis_into_meal(uuid, uuid, text, uuid)', 'EXECUTE') THEN
     RAISE EXCEPTION 'authenticated can execute consume_analysis_into_meal';
   END IF;
+
+  INSERT INTO public.meal_records (user_id, food_name, calories)
+  VALUES (anon, '过期试用', 100);
+  INSERT INTO public.guest_claim_tokens (token, anonymous_user_id, expires_at)
+  VALUES ('abababab-abab-abab-abab-abababababab', anon, now() - interval '1 minute');
+  IF public.claim_guest_meals(owner, 'abababab-abab-abab-abab-abababababab')->>'status' IS DISTINCT FROM 'expired' THEN
+    RAISE EXCEPTION 'expired token should not move meals';
+  END IF;
+  IF (SELECT user_id FROM public.meal_records WHERE food_name = '过期试用') IS DISTINCT FROM anon THEN
+    RAISE EXCEPTION 'expired claim moved a meal';
+  END IF;
 END $$;

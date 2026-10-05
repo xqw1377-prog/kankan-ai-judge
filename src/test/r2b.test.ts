@@ -57,6 +57,9 @@ describe("guest handoff", () => {
     expect(readMeals(account).map((row) => row.food_name)).toEqual(["试用午饭"]);
     expect(readProfile(account)).toBeNull();
     expect(readHabits(account).map((row) => row.corrected_name)).toEqual(["杂粮饭"]);
+    expect(readMeals(GUEST_SCOPE)).toEqual([]);
+    expect(readProfile(GUEST_SCOPE)).toBeNull();
+    expect(readHabits(GUEST_SCOPE)).toEqual([]);
   });
 
   it("copies the local guest profile when the same anonymous user upgrades", () => {
@@ -73,14 +76,23 @@ describe("guest handoff", () => {
     expect(readProfile(account)?.allergies).toBe("花生");
     expect(readProfile(account)?.gender).toBeUndefined();
     expect(readProfile(account)?.goal).toBeUndefined();
+    expect(readProfile(GUEST_SCOPE)).toBeNull();
   });
 });
 
 describe("scan retry key", () => {
-  it("reuses one idempotency key for the same photos", () => {
-    const images = ["data:image/jpeg;base64,abc123"];
-    expect(scanAttemptKey(images)).toBe(scanAttemptKey(images));
-    expect(scanAttemptKey(["other"])).not.toBe(scanAttemptKey(images));
+  it("hashes the full image payload, not a prefix", async () => {
+    const images = ["data:image/jpeg;base64,abc123-full-payload"];
+    const same = await scanAttemptKey(images);
+    expect(same).toBe(await scanAttemptKey(images));
+    expect(same).toHaveLength(64);
+    expect(await scanAttemptKey(["data:image/jpeg;base64,abc123-full-payload-other"])).not.toBe(same);
+    const head = "data:image/jpeg;base64," + "a".repeat(30);
+    const prefixTwin = `${head}one-photo`;
+    const otherTwin = `${head}two-photo`;
+    expect(prefixTwin.slice(0, 24)).toBe(otherTwin.slice(0, 24));
+    expect(prefixTwin.length).toBe(otherTwin.length);
+    expect(await scanAttemptKey([prefixTwin])).not.toBe(await scanAttemptKey([otherTwin]));
   });
 });
 
@@ -90,8 +102,16 @@ describe("r2b source contracts", () => {
     expect(scan).toContain("idempotencyKey");
     expect(scan).toContain("scanAttemptKey");
     const analyze = readFileSync("supabase/functions/analyze-food/index.ts", "utf8");
-    expect(analyze).toContain("replayGuestAnalysis");
-    expect(readFileSync("supabase/functions/_shared/guestFoodQuota.ts", "utf8")).toContain("recovered: true");
+    expect(analyze).toContain("guestRetryDecision");
+    expect(analyze).toContain('if (early === "block") return json(403, GUEST_LIMIT_BODY, corsHeaders);');
+    expect(analyze).toContain("resolveGuestReservation");
+    expect(analyze).toContain("reserveGuestFoodSlot");
+    const quota = readFileSync("supabase/functions/_shared/guestFoodQuota.ts", "utf8");
+    expect(quota).toContain("recovered: true");
+    expect(quota).not.toContain("created_at");
+    const editor = readFileSync("src/pages/EditIngredients.tsx", "utf8");
+    expect(editor).toContain("useState<CookingMethod | null>(null)");
+    expect(editor).toContain("...(cookingMethod ? { cookingMethod } : {})");
     const reinfer = readFileSync("supabase/functions/re-infer-dish/index.ts", "utf8");
     expect(reinfer).toContain("dishName");
     expect(reinfer).toContain("cookingMethod");

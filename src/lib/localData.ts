@@ -53,6 +53,14 @@ export function clearGuestMode() {
   localStorage.removeItem(GUEST_KEY);
 }
 
+/** Removes the on-device guest log so the next account on this device does not inherit it. */
+export function clearGuestLocalData() {
+  localStorage.removeItem(profileKey(GUEST_SCOPE));
+  localStorage.removeItem(mealsKey(GUEST_SCOPE));
+  localStorage.removeItem(habitsKey(GUEST_SCOPE));
+  clearGuestMode();
+}
+
 function readJson<T>(key: string): T | null {
   try {
     const raw = localStorage.getItem(key);
@@ -134,14 +142,14 @@ export function profileFromServer(row: Record<string, unknown>): StoredProfile {
     nickname: typeof row.nickname === "string" ? row.nickname : undefined,
     avatar_url: typeof row.avatar_url === "string" ? row.avatar_url : undefined,
     targets,
-    targetsFromServer: true,
+    targetsFromServer: targets != null,
   };
 }
 
 export function readProfile(scope: string): StoredProfile | null {
   const raw = readJson<StoredProfile>(profileKey(scope));
   if (!raw || typeof raw !== "object") return null;
-  if (raw.targetsFromServer) return raw;
+  if (raw.targetsFromServer && raw.targets) return raw;
   return hydrateProfile(raw);
 }
 

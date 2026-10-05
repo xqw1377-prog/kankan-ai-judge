@@ -541,6 +541,8 @@ export const enUS: Dictionary = {
   saveToLog: "Save to log",
   saveNeedsSignIn: "Sign in before this meal can be saved.",
   guestFreeLimit: "This device's one trial is used up. Register to keep recording.",
+  guestClaimPending: "The trial meal is not on this account yet",
+  guestClaimPendingDesc: "Sign-in succeeded. Sign in again to retry. This device still has the trial meal.",
   profileSaveFailed: "The profile could not be saved. Try again.",
 
   aiConsentTitle: "AI Data Usage Notice",

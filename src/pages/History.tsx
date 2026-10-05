@@ -251,7 +251,7 @@ const History = () => {
             </div>
 
             {/* Daily Goal Achievement */}
-            {profile?.targets?.calories && (
+            {profile?.targets && profile.targets.calories > 0 && (
               <div className="mt-3 pt-3 border-t border-border/20">
                 <p className="text-[8px] font-mono text-muted-foreground/50 tracking-wider mb-2">
                   {isZh ? "每日目标达成率" : "DAILY GOAL ACHIEVEMENT"}

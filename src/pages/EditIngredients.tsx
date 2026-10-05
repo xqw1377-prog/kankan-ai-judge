@@ -46,7 +46,7 @@ const EditIngredients = () => {
   const [addName, setAddName] = useState("");
   const [addGrams, setAddGrams] = useState("");
   const [showConfetti, setShowConfetti] = useState(false);
-  const [cookingMethod, setCookingMethod] = useState<CookingMethod>("stir_fried");
+  const [cookingMethod, setCookingMethod] = useState<CookingMethod | null>(null);
   const [reInferring, setReInferring] = useState(false);
   const [analysisId, setAnalysisId] = useState<string>("");
   const [serverResult, setServerResult] = useState<FoodAnalysis | null>(null);
@@ -55,7 +55,7 @@ const EditIngredients = () => {
   // Real-time nutrition estimation with oil absorption correction
   const nutrition = useMemo(() => {
     const totalGrams = ingredients.reduce((s, i) => s + i.grams, 0);
-    const coeff = OIL_COEFFICIENTS[cookingMethod];
+    const coeff = cookingMethod ? OIL_COEFFICIENTS[cookingMethod] : { fat: 1, cal: 1, gi_boost: 0 };
     // Estimate GI value: base ~55, adjusted by cooking method and carb ratio
     const baseGI = 55;
     const gi_value = Math.round(Math.min(100, Math.max(20, baseGI + coeff.gi_boost * 100 + (totalGrams > 0 ? (totalGrams * 0.2 / totalGrams) * 20 - 10 : 0))));
@@ -150,7 +150,12 @@ const EditIngredients = () => {
     const revision = revisionRef.current;
     try {
       const { data, error } = await supabase.functions.invoke("re-infer-dish", {
-        body: { ingredients, language: locale, dishName: foodNameValue.trim(), cookingMethod },
+        body: {
+          ingredients,
+          language: locale,
+          dishName: foodNameValue.trim(),
+          ...(cookingMethod ? { cookingMethod } : {}),
+        },
       });
       if (revision !== revisionRef.current) return;
       if (error || data?.error || typeof data?.analysis_id !== "string") {

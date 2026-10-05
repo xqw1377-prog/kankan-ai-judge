@@ -1,6 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { enforceGuestFoodQuota, recordGuestFoodSuccess, replayGuestAnalysis } from "../_shared/guestFoodQuota.ts";
-import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
+import {
+  GUEST_LIMIT_BODY,
+  guestSuccessCount,
+  releaseGuestFoodSlot,
+  replayGuestAnalysis,
+  reserveGuestFoodSlot,
+} from "../_shared/guestFoodQuota.ts";
+import { guestQuotaDecision, guestRetryDecision, resolveGuestReservation } from "../_shared/guestQuotaDecision.ts";
+import { enforceAiRateLimit, json, requireUser, serviceDb } from "../_shared/guard.ts";
 import { parseImages, toImageContents } from "../_shared/images.ts";
 import { validateAnalysis } from "../_shared/analysisContract.ts";
 import { ANALYSIS_PROVIDER, completeToolCall, VISUAL_UNCERTAINTY } from "../_shared/analysisProvider.ts";
@@ -18,26 +25,54 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let guestHold: { userId: string; db: NonNullable<ReturnType<typeof serviceDb>> } | null = null;
+  const abandonGuestSlot = async () => {
+    if (!guestHold) return;
+    const hold = guestHold;
+    guestHold = null;
+    await releaseGuestFoodSlot(hold.db, hold.userId);
+  };
+
   try {
     const body = await req.json();
     const auth = await requireUser(req, corsHeaders);
     if (auth instanceof Response) return auth;
     const idempotencyKey = typeof body.idempotencyKey === "string" ? body.idempotencyKey.trim().slice(0, 80) : "";
-    if (auth.isAnonymous && idempotencyKey) {
-      const replay = await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey);
-      if (replay) return json(200, replay, corsHeaders);
+    const admin = auth.isAnonymous ? serviceDb() : null;
+    const exact = await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey);
+    let quotaAllows = true;
+    if (auth.isAnonymous) {
+      if (!admin) return json(503, { error: "暂时无法校验调用次数" }, corsHeaders);
+      const count = await guestSuccessCount(admin, auth.userId);
+      if (count == null) return json(503, { error: "暂时无法校验调用次数" }, corsHeaders);
+      quotaAllows = guestQuotaDecision({ isAnonymous: true, successfulCount: count }).allow;
     }
-    const guestBlocked = await enforceGuestFoodQuota(auth.supabase, auth.userId, auth.isAnonymous, corsHeaders);
-    if (guestBlocked) {
-      const replay = await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey);
-      if (replay) return json(200, replay, corsHeaders);
-      return guestBlocked;
-    }
+    const early = guestRetryDecision({
+      isAnonymous: auth.isAnonymous,
+      hasStoredAnalysis: Boolean(exact),
+      quotaAllows,
+    });
+    if (early === "replay" && exact) return json(200, exact, corsHeaders);
+    if (early === "block") return json(403, GUEST_LIMIT_BODY, corsHeaders);
     const limited = await enforceAiRateLimit(auth.supabase, auth.userId, corsHeaders);
     if (limited) return limited;
 
     const parsed = parseImages(body);
     if (!parsed.ok) return json(parsed.status, { error: parsed.error }, corsHeaders);
+    if (auth.isAnonymous && admin) {
+      const reserved = await reserveGuestFoodSlot(admin, auth.userId);
+      const again = reserved === "taken"
+        ? await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey)
+        : null;
+      const slot = resolveGuestReservation({
+        reserved,
+        hasStoredAnalysis: Boolean(again),
+      });
+      if (slot === "unavailable") return json(503, { error: "暂时无法校验调用次数" }, corsHeaders);
+      if (slot === "replay" && again) return json(200, again, corsHeaders);
+      if (slot === "block") return json(403, GUEST_LIMIT_BODY, corsHeaders);
+      guestHold = { userId: auth.userId, db: admin };
+    }
     const imageContents = toImageContents(parsed.images);
     const language = body.language === "en-US" ? "en-US" : "zh-CN";
     const isEnglish = language === "en-US";
@@ -154,26 +189,30 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
       toolChoice: { type: "function", function: { name: "food_analysis" } },
     });
 
-    if (completed.ok === false) return json(completed.status, { error: completed.error }, corsHeaders);
+    if (completed.ok === false) {
+      await abandonGuestSlot();
+      return json(completed.status, { error: completed.error }, corsHeaders);
+    }
 
     const result = JSON.parse(completed.arguments);
     const checked = validateAnalysis(result);
-    if (!checked.ok) return json(422, { error: "没能识别这餐" }, corsHeaders);
+    if (!checked.ok) {
+      await abandonGuestSlot();
+      return json(422, { error: "没能识别这餐" }, corsHeaders);
+    }
     const stored = await storeAnalysis(auth.userId, checked.value, {
       provider: ANALYSIS_PROVIDER,
       model,
       uncertainty: VISUAL_UNCERTAINTY,
     }, idempotencyKey || null);
-    if (!stored) return json(500, { error: "没能保存分析结果" }, corsHeaders);
-    if (stored.reused) {
-      const replay = await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey);
-      if (replay) return json(200, replay, corsHeaders);
+    if (!stored) {
+      await abandonGuestSlot();
+      return json(500, { error: "没能保存分析结果" }, corsHeaders);
     }
-    const recorded = await recordGuestFoodSuccess(auth.supabase, auth.userId, auth.isAnonymous, corsHeaders);
-    if (recorded) {
+    guestHold = null;
+    if (stored.reused && idempotencyKey) {
       const replay = await replayGuestAnalysis(auth.supabase, auth.userId, idempotencyKey);
       if (replay) return json(200, replay, corsHeaders);
-      return recorded;
     }
     return json(200, {
       ...checked.value,
@@ -183,6 +222,7 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
     }, corsHeaders);
   } catch (e) {
     console.error("analyze-food error:", e);
+    await abandonGuestSlot();
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

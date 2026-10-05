@@ -92,7 +92,7 @@ const Scan = () => {
 
     let outcome: Outcome;
     try {
-      const idempotencyKey = scanAttemptKey(images);
+      const idempotencyKey = await scanAttemptKey(images);
       const body = images.length === 1
         ? { imageBase64: images[0], userContext, language: locale, idempotencyKey }
         : { imagesBase64: images, userContext, language: locale, idempotencyKey };

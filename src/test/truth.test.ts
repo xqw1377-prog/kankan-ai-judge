@@ -82,6 +82,7 @@ describe("profile unknown truth", () => {
     expect(profile.activity_level).toBeUndefined();
     expect(profile.goal).toBeUndefined();
     expect(profile.targets).toBeNull();
+    expect(profile.targetsFromServer).toBe(false);
     expect(profile.gender).not.toBe("male");
     expect(profile.goal).not.toBe("maintain");
   });

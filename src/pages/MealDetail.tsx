@@ -89,7 +89,7 @@ const MealDetail = () => {
         <section className="mb-5">
           <h3 className="text-sm font-semibold text-muted-foreground mb-3">营养素分析</h3>
           <div className="glass rounded-xl p-4 shadow-card space-y-3">
-            {profile?.targetsFromServer && profile.targets.calories > 0 ? (
+            {profile?.targets && profile.targets.calories > 0 ? (
               <>
                 <NutritionBar label="能量" current={meal.calories} target={profile.targets.calories} unit="kcal" />
                 <NutritionBar label="蛋白" current={meal.protein_g} target={profile.targets.protein_g} unit="g" />
