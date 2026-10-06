@@ -42,6 +42,10 @@ function writeUpgradeHandoff(marker: UpgradeHandoff) {
   localStorage.setItem(UPGRADE_KEY, JSON.stringify(marker));
 }
 
+export function clearUpgradeHandoff() {
+  localStorage.removeItem(UPGRADE_KEY);
+}
+
 /** Remember that this anonymous user is waiting to become permanent. */
 export function noteVerificationHandoff(anonymousUserId: string) {
   const current = readUpgradeHandoff();

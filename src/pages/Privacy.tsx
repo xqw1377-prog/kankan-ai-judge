@@ -1,5 +1,5 @@
 import { ChevronLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import { AI_CONSENT_VERSION } from "@/components/AiConsentDialog";
 
@@ -21,7 +21,7 @@ const ZH: { title: string; updated: string; sections: Section[] } = {
     },
     {
       h: "3. 匿名免费试用",
-      p: "未注册用户可以免费分析一次。次数由服务端统计，不依赖本机设置。用完后需注册才能继续；注册时会把匿名账户升级为正式账户，已保存的那一餐随之保留。",
+      p: "每个匿名身份可以免费分析一次，不是每个人一次，也不是每台设备终身一次。次数由服务端按这个匿名账号统计，不依赖本机设置。用完后把该匿名账号升级为邮箱账号才能继续。升级不会另开一个账号：先验证邮箱，验证之后再设置密码，已保存的那一餐仍在同一个用户上。",
     },
     {
       h: "4. 第三方 AI 处理",
@@ -50,12 +50,12 @@ const ZH: { title: string; updated: string; sections: Section[] } = {
         "在“我的”页查看和修改资料，可随时留空可选项。",
         "删除任意一条饮食记录。",
         "撤回 AI 数据处理同意。",
-        "通过应用内反馈申请删除账户及全部数据。",
+        "在「我的 → 账号与数据 → 删除账号」中删除账号。页面会说明将清除的内容，并要求再次确认。确认后，服务端删除该账号的资料、饮食记录、分析草稿、调用记录、餐后反馈、习惯和认领凭证，并注销登录身份。匿名试用账号也可以这样删除。",
       ],
     },
     { h: "8. 儿童隐私", p: "本应用不面向 13 岁以下儿童，我们不会故意收集其个人信息。" },
     { h: "9. 政策更新", p: "政策更新后会在本页发布并更新日期；涉及 AI 数据处理的变化会同时更新授权版本号并重新征得同意。" },
-    { h: "10. 联系我们", p: "如有疑问，请通过应用内反馈与我们联系。" },
+    { h: "10. 联系我们", p: "本应用没有应用内反馈入口。删除账号请使用「我的 → 账号与数据 → 删除账号」。" },
   ],
 };
 
@@ -75,7 +75,7 @@ const EN: typeof ZH = {
     },
     {
       h: "3. Anonymous free trial",
-      p: "Unregistered users get one free analysis, counted on our server rather than on your device. After that, registering upgrades the anonymous account so the saved meal is kept.",
+      p: "Each anonymous identity gets one free analysis. That is not one per person and not one per device for life. The server counts it on that anonymous account, not on the device. Continuing requires upgrading that same account to email: verify the email first, then set a password. The saved meal stays on the same user.",
     },
     {
       h: "4. Third-party AI processing",
@@ -104,12 +104,12 @@ const EN: typeof ZH = {
         "View and edit your profile; optional fields can stay empty.",
         "Delete any meal record.",
         "Revoke AI processing consent.",
-        "Request deletion of your account and all data via in-app feedback.",
+        "Delete the account from Profile → Account & data → Delete account. The screen explains what will be removed and asks you to confirm again. The server then deletes that account's profile, meal log, analysis drafts, usage records, meal feedback, habits, and claim tokens, and removes the sign-in identity. Anonymous trial accounts can be deleted the same way.",
       ],
     },
     { h: "8. Children", p: "KanKan is not intended for children under 13 and does not knowingly collect their data." },
     { h: "9. Changes", p: "Updates are posted here with a new date; changes to AI processing also bump the consent version and ask again." },
-    { h: "10. Contact", p: "Questions? Reach us through in-app feedback." },
+    { h: "10. Contact", p: "KanKan has no in-app feedback channel. To delete an account, use Profile → Account & data → Delete account." },
   ],
 };
 
@@ -141,6 +141,9 @@ const Privacy = () => {
               )}
             </section>
           ))}
+          <p>
+            <Link to="/terms" className="text-primary underline underline-offset-2">{t.termsOfService}</Link>
+          </p>
         </div>
       </div>
     </div>

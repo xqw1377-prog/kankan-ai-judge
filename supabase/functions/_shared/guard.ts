@@ -50,23 +50,14 @@ export function serviceDb(): SupabaseClient | null {
   });
 }
 
-/** Counts this user's recent AI calls. Uses the user JWT, not the service role. */
+/** Takes one hourly AI slot for the JWT user. The database function is atomic. */
 export async function enforceAiRateLimit(
   supabase: SupabaseClient,
-  userId: string,
+  _userId: string,
   cors: Record<string, string>,
 ): Promise<Response | null> {
-  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count, error } = await supabase
-    .from("ai_usage")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("created_at", since);
+  const { data, error } = await supabase.rpc("consume_hourly_ai_slot", { p_limit: AI_CALLS_PER_HOUR });
   if (error) return json(503, { error: "暂时无法校验调用次数" }, cors);
-  if ((count ?? 0) >= AI_CALLS_PER_HOUR) {
-    return json(429, { error: "请求太频繁，请一小时后再试" }, cors);
-  }
-  const { error: insertError } = await supabase.from("ai_usage").insert({ user_id: userId });
-  if (insertError) return json(503, { error: "暂时无法校验调用次数" }, cors);
+  if (data !== true) return json(429, { error: "请求太频繁，请一小时后再试" }, cors);
   return null;
 }

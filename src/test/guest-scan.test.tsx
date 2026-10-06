@@ -71,7 +71,8 @@ describe("guest scan limit", () => {
     expect(signInAnonymously).toHaveBeenCalledOnce();
     expect(invoke).toHaveBeenCalledOnce();
     fireEvent.click(screen.getByRole("button", { name: "注册" }));
-    expect(await screen.findByRole("button", { name: "注册" })).toBeVisible();
+    expect(await screen.findByRole("button", { name: "发送验证邮件" })).toBeVisible();
+    expect(screen.queryByLabelText("密码")).not.toBeInTheDocument();
     expect(screen.getByText("本次免费体验已用完，注册后继续记录")).toBeVisible();
     expect(screen.queryByText("结果页")).not.toBeInTheDocument();
   });
