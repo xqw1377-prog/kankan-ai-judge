@@ -373,10 +373,6 @@ export type Database = {
         Args: { p_owner_id: string; p_token: string }
         Returns: Json
       }
-      consume_hourly_ai_slot: {
-        Args: { p_limit: number }
-        Returns: boolean
-      }
       complete_guest_food_slot: {
         Args: { p_lease_id: string; p_user_id: string }
         Returns: boolean
@@ -393,10 +389,6 @@ export type Database = {
       issue_guest_claim_token: {
         Args: { p_anonymous_user_id: string }
         Returns: string
-      }
-      purge_user_owned_rows: {
-        Args: { p_user_id: string }
-        Returns: undefined
       }
       release_guest_food_slot: {
         Args: { p_lease_id: string; p_user_id: string }
