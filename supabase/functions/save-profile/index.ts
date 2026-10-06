@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { json, requireUser, serviceDb } from "../_shared/guard.ts";
 import { targetsFromBody } from "../_shared/nutrition.ts";
+import { ALLERGIES_MAX, AVATAR_MAX_BYTES, NICKNAME_MAX, profileFieldError } from "../_shared/profileFields.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +19,19 @@ serve(async (req) => {
     if (!db) return json(500, { error: "服务未配置" }, corsHeaders);
 
     const body = await req.json().catch(() => ({}));
+    const fieldCode = profileFieldError({
+      nickname: body && typeof body === "object" && "nickname" in body ? body.nickname : undefined,
+      allergies: body && typeof body === "object" && "allergies" in body ? body.allergies : undefined,
+      avatar_url: body && typeof body === "object" && "avatar_url" in body ? body.avatar_url : undefined,
+    });
+    if (fieldCode) {
+      const message = fieldCode === "nickname_too_long"
+        ? `昵称不能超过${NICKNAME_MAX}个字`
+        : fieldCode === "allergies_too_long"
+          ? `过敏信息不能超过${ALLERGIES_MAX}个字`
+          : `头像需要是${Math.round(AVATAR_MAX_BYTES / 1024)}KB以内的JPEG、PNG或WebP`;
+      return json(400, { error: message, code: fieldCode }, corsHeaders);
+    }
     const { data: existing, error: readError } = await db
       .from("user_profiles")
       .select("*")

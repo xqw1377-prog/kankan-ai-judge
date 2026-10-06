@@ -10,6 +10,8 @@ import {
   type StoredProfile,
 } from "@/lib/localData";
 import { profileSaveBody } from "@/lib/serverWrites";
+import { profileFieldError } from "@/lib/profileFields";
+import { readInvokeFailure } from "@/lib/invokeFailure";
 import { useAuthUserId } from "@/hooks/useAuthUser";
 
 export interface FullProfile extends StoredProfile {
@@ -80,6 +82,8 @@ export function useProfile() {
       avatar_url?: string;
     },
   ) => {
+    const fieldCode = profileFieldError(updates);
+    if (fieldCode) return { data: null, error: { message: fieldCode, code: fieldCode } };
     if (!userId) {
       const merged = hydrateProfile({
         ...profile,
@@ -99,8 +103,8 @@ export function useProfile() {
         body: profileSaveBody({ ...updates } as Record<string, unknown>),
       });
       const row = data && typeof data === "object" ? (data as { profile?: Record<string, unknown>; error?: string }).profile : undefined;
-      const failed = error || (data && typeof data === "object" && (data as { error?: string }).error) || !row;
-      if (failed || !row) return { data: null, error: error ?? { message: "save failed" } };
+      const failure = await readInvokeFailure(data, error);
+      if (error || !row) return { data: null, error: { message: failure.message || "save failed", code: failure.code } };
       const remote = profileFromServer(row) as FullProfile;
       remote.details_skipped = updates.details_skipped ?? profile?.details_skipped ?? false;
       remote.id = typeof row.id === "string" ? row.id : undefined;

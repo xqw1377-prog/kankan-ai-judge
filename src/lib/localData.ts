@@ -53,11 +53,15 @@ export function clearGuestMode() {
   localStorage.removeItem(GUEST_KEY);
 }
 
+export function clearScopedLocalData(scope: string) {
+  localStorage.removeItem(profileKey(scope));
+  localStorage.removeItem(mealsKey(scope));
+  localStorage.removeItem(habitsKey(scope));
+}
+
 /** Removes the on-device guest log so the next account on this device does not inherit it. */
 export function clearGuestLocalData() {
-  localStorage.removeItem(profileKey(GUEST_SCOPE));
-  localStorage.removeItem(mealsKey(GUEST_SCOPE));
-  localStorage.removeItem(habitsKey(GUEST_SCOPE));
+  clearScopedLocalData(GUEST_SCOPE);
   clearGuestMode();
 }
 

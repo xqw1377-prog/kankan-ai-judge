@@ -40,6 +40,8 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/meal_isolation.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/consume_once.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/guest_claim.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/guest_lease.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/account_deletion.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/ai_slot.sql
 
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
 INSERT INTO public.meal_analyses (id, user_id, food_name, calories, protein_g, fat_g, carbs_g, ingredients, verdict, suggestion)
@@ -76,7 +78,29 @@ if [[ "$guest_slots" != "1" ]]; then
   cat /tmp/kankan-guest-a.txt /tmp/kankan-guest-b.txt >&2
   exit 1
 fi
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+INSERT INTO auth.users (id) VALUES ('a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1')
+ON CONFLICT (id) DO NOTHING;
+INSERT INTO public.ai_usage (user_id, kind, created_at)
+SELECT 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1', 'call', now()
+FROM generate_series(1, 19);
+SQL
+psql "$DATABASE_URL" -tA -v ON_ERROR_STOP=1 -c "SELECT set_config('request.jwt.claim.sub', 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1', false); SELECT public.consume_hourly_ai_slot(20);" > /tmp/kankan-slot-a.txt &
+psql "$DATABASE_URL" -tA -v ON_ERROR_STOP=1 -c "SELECT set_config('request.jwt.claim.sub', 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1', false); SELECT public.consume_hourly_ai_slot(20);" > /tmp/kankan-slot-b.txt &
+wait
+slot_flags=$(grep -E '^[tf]$' /tmp/kankan-slot-a.txt /tmp/kankan-slot-b.txt | awk -F: '{print $NF}' | sort | tr -d '[:space:]')
+if [[ "$slot_flags" != "ft" ]]; then
+  echo "concurrent ai slots returned: $(cat /tmp/kankan-slot-a.txt /tmp/kankan-slot-b.txt)" >&2
+  exit 1
+fi
+slot_rows=$(psql "$DATABASE_URL" -tA -c "SELECT count(*) FROM public.ai_usage WHERE user_id = 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1' AND created_at >= now() - interval '1 hour'")
+if [[ "$slot_rows" != "20" ]]; then
+  echo "concurrent ai slots stored $slot_rows rows" >&2
+  exit 1
+fi
 echo "RLS isolation passed"
 echo "analysis single-consumption passed"
 echo "guest claim passed"
 echo "guest slot single-reservation passed"
+echo "account deletion passed"
+echo "hourly ai slot passed"

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { useProfile } from "@/hooks/useProfile";
+import { ALLERGIES_MAX } from "@/lib/profileFields";
 import { useI18n } from "@/lib/i18n";
 import { useToast } from "@/hooks/use-toast";
 import { calculateNutrition, type UserProfile } from "@/lib/nutrition";
@@ -215,7 +216,7 @@ const Onboarding = () => {
               </div>
               <div>
                 <p className="text-sm font-medium mb-2 text-card-foreground">{t.allergyLabel}</p>
-                <input type="text" placeholder={t.allergyPlaceholder} value={data.allergies || ""} onChange={e => update({ allergies: e.target.value })}
+                <input type="text" maxLength={ALLERGIES_MAX} placeholder={t.allergyPlaceholder} value={data.allergies || ""} onChange={e => update({ allergies: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-border glass text-sm text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 placeholder:text-muted-foreground" />
               </div>
             </div>

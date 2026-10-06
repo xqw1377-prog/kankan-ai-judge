@@ -10,6 +10,9 @@ import { useI18n } from "@/lib/i18n";
 import { getAiConsentRecord, hasAiConsent, revokeAiConsent } from "@/components/AiConsentDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { isProfileComplete } from "@/lib/nutrition";
+import { useToast } from "@/hooks/use-toast";
+import { deleteSignedInAccount } from "@/lib/deleteAccount";
+import { avatarFileAllowed, NICKNAME_MAX } from "@/lib/profileFields";
 
 function calcStreak(dates: string[]): number {
   if (dates.length === 0) return 0;
@@ -28,9 +31,12 @@ const Profile = () => {
   const { profile, authReady, profileReady, saveProfile } = useProfile();
   const { meals } = useMeals();
   const { t, locale, setLocale } = useI18n();
+  const { toast } = useToast();
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const [deleteStep, setDeleteStep] = useState<null | "explain" | "confirm">(null);
+  const [deleting, setDeleting] = useState(false);
   const [aiConsentOn, setAiConsentOn] = useState(hasAiConsent);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -66,20 +72,51 @@ const Profile = () => {
 
   const handleAvatarPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+    if (!avatarFileAllowed(file)) {
+      toast({ title: t.avatarRejected, variant: "destructive" });
+      return;
+    }
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result as string;
-      await saveProfile({ avatar_url: dataUrl });
+      const saved = await saveProfile({ avatar_url: dataUrl });
+      if (saved.error) toast({ title: t.avatarRejected, variant: "destructive" });
     };
     reader.readAsDataURL(file);
   };
 
   const handleNicknameSave = async () => {
-    if (nicknameValue.trim()) {
-      await saveProfile({ nickname: nicknameValue.trim() });
+    const next = nicknameValue.trim();
+    if (next) {
+      const saved = await saveProfile({ nickname: next });
+      if (saved.error) {
+        toast({ title: t.profileValueTooLong, variant: "destructive" });
+        return;
+      }
     }
     setEditingNickname(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!authUser || deleting) return;
+    setDeleting(true);
+    const outcome = await deleteSignedInAccount({
+      userId: authUser.id,
+      invoke: async () => supabase.functions.invoke("delete-account", { body: {} }),
+      signOut: async () => {
+        await supabase.auth.signOut();
+      },
+    });
+    setDeleting(false);
+    if (outcome === "failed") {
+      toast({ title: t.deleteAccountFailed, variant: "destructive" });
+      return;
+    }
+    setDeleteStep(null);
+    toast({ title: t.deleteAccountDone });
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -131,7 +168,7 @@ const Profile = () => {
           <div className="flex items-center gap-4">
             {/* Avatar with edit */}
             <div className="relative">
-              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarPick} />
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleAvatarPick} />
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-2xl overflow-hidden relative group"
@@ -156,6 +193,7 @@ const Profile = () => {
                     onChange={e => setNicknameValue(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && handleNicknameSave()}
                     placeholder={t.nicknamePlaceholder}
+                    maxLength={NICKNAME_MAX}
                     className="flex-1 bg-secondary rounded-lg px-3 py-1.5 text-sm text-card-foreground outline-none border border-border focus:border-primary"
                   />
                   <button onClick={handleNicknameSave} className="p-1 text-primary"><Check className="w-4 h-4" /></button>
@@ -248,7 +286,19 @@ const Profile = () => {
       </section>
 
       {authUser && (
-        <section className="px-5 pb-8">
+        <section className="px-5 pb-8 space-y-3">
+          <h3 className="text-sm font-semibold text-muted-foreground">{t.accountAndData}</h3>
+          <div className="glass rounded-xl shadow-card">
+            <button
+              type="button"
+              data-testid="delete-account"
+              onClick={() => setDeleteStep("explain")}
+              className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-destructive"
+            >
+              <span>{t.deleteAccount}</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
           <button
             onClick={() => setShowLogoutDialog(true)}
             className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
@@ -258,6 +308,40 @@ const Profile = () => {
           </button>
         </section>
       )}
+
+      <AlertDialog open={deleteStep !== null} onOpenChange={(open) => { if (!open && !deleting) setDeleteStep(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t.deleteAccount}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteStep === "confirm" ? t.deleteAccountConfirm : t.deleteAccountExplain}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>{t.cancel}</AlertDialogCancel>
+            {deleteStep === "confirm" ? (
+              <AlertDialogAction
+                disabled={deleting}
+                onClick={(event) => {
+                  event.preventDefault();
+                  void handleDeleteAccount();
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleting ? t.deleteAccountWorking : t.deleteAccount}
+              </AlertDialogAction>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setDeleteStep("confirm")}
+                className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground"
+              >
+                {t.deleteAccountContinue}
+              </button>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <AlertDialogContent>

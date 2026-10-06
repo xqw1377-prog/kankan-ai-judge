@@ -23,6 +23,7 @@ const Profile = lazyWithRetry(() => import("./pages/Profile"));
 const Login = lazyWithRetry(() => import("./pages/Login"));
 const ResetPassword = lazyWithRetry(() => import("./pages/ResetPassword"));
 const Privacy = lazyWithRetry(() => import("./pages/Privacy"));
+const Terms = lazyWithRetry(() => import("./pages/Terms"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
@@ -87,6 +88,7 @@ const App = () => (
               <Route path="/login" element={<Page><Login /></Page>} />
               <Route path="/reset-password" element={<Page><ResetPassword /></Page>} />
               <Route path="/privacy" element={<Page><Privacy /></Page>} />
+              <Route path="/terms" element={<Page><Terms /></Page>} />
               <Route path="*" element={<Page><NotFound /></Page>} />
             </Routes>
             <BottomNav />
