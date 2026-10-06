@@ -24,6 +24,8 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/kankan
     steps:
       - uses: actions/checkout@v4
+      - name: Reject a Drizzle migration mirror
+        run: bash scripts/no-drizzle-mirror.sh
       - uses: actions/setup-node@v4
         with:
           node-version: 20
