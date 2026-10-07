@@ -2,8 +2,8 @@ import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import type { AdviceProfile } from "./profileAdvice.ts";
 
 /**
- * Profile fields used only after the model returns.
- * Do not select activity_level or weight, and do not interpolate this into gateway messages.
+ * Goal, allergies, and diet preference only.
+ * Applied after the model returns. Never interpolated into gateway messages.
  */
 export async function loadAdviceProfile(supabase: SupabaseClient, userId: string): Promise<AdviceProfile> {
   const { data } = await supabase
