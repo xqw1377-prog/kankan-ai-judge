@@ -131,10 +131,6 @@ const Audit = () => {
           body: {
             imagesBase64: images,
             language: "zh-CN",
-            userContext: profile ? {
-              goal: profile.goal,
-              allergies: profile.allergies,
-            } : undefined,
           },
         });
         if (error) throw error;
@@ -185,7 +181,7 @@ const Audit = () => {
     }
 
     setAuditing(false);
-  }, [hasImage, images, profile, t]);
+  }, [hasImage, images, t]);
 
   const handleDialogFiles = useCallback((files: FileList) => {
     Array.from(files).forEach((file) => {

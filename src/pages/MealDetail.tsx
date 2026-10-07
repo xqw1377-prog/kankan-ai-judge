@@ -83,9 +83,9 @@ const MealDetail = () => {
         </div>
 
         {allergenWarnings.length > 0 && (
-          <div role="alert" className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5">
-            <p className="text-sm font-semibold text-destructive">{t.allergenTitle(allergenWarnings.join("、"))}</p>
-            <p className="text-sm text-destructive/80 mt-1">{t.allergenDesc}</p>
+          <div data-testid="avoidance-note" className="bg-secondary border border-border rounded-xl p-4 mb-5">
+            <p className="text-sm font-semibold text-card-foreground">{t.allergenTitle(allergenWarnings.join("、"))}</p>
+            <p className="text-sm text-muted-foreground mt-1">{t.allergenDesc}</p>
           </div>
         )}
 
@@ -128,7 +128,7 @@ const MealDetail = () => {
                 <ul className="space-y-1 text-muted-foreground">
                   {meal.ingredients.map((item, i) => (
                     <li key={i} className="flex justify-between">
-                      <span className={allergenWarnings.includes(item.name) ? "text-destructive" : ""}>{item.name}</span>
+                      <span>{item.name}</span>
                       <span>{item.grams}g</span>
                     </li>
                   ))}

@@ -14,7 +14,7 @@ import {
 } from "@/lib/guestClaim";
 import { notifyGuestClaimed, subscribeGuestClaim } from "@/lib/guestClaimSync";
 import {
-  adoptVerifiedUpgrade,
+  commitVerifiedUpgrade,
   noteVerificationHandoff,
   readUpgradeHandoff,
 } from "@/lib/guestHandoff";
@@ -210,7 +210,7 @@ describe("P0-2 lost claim response", () => {
 });
 
 describe("P0-6 verification handoff", () => {
-  it("adopts guest profile and habits once after the same anonymous user leaves pending verification", () => {
+  it("keeps pending_sync and the guest source until save-profile succeeds", async () => {
     const anon = "anon-verify";
     writeProfile(GUEST_SCOPE, {
       device_id: "",
@@ -228,14 +228,22 @@ describe("P0-6 verification handoff", () => {
     writeHabits(GUEST_SCOPE, [habit("米饭")]);
     noteVerificationHandoff(anon);
     expect(readUpgradeHandoff()).toEqual({ anonymousUserId: anon, state: "pending_verification" });
-    expect(adoptVerifiedUpgrade({ userId: anon, isAnonymous: true }).status).toBe("pending");
+    expect((await commitVerifiedUpgrade({ userId: anon, isAnonymous: true }, async () => true)).status).toBe("pending");
     expect(readProfile(GUEST_SCOPE)?.allergies).toBe("花生");
     expect(readProfile(anon)).toBeNull();
-    expect(adoptVerifiedUpgrade({ userId: "other-account", isAnonymous: false }).status).toBe("ignored");
+    expect((await commitVerifiedUpgrade({ userId: "other-account", isAnonymous: false }, async () => true)).status).toBe("ignored");
     expect(readProfile("other-account")).toBeNull();
     expect(readHabits(GUEST_SCOPE)).toHaveLength(1);
 
-    const first = adoptVerifiedUpgrade({ userId: anon, isAnonymous: false });
+    const failed = await commitVerifiedUpgrade({ userId: anon, isAnonymous: false }, async () => false);
+    expect(failed.status).toBe("pending_sync");
+    expect(readUpgradeHandoff()?.state).toBe("pending_sync");
+    expect(readProfile(GUEST_SCOPE)?.allergies).toBe("花生");
+    expect(readProfile(anon)?.allergies).toBe("花生");
+    expect(readHabits(anon).map((row) => row.original_name)).toEqual(["米饭"]);
+    expect(readHabits(GUEST_SCOPE)).toHaveLength(1);
+
+    const first = await commitVerifiedUpgrade({ userId: anon, isAnonymous: false }, async () => true);
     expect(first.status).toBe("adopted");
     if (first.status === "adopted") {
       expect(first.already).toBe(false);
@@ -255,7 +263,7 @@ describe("P0-6 verification handoff", () => {
       targets: null,
     });
     writeHabits(GUEST_SCOPE, [habit("面条")]);
-    const second = adoptVerifiedUpgrade({ userId: anon, isAnonymous: false });
+    const second = await commitVerifiedUpgrade({ userId: anon, isAnonymous: false }, async () => true);
     expect(second).toMatchObject({ status: "adopted", already: true });
     expect(readProfile(anon)?.allergies).toBe("花生");
     expect(readHabits(anon).map((row) => row.original_name)).toEqual(["米饭"]);

@@ -124,8 +124,9 @@ const Result = () => {
           </p>
         )}
         {heroImage && (
-          <img src={heroImage} alt={seen} className="w-full max-h-56 object-cover rounded-2xl mb-5" />
+          <img src={heroImage} alt={seen} className="w-full max-h-56 object-cover rounded-2xl mb-3" />
         )}
+        <p className="text-sm font-semibold text-card-foreground mb-4">{t.appSlogan}</p>
         <div className="space-y-4 text-base leading-relaxed text-card-foreground">
           <div className="flex items-start gap-3">
             <p className="flex-1"><span className="text-muted-foreground">{t.resultSeen}：</span>{seen}</p>

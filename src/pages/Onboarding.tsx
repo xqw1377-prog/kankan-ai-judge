@@ -129,6 +129,7 @@ const Onboarding = () => {
                 <input type="number" inputMode="numeric" min={18} max={80} value={data.age ?? ""} placeholder={t.notFilled} onChange={e => { const v = e.target.value === "" ? undefined : Number(e.target.value); update({ age: v && v >= 18 && v <= 80 ? v : v === undefined ? undefined : v }); }} className="flex-1 min-h-11 px-4 rounded-xl border border-border glass text-base text-card-foreground focus:outline-none focus:ring-2 focus:ring-primary/30" />
                 <span className="text-lg font-bold w-16 text-center text-card-foreground">{data.age ? `${data.age} ${t.ageSuffix}` : t.notFilled}</span>
               </div>
+              <p className="text-sm text-muted-foreground mt-2">{t.ageMinimumHint}</p>
             </div>
           </div>
         )}

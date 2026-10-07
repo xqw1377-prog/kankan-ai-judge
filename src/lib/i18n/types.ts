@@ -53,6 +53,7 @@ export interface Dictionary {
   onboardingTitle5Desc: string;
   age: string;
   ageSuffix: string;
+  ageMinimumHint: string;
   notFilled: string;
   height: string;
   weight: string;
@@ -531,6 +532,7 @@ export interface Dictionary {
   loginWechatConfirmHint: string;
   logout: string;
   logoutConfirm: string;
+  anonTrialActions: string;
   loginEmailLabel: string;
   loginPasswordLabel: string;
   loginEmailPlaceholder: string;
@@ -615,6 +617,8 @@ export interface Dictionary {
   analysisFailedTitle: string;
   reestimateNeedsSignIn: string;
   scanCloudNeedsSignIn: string;
+  captchaPrompt: string;
+  captchaClosed: string;
   mealNotFound: string;
   deleteMealConfirm: string;
   mealDeleted: string;

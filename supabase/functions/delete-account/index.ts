@@ -8,11 +8,11 @@ const corsHeaders = {
 };
 
 // Deletes the caller only. requireUser verifies the JWT with auth.getUser
-// before any service-role client exists. Cascaded by auth.users deletion:
-// user_profiles (including avatar_url), meal_records, meal_analyses, ai_usage,
-// meal_feedbacks, habit_patterns, and guest_claim_tokens (FK added in
-// 20261006010000). purge_user_owned_rows also deletes claim tokens explicitly.
-// There is no storage bucket for food photos.
+// before any service-role client exists. Delete the auth user first.
+// FK ON DELETE CASCADE removes user_profiles (including avatar_url),
+// meal_records, meal_analyses, ai_usage, meal_feedbacks, habit_patterns,
+// and guest_claim_tokens. There is no storage bucket for food photos.
+// Owned-row cleanup runs only after deleteUser succeeds.
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -22,11 +22,11 @@ serve(async (req) => {
     const db = serviceDb();
     if (!db) return json(500, { error: "服务未配置" }, corsHeaders);
 
-    const { error: purgeError } = await db.rpc("purge_user_owned_rows", { p_user_id: auth.userId });
-    if (purgeError) return json(500, { error: "没能删除账号数据" }, corsHeaders);
-
     const { error: deleteError } = await db.auth.admin.deleteUser(auth.userId);
     if (deleteError) return json(500, { error: "没能删除登录身份" }, corsHeaders);
+
+    const { error: purgeError } = await db.rpc("purge_user_owned_rows", { p_user_id: auth.userId });
+    if (purgeError) console.error("purge after deleteUser:", purgeError);
 
     return json(200, { deleted: true }, corsHeaders);
   } catch (e) {

@@ -49,7 +49,7 @@ export function calculateNutrition(profile: UserProfile): NutritionTargets | nul
   const height_cm = Number(profile.height_cm);
   const weight_kg = Number(profile.weight_kg);
   if (!gender || !activity || !goal) return null;
-  if (!Number.isFinite(age) || age < 10 || age > 100) return null;
+  if (!Number.isFinite(age) || age < 18 || age > 100) return null;
   if (!Number.isFinite(height_cm) || height_cm < 100 || height_cm > 230) return null;
   if (!Number.isFinite(weight_kg) || weight_kg < 30 || weight_kg > 250) return null;
 

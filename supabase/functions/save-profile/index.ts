@@ -54,6 +54,13 @@ serve(async (req) => {
       onboarding_completed: body.onboarding_completed ?? existing?.onboarding_completed ?? false,
     };
 
+    if (body.age != null && body.age !== "") {
+      const age = Number(body.age);
+      if (!Number.isFinite(age) || age < 18 || age > 100) {
+        return json(400, { error: "需年满 18 岁", code: "age_under_18" }, corsHeaders);
+      }
+    }
+
     const bodyFields = ["gender", "age", "height_cm", "weight_kg", "activity_level", "goal"] as const;
     const sentBody = bodyFields.some((key) => body[key] != null);
     let targets = {

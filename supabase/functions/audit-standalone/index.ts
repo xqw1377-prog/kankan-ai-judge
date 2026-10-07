@@ -3,7 +3,8 @@ import { denyAnonymousAi } from "../_shared/guestFoodQuota.ts";
 import { enforceAiRateLimit, json, requireUser } from "../_shared/guard.ts";
 import { completeToolCall } from "../_shared/analysisProvider.ts";
 import { parseImages, toImageContents } from "../_shared/images.ts";
-import { serverProfileNote } from "../_shared/profileContext.ts";
+import { avoidanceNote } from "../_shared/profileAdvice.ts";
+import { loadAdviceProfile } from "../_shared/profileContext.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,7 +30,6 @@ serve(async (req) => {
     const imageContents = toImageContents(parsed.images);
     const language = body.language === "en-US" ? "en-US" : "zh-CN";
     const isEn = language === "en-US";
-    const contextStr = await serverProfileNote(auth.supabase, auth.userId);
 
     const systemPrompt = isEn
       ? `You are Kankan. Estimate this meal from the photos. This is an AI estimate, not a lab result, a medical review, or an existing international nutrition standard. Return a structured estimate.
@@ -39,8 +39,6 @@ You must:
 2. For each ingredient estimate: GI (glycemic index), GL (glycemic load), oil content (g), protein (g), fat (g), fiber (g)
 3. Provide 2-4 practical eating suggestions
 4. Do not invent a performance index, a medical diagnosis, or a percentage effect
-
-${contextStr ? `User context: ${contextStr}` : ""}
 
 Rules:
 - Deduplicate ingredients across multiple photos of the same meal
@@ -54,8 +52,6 @@ Rules:
 2. 为每种食材估算：GI（升糖指数）、GL（升糖负荷）、油脂含量(g)、蛋白质(g)、脂肪(g)、膳食纤维(g)
 3. 提供 2-4 条怎么吃的建议
 4. 不要编造性能指数、医学诊断或百分比效果
-
-${contextStr ? `用户信息：${contextStr}` : ""}
 
 规则：
 - 多张照片属于同一餐，请去重分析
@@ -111,7 +107,22 @@ ${contextStr ? `用户信息：${contextStr}` : ""}
     });
 
     if (completed.ok === false) return json(completed.status, { error: completed.error }, corsHeaders);
-    return json(200, JSON.parse(completed.arguments), corsHeaders);
+    const parsed = JSON.parse(completed.arguments) as {
+      ingredients?: Array<{ name?: unknown }>;
+      recommendations?: unknown;
+    };
+    const names = Array.isArray(parsed.ingredients)
+      ? parsed.ingredients.map((item) => typeof item?.name === "string" ? item.name : "").filter(Boolean)
+      : [];
+    const advice = await loadAdviceProfile(auth.supabase, auth.userId);
+    const note = avoidanceNote(advice.allergies, names, language);
+    if (note) {
+      const recs = Array.isArray(parsed.recommendations)
+        ? parsed.recommendations.filter((item): item is string => typeof item === "string")
+        : [];
+      parsed.recommendations = [...recs, note];
+    }
+    return json(200, parsed, corsHeaders);
   } catch (e) {
     console.error("audit-standalone error:", e);
     return new Response(

@@ -29,19 +29,23 @@ describe("guest claim recovery", () => {
 });
 
 describe("AI consent version", () => {
-  it("re-prompts when the stored version is missing or old, and settings can revoke it", () => {
+  it("scopes consent to a user id and ignores a global key", () => {
     localStorage.clear();
     localStorage.setItem("kankan_ai_consent", "yes");
-    expect(hasAiConsent()).toBe(false);
-    localStorage.setItem("kankan_ai_consent_version", "2020-01-01");
-    expect(hasAiConsent()).toBe(false);
-    setAiConsent();
-    expect(localStorage.getItem("kankan_ai_consent_version")).toBe(AI_CONSENT_VERSION);
-    expect(AI_CONSENT_VERSION).toBe("2026-10-06");
+    localStorage.setItem("kankan_ai_consent_version", AI_CONSENT_VERSION);
+    expect(hasAiConsent("user-a")).toBe(false);
+    localStorage.setItem("kankan_ai_consent:user-a", JSON.stringify({ version: "2020-01-01", acceptedAt: null }));
+    expect(hasAiConsent("user-a")).toBe(false);
+    setAiConsent("user-a");
+    expect(hasAiConsent("user-a")).toBe(true);
+    expect(hasAiConsent("user-b")).toBe(false);
+    expect(hasAiConsent(null)).toBe(false);
+    expect(JSON.parse(localStorage.getItem("kankan_ai_consent:user-a") || "{}").version).toBe(AI_CONSENT_VERSION);
+    expect(AI_CONSENT_VERSION).toBe("2026-10-07");
     expect(localStorage.getItem("kankan_ai_consent")).toBeNull();
-    expect(hasAiConsent()).toBe(true);
-    revokeAiConsent();
-    expect(hasAiConsent()).toBe(false);
+    expect(localStorage.getItem("kankan_ai_consent_version")).toBeNull();
+    revokeAiConsent("user-a");
+    expect(hasAiConsent("user-a")).toBe(false);
   });
 });
 

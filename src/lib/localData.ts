@@ -1,4 +1,5 @@
 import { calculateNutrition, type NutritionTargets, type UserProfile } from "@/lib/nutrition";
+import { isScopeDeleted } from "@/lib/mealWriteGuard";
 
 const GUEST_KEY = "kankan_guest";
 export const GUEST_SCOPE = "guest";
@@ -94,7 +95,7 @@ export function hydrateProfile(raw: Partial<StoredProfile> & { device_id?: strin
   };
   const profileData: UserProfile = skipped ? optional : {
     gender: raw.gender === "female" || raw.gender === "male" ? raw.gender : undefined,
-    age: knownNumber(raw.age, 10, 100),
+    age: knownNumber(raw.age, 18, 100),
     height_cm: knownNumber(raw.height_cm, 100, 230),
     weight_kg: knownNumber(raw.weight_kg, 30, 250),
     activity_level: raw.activity_level,
@@ -115,7 +116,7 @@ export function hydrateProfile(raw: Partial<StoredProfile> & { device_id?: strin
 export function profileFromServer(row: Record<string, unknown>): StoredProfile {
   const profileData: UserProfile = {
     gender: row.gender === "female" || row.gender === "male" ? row.gender : undefined,
-    age: knownNumber(row.age, 10, 100),
+    age: knownNumber(row.age, 18, 100),
     height_cm: knownNumber(row.height_cm, 100, 230),
     weight_kg: knownNumber(row.weight_kg, 30, 250),
     activity_level: row.activity_level === "sedentary" || row.activity_level === "light" || row.activity_level === "moderate" || row.activity_level === "high" || row.activity_level === "extreme"
@@ -157,8 +158,10 @@ export function readProfile(scope: string): StoredProfile | null {
   return hydrateProfile(raw);
 }
 
-export function writeProfile(scope: string, profile: StoredProfile) {
+export function writeProfile(scope: string, profile: StoredProfile): boolean {
+  if (isScopeDeleted(scope)) return false;
   writeJson(profileKey(scope), profile);
+  return true;
 }
 
 export function readMeals(scope: string): StoredMeal[] {
@@ -167,8 +170,10 @@ export function readMeals(scope: string): StoredMeal[] {
   return raw.filter((meal) => meal && typeof meal.id === "string" && typeof meal.food_name === "string");
 }
 
-export function writeMeals(scope: string, meals: StoredMeal[]) {
+export function writeMeals(scope: string, meals: StoredMeal[]): boolean {
+  if (isScopeDeleted(scope)) return false;
   writeJson(mealsKey(scope), meals.slice(0, 100));
+  return true;
 }
 
 export interface StoredHabit {

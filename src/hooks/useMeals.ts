@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { mergeMeals, readMeals, writeMeals, GUEST_SCOPE, type StoredMeal } from "@/lib/localData";
+import { allowRemoteLocalWrite, localWriteGeneration } from "@/lib/mealWriteGuard";
 import { useAuthUserId } from "@/hooks/useAuthUser";
 import { getMealTypeByTime } from "@/lib/nutrition";
 import { mealConfirmBody, mealDeleteBody, mealReplaceBody } from "@/lib/serverWrites";
@@ -96,30 +97,43 @@ export function useMeals() {
   const loading = !ready;
 
   const apply = useCallback((stored: StoredMeal[]) => {
-    writeMeals(scope, stored);
+    if (!writeMeals(scope, stored)) return;
     setMeals(stored.map(asMeal));
   }, [scope]);
 
-  const fetchMeals = useCallback(async () => {
+  const fetchMeals = useCallback(async (signal?: AbortSignal) => {
     if (!ready) return;
-    setMeals(readMeals(scope).map(asMeal));
-    if (!userId || isAnonymous) return;
+    const scopeNow = scope;
+    const userNow = userId;
+    const gen = localWriteGeneration(scopeNow);
+    if (allowRemoteLocalWrite(scopeNow, gen)) setMeals(readMeals(scopeNow).map(asMeal));
+    if (!userNow || isAnonymous) return;
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("meal_records")
         .select("*")
-        .eq("user_id", userId)
+        .eq("user_id", userNow)
         .order("recorded_at", { ascending: false })
         .limit(100);
-      if (error || !data) return;
-      apply(mergeMeals(data.map((row) => fromRemote(row as Record<string, unknown>)), readMeals(scope)));
+      if (signal && typeof (query as { abortSignal?: (value: AbortSignal) => typeof query }).abortSignal === "function") {
+        query = (query as { abortSignal: (value: AbortSignal) => typeof query }).abortSignal(signal);
+      }
+      const { data, error } = await query;
+      if (signal?.aborted || error || !data) return;
+      if (!allowRemoteLocalWrite(scopeNow, gen)) return;
+      const merged = mergeMeals(data.map((row) => fromRemote(row as Record<string, unknown>)), readMeals(scopeNow));
+      if (!allowRemoteLocalWrite(scopeNow, gen)) return;
+      if (!writeMeals(scopeNow, merged)) return;
+      setMeals(merged.map(asMeal));
     } catch {
-      // Keep this account's on-device copy.
+      // Aborted, or keep this account's on-device copy.
     }
-  }, [apply, isAnonymous, ready, scope, userId]);
+  }, [isAnonymous, ready, scope, userId]);
 
   useEffect(() => {
-    fetchMeals();
+    const controller = new AbortController();
+    void fetchMeals(controller.signal);
+    return () => controller.abort();
   }, [fetchMeals]);
 
   useEffect(() => subscribeGuestClaim(() => {

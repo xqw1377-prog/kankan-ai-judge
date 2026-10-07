@@ -11,8 +11,10 @@ import { enforceAiRateLimit, json, requireUser, serviceDb } from "../_shared/gua
 import { parseImages, toImageContents } from "../_shared/images.ts";
 import { validateAnalysis } from "../_shared/analysisContract.ts";
 import { ANALYSIS_PROVIDER, completeToolCall, VISUAL_UNCERTAINTY } from "../_shared/analysisProvider.ts";
-import { serverProfileNote } from "../_shared/profileContext.ts";
+import { applyProfileAdvice } from "../_shared/profileAdvice.ts";
+import { loadAdviceProfile } from "../_shared/profileContext.ts";
 import { storeAnalysis, storeGuestAnalysisWithLease } from "../_shared/storeAnalysis.ts";
+import { requireAnonymousTurnstile } from "../_shared/turnstile.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +56,10 @@ serve(async (req) => {
     });
     if (early === "replay" && exact) return json(200, exact, corsHeaders);
     if (early === "block") return json(403, GUEST_LIMIT_BODY, corsHeaders);
+    if (auth.isAnonymous) {
+      const captcha = await requireAnonymousTurnstile(body.turnstileToken, corsHeaders);
+      if (captcha) return captcha;
+    }
     const limited = await enforceAiRateLimit(auth.supabase, auth.userId, corsHeaders);
     if (limited) return limited;
 
@@ -77,7 +83,6 @@ serve(async (req) => {
     const imageContents = toImageContents(parsed.images);
     const language = body.language === "en-US" ? "en-US" : "zh-CN";
     const isEnglish = language === "en-US";
-    const contextStr = await serverProfileNote(auth.supabase, auth.userId);
 
     const isMulti = imageContents.length > 1;
 
@@ -88,17 +93,15 @@ You must:
 1. Identify the food name (2-8 words)
 2. List main ingredients with estimated grams
 3. Estimate total calories and macronutrients
-4. Give a one-sentence nutrition verdict targeting the user's goal
-5. Give a specific actionable suggestion (wrap recommended food names in 【】)
+4. Give a one-sentence description of this meal
+5. Give a specific food suggestion (wrap recommended food names in 【】)
 6. Determine if this is takeout or homemade
 7. Give a sassy but loving roast (20-40 words, witty)
 
-${contextStr ? `User info: ${contextStr}` : ""}
-
 Rules:
-- Estimate ingredient weights reasonably
+- Estimate ingredient grams reasonably
 - Base calories/macros on ingredients
-- Verdict should be specific, useful, tied to user goals
+- Describe the food only. Do not ask for or use a person's allergies, activity, goals, or body weight
 - If not food, set calories to 0, verdict "This is not food"
 - cooking_scene: "takeout" or "homemade"
 ${isMulti ? `- You'll receive multiple photos of the same meal. Identify the panoramic view first, then use close-ups for detail. Deduplicate ingredients and output actual total intake.` : ""}
@@ -110,17 +113,15 @@ ${isMulti ? `- You'll receive multiple photos of the same meal. Identify the pan
 1. 识别食物名称（2-8个字）
 2. 列出主要食材及估算克重
 3. 估算总热量和三大营养素
-4. 给出营养判决（一句话，针对用户目标）
-5. 给出具体可执行的修复建议（在建议中用【】括号标注具体推荐的食物名称）
+4. 给出一句关于这顿饭本身的评价
+5. 给出具体可执行的吃法建议（在建议中用【】括号标注具体推荐的食物名称）
 6. 判断这是外卖/外食还是自炊场景
 7. 给出一句毒舌但有爱的吐槽（roast），20-40字，幽默犀利
-
-${contextStr ? `用户信息：${contextStr}` : ""}
 
 规则：
 - 食材克重要合理估算
 - 热量和营养素要基于食材计算
-- 判决要具体、有用，结合用户目标
+- 只描述这顿饭。不要使用过敏、活动量、健康目标或体重
 - 建议要可执行，比如具体推荐某道菜，用【】包裹食物名
 - 如果图片不是食物，calories 给0，verdict 说"这不是食物"
 - cooking_scene: "takeout" 代表外卖/外食, "homemade" 代表自炊/家做
@@ -201,9 +202,11 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
       await abandonGuestSlot();
       return json(422, { error: "没能识别这餐" }, corsHeaders);
     }
+    const adviceProfile = await loadAdviceProfile(auth.supabase, auth.userId);
+    const advised = applyProfileAdvice(checked.value, adviceProfile, language);
     let stored: { id: string; reused: boolean } | null = null;
     if (guestHold) {
-      const saved = await storeGuestAnalysisWithLease(guestHold.db, guestHold.userId, guestHold.leaseId, checked.value, {
+      const saved = await storeGuestAnalysisWithLease(guestHold.db, guestHold.userId, guestHold.leaseId, advised, {
         provider: ANALYSIS_PROVIDER,
         model,
         uncertainty: VISUAL_UNCERTAINTY,
@@ -219,7 +222,7 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
       stored = { id: saved.id, reused: saved.reused };
       guestHold = null;
     } else {
-      stored = await storeAnalysis(auth.userId, checked.value, {
+      stored = await storeAnalysis(auth.userId, advised, {
         provider: ANALYSIS_PROVIDER,
         model,
         uncertainty: VISUAL_UNCERTAINTY,
@@ -234,7 +237,7 @@ ${isMulti ? `- 你将收到一组同一顿饭的照片，请先识别全景，�
       if (replay) return json(200, replay, corsHeaders);
     }
     return json(200, {
-      ...checked.value,
+      ...advised,
       cooking_scene: result.cooking_scene,
       roast: result.roast,
       analysis_id: stored.id,

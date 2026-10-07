@@ -11,33 +11,64 @@ import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-export const AI_CONSENT_VERSION = "2026-10-06";
-const CONSENT_VERSION_KEY = "kankan_ai_consent_version";
-const CONSENT_AT_KEY = "kankan_ai_consent_at";
+export const AI_CONSENT_VERSION = "2026-10-07";
+
+const LEGACY_VERSION_KEY = "kankan_ai_consent_version";
+const LEGACY_AT_KEY = "kankan_ai_consent_at";
+const LEGACY_YES_KEY = "kankan_ai_consent";
 
 export type AiConsentRecord = { version: string; acceptedAt: string | null };
 
-/** The version and time the current device accepted the AI data notice, or null. */
-export const getAiConsentRecord = (): AiConsentRecord | null => {
-  const version = localStorage.getItem(CONSENT_VERSION_KEY);
-  if (version !== AI_CONSENT_VERSION) return null;
-  return { version, acceptedAt: localStorage.getItem(CONSENT_AT_KEY) };
+export function consentStorageKey(userId: string) {
+  return `kankan_ai_consent:${userId}`;
+}
+
+function readRecord(userId: string): AiConsentRecord | null {
+  try {
+    const raw = localStorage.getItem(consentStorageKey(userId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { version?: unknown; acceptedAt?: unknown };
+    if (typeof parsed.version !== "string") return null;
+    return {
+      version: parsed.version,
+      acceptedAt: typeof parsed.acceptedAt === "string" ? parsed.acceptedAt : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function clearLegacyGlobalConsent() {
+  localStorage.removeItem(LEGACY_VERSION_KEY);
+  localStorage.removeItem(LEGACY_AT_KEY);
+  localStorage.removeItem(LEGACY_YES_KEY);
+}
+
+/** A global kankan_ai_consent* key does not count. Consent is this user id plus the current version. */
+export const hasAiConsent = (userId: string | null | undefined) => {
+  if (!userId) return false;
+  return readRecord(userId)?.version === AI_CONSENT_VERSION;
 };
-const LEGACY_CONSENT_KEY = "kankan_ai_consent";
 
-/** Only the current version counts. A leftover kankan_ai_consent=yes does not. */
-export const hasAiConsent = () => localStorage.getItem(CONSENT_VERSION_KEY) === AI_CONSENT_VERSION;
-
-export const setAiConsent = () => {
-  localStorage.setItem(CONSENT_VERSION_KEY, AI_CONSENT_VERSION);
-  localStorage.setItem(CONSENT_AT_KEY, new Date().toISOString());
-  localStorage.removeItem(LEGACY_CONSENT_KEY);
+export const getAiConsentRecord = (userId: string | null | undefined): AiConsentRecord | null => {
+  if (!userId) return null;
+  const record = readRecord(userId);
+  if (!record || record.version !== AI_CONSENT_VERSION) return null;
+  return record;
 };
 
-export const revokeAiConsent = () => {
-  localStorage.removeItem(CONSENT_VERSION_KEY);
-  localStorage.removeItem(CONSENT_AT_KEY);
-  localStorage.removeItem(LEGACY_CONSENT_KEY);
+export const setAiConsent = (userId: string) => {
+  if (!userId) return;
+  localStorage.setItem(consentStorageKey(userId), JSON.stringify({
+    version: AI_CONSENT_VERSION,
+    acceptedAt: new Date().toISOString(),
+  }));
+  clearLegacyGlobalConsent();
+};
+
+export const revokeAiConsent = (userId: string | null | undefined) => {
+  if (userId) localStorage.removeItem(consentStorageKey(userId));
+  clearLegacyGlobalConsent();
 };
 
 interface Props {
@@ -69,7 +100,7 @@ const AiConsentDialog = ({ open, onAgree, onDecline }: Props) => {
           {t.aiConsentPrivacy}
         </button>
         <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
-          <Button onClick={() => { setAiConsent(); onAgree(); }} className="w-full">
+          <Button onClick={onAgree} className="w-full">
             {t.aiConsentAgree}
           </Button>
           <Button variant="ghost" onClick={onDecline} className="w-full text-muted-foreground">

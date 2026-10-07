@@ -12,6 +12,7 @@ import {
 import { profileSaveBody } from "@/lib/serverWrites";
 import { profileFieldError } from "@/lib/profileFields";
 import { readInvokeFailure } from "@/lib/invokeFailure";
+import { allowRemoteLocalWrite, localWriteGeneration } from "@/lib/mealWriteGuard";
 import { useAuthUserId } from "@/hooks/useAuthUser";
 
 export interface FullProfile extends StoredProfile {
@@ -54,24 +55,36 @@ export function useProfile() {
     }
     const cached = readProfile(scope);
     setProfile(cached);
+    const gen = localWriteGeneration(scope);
+    const controller = new AbortController();
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("user_profiles")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (cancelled) return;
-      const resolved = resolveProfileLoad(cached, {
-        failed: Boolean(error),
-        row: !error && data ? data as Record<string, unknown> : null,
-      });
-      if (!resolved.ready) return;
-      setResolvedScope(scope);
-      setProfile(resolved.profile);
-      if (resolved.profile && !error && data) writeProfile(scope, resolved.profile);
+      try {
+        let request = supabase
+          .from("user_profiles")
+          .select("*")
+          .eq("user_id", userId);
+        const abortable = request as typeof request & { abortSignal?: (value: AbortSignal) => typeof request };
+        if (abortable.abortSignal) request = abortable.abortSignal(controller.signal);
+        const { data, error } = await request.maybeSingle();
+        if (cancelled || controller.signal.aborted) return;
+        if (!allowRemoteLocalWrite(scope, gen)) return;
+        const resolved = resolveProfileLoad(cached, {
+          failed: Boolean(error),
+          row: !error && data ? data as Record<string, unknown> : null,
+        });
+        if (!resolved.ready || !allowRemoteLocalWrite(scope, gen)) return;
+        setResolvedScope(scope);
+        setProfile(resolved.profile);
+        if (resolved.profile && !error && data) writeProfile(scope, resolved.profile);
+      } catch {
+        if (!cancelled) setResolvedScope(scope);
+      }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, [ready, scope, userId]);
 
   const saveProfile = useCallback(async (

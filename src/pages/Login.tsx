@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Mail, Lock, ArrowLeft } from "lucide-react";
 import { clearGuestMode, markGuestMode } from "@/lib/localData";
-import { adoptVerifiedUpgrade, noteVerificationHandoff, readUpgradeHandoff } from "@/lib/guestHandoff";
+import { commitVerifiedUpgrade, noteVerificationHandoff, readUpgradeHandoff, upgradeProfileSaved } from "@/lib/guestHandoff";
 import { handoffExistingAccountSignIn } from "@/lib/guestClaim";
 import { profileSaveBody } from "@/lib/serverWrites";
 import {
@@ -186,14 +186,18 @@ export default function Login() {
     }
     const { data } = await supabase.auth.getSession();
     const user = data.session?.user;
-    const adopted = adoptVerifiedUpgrade({
+    const adopted = await commitVerifiedUpgrade({
       userId: user?.id ?? null,
       isAnonymous: user?.is_anonymous === true,
-    });
-    if (adopted.status === "adopted" && !adopted.already && adopted.profile) {
-      await supabase.functions.invoke("save-profile", {
-        body: profileSaveBody({ ...adopted.profile } as Record<string, unknown>),
+    }, async (profile) => {
+      const saved = await supabase.functions.invoke("save-profile", {
+        body: profileSaveBody({ ...profile } as Record<string, unknown>),
       });
+      return upgradeProfileSaved(saved.data, saved.error);
+    });
+    if (adopted.status === "pending_sync") {
+      toast({ title: t.profileSaveFailed, variant: "destructive" });
+      return;
     }
     toast({ title: t.loginSetPasswordSaved, description: t.loginWelcomeBack });
     navigate("/", { replace: true });
