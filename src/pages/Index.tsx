@@ -91,7 +91,8 @@ const Index = () => {
         >
           <Camera className="w-8 h-8" />
         </button>
-        <p className="text-sm text-muted-foreground mt-3">{t.takePhoto}</p>
+        <p className="text-sm font-semibold text-card-foreground mt-3">{t.appSlogan}</p>
+        <p className="text-sm text-muted-foreground mt-1">{t.takePhoto}</p>
       </section>
 
       <section className="px-5 pb-6">

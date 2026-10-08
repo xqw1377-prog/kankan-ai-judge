@@ -6,15 +6,15 @@ type Section = { h: string; p?: string; li?: string[] };
 
 const ZH: { title: string; updated: string; sections: Section[] } = {
   title: "用户协议",
-  updated: "最后更新：2026年10月6日",
+  updated: "最后更新：2026年10月7日",
   sections: [
     {
       h: "1. 这是什么",
-      p: "KanKan 用你拍摄的餐食照片做一次服务端 AI 估算，给出食物名称和大约的热量、蛋白质、脂肪、碳水。估算结果以服务端返回的内容为准。应用不会在本机编造另一套结论。",
+      p: "KanKan 用你拍摄的餐食照片做一次服务端 AI 估算，给出食物名称和大约的热量、蛋白质、脂肪、碳水。估算结果以服务端返回的内容为准。应用不会在本机编造另一套结论。KanKan V1 面向 18 岁及以上。",
     },
     {
       h: "2. 不是医疗建议",
-      p: "这些数字是估算，不是诊断、治疗或处方。本应用不提供健康指数，也不把未填写的资料当成默认值或已确认的事实。身体不适请咨询医生。",
+      p: "这些数字是估算，不是诊断、治疗或处方。本应用不提供健康指数，也不把未填写的资料当成默认值或已确认的事实。忌口提醒只匹配识别出的食材名称，不是过敏原检测。身体不适请咨询医生。",
     },
     {
       h: "3. 免费试用",
@@ -23,7 +23,7 @@ const ZH: { title: string; updated: string; sections: Section[] } = {
     {
       h: "4. 账号",
       li: [
-        "可以用邮箱和密码登录。匿名试用没有邮箱，签出或换设备后无法找回。",
+        "可以用邮箱和密码登录。正式账号可以退出登录。匿名试用没有邮箱，不能靠退出登录来保住数据：只能注册并保留这个账号，或在「我的」里删除试用账号。删除或换设备后无法找回。",
         "从匿名升级时，不会把邮箱和密码一次提交。邮箱验证完成之前不设置密码，密码也不会提前存在这台设备上。",
         "你可以在「我的 → 账号与数据 → 删除账号」中删除账号。删除前会说明清除范围并再次确认。删除后不能再登录，服务端上的该账号数据会被清除。",
       ],
@@ -41,15 +41,15 @@ const ZH: { title: string; updated: string; sections: Section[] } = {
 
 const EN: typeof ZH = {
   title: "Terms of Service",
-  updated: "Last updated: Oct 6, 2026",
+  updated: "Last updated: Oct 7, 2026",
   sections: [
     {
       h: "1. What this is",
-      p: "KanKan sends a meal photo to the server for one AI estimate of the food name and approximate calories, protein, fat, and carbs. The server response is the result. The app does not invent a second conclusion on the device.",
+      p: "KanKan sends a meal photo to the server for one AI estimate of the food name and approximate calories, protein, fat, and carbs. The server response is the result. The app does not invent a second conclusion on the device. KanKan V1 is for people 18 and older.",
     },
     {
       h: "2. Not medical advice",
-      p: "These numbers are estimates. They are not a diagnosis, treatment, or prescription. KanKan does not offer a health index, and it does not treat a blank profile field as a default or as a confirmed fact. See a doctor about health concerns.",
+      p: "These numbers are estimates. They are not a diagnosis, treatment, or prescription. KanKan does not offer a health index, and it does not treat a blank profile field as a default or as a confirmed fact. An avoidance note matches recognized ingredient names only; it is not an allergen test. See a doctor about health concerns.",
     },
     {
       h: "3. Free trial",
@@ -58,7 +58,7 @@ const EN: typeof ZH = {
     {
       h: "4. Accounts",
       li: [
-        "You can sign in with email and password. An anonymous trial has no email and cannot be recovered after sign-out or on another device.",
+        "You can sign in with email and password. A permanent account can log out. An anonymous trial has no email and cannot keep its data by logging out: register and keep the same account, or delete the trial from Profile. After deletion, or on another device, it cannot be recovered.",
         "Upgrading an anonymous account does not send email and password together. No password is set before the email is verified, and the password is not stored on the device ahead of time.",
         "You can delete the account from Profile → Account & data → Delete account. The screen explains what is removed and asks you to confirm again. After deletion you cannot sign in, and that account's data is removed on the server.",
       ],

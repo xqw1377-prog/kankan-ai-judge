@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, Calendar, Utensils, Globe, Camera, X, Check, LogOut } from "lucide-react";
@@ -8,10 +8,13 @@ import { useProfile } from "@/hooks/useProfile";
 import { useMeals } from "@/hooks/useMeals";
 import { useI18n } from "@/lib/i18n";
 import { getAiConsentRecord, hasAiConsent, revokeAiConsent } from "@/components/AiConsentDialog";
+import { canShowLogout } from "@/lib/accountSession";
 import { supabase } from "@/integrations/supabase/client";
 import { isProfileComplete } from "@/lib/nutrition";
 import { useToast } from "@/hooks/use-toast";
 import { deleteSignedInAccount } from "@/lib/deleteAccount";
+import { subscribeUpgradeHandoff, upgradeHandoffSnapshot } from "@/lib/guestHandoff";
+import { pendingUpgradeSyncFor, syncVerifiedUpgradeNow } from "@/hooks/useVerifiedUpgradeHandoff";
 import { avatarFileAllowed, NICKNAME_MAX } from "@/lib/profileFields";
 
 function calcStreak(dates: string[]): number {
@@ -37,14 +40,22 @@ const Profile = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [deleteStep, setDeleteStep] = useState<null | "explain" | "confirm">(null);
   const [deleting, setDeleting] = useState(false);
-  const [aiConsentOn, setAiConsentOn] = useState(hasAiConsent);
+  const [syncingUpgrade, setSyncingUpgrade] = useState(false);
+  const [aiConsentOn, setAiConsentOn] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
+  const handoffRaw = useSyncExternalStore(subscribeUpgradeHandoff, upgradeHandoffSnapshot, () => "");
+  const showUpgradeRetry = handoffRaw.includes("pending_sync")
+    && pendingUpgradeSyncFor(authUser?.id, Boolean(authUser?.is_anonymous));
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setAuthUser(data.user));
+    supabase.auth.getUser().then(({ data }) => {
+      setAuthUser(data.user);
+      setAiConsentOn(hasAiConsent(data.user?.id));
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuthUser(session?.user ?? null);
+      setAiConsentOn(hasAiConsent(session?.user?.id));
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -97,6 +108,22 @@ const Profile = () => {
       }
     }
     setEditingNickname(false);
+  };
+
+  const handleUpgradeRetry = async () => {
+    if (!authUser || syncingUpgrade) return;
+    setSyncingUpgrade(true);
+    try {
+      const result = await syncVerifiedUpgradeNow({
+        userId: authUser.id,
+        isAnonymous: Boolean(authUser.is_anonymous),
+      });
+      if (result.status === "pending_sync") {
+        toast({ title: t.profileSaveFailed, variant: "destructive" });
+      }
+    } finally {
+      setSyncingUpgrade(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -256,7 +283,7 @@ const Profile = () => {
           </button>
           <p className="px-4 py-3 text-xs text-muted-foreground" data-testid="ai-consent-record">
             {(() => {
-              const rec = aiConsentOn ? getAiConsentRecord() : null;
+              const rec = aiConsentOn ? getAiConsentRecord(authUser?.id) : null;
               return rec
                 ? t.aiConsentRecorded(rec.version, rec.acceptedAt ? new Date(rec.acceptedAt).toLocaleDateString(locale) : "—")
                 : t.aiConsentNotGiven;
@@ -266,7 +293,7 @@ const Profile = () => {
             <button
               type="button"
               onClick={() => {
-                revokeAiConsent();
+                revokeAiConsent(authUser?.id);
                 setAiConsentOn(false);
               }}
               className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-card-foreground"
@@ -288,6 +315,20 @@ const Profile = () => {
       {authUser && (
         <section className="px-5 pb-8 space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground">{t.accountAndData}</h3>
+          {authUser?.is_anonymous && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{t.anonTrialActions}</p>
+          )}
+          {showUpgradeRetry && (
+            <button
+              type="button"
+              data-testid="retry-upgrade-sync"
+              disabled={syncingUpgrade}
+              onClick={() => void handleUpgradeRetry()}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+            >
+              {t.upgradeSyncRetry}
+            </button>
+          )}
           <div className="glass rounded-xl shadow-card">
             <button
               type="button"
@@ -299,13 +340,16 @@ const Profile = () => {
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          <button
-            onClick={() => setShowLogoutDialog(true)}
-            className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            {t.logout}
-          </button>
+          {canShowLogout(authUser) && (
+            <button
+              data-testid="logout-account"
+              onClick={() => setShowLogoutDialog(true)}
+              className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+            >
+              <LogOut className="w-4 h-4" />
+              {t.logout}
+            </button>
+          )}
         </section>
       )}
 

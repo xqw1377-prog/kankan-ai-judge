@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
 import type { Locale, Dictionary } from "./types";
 import { zhCN } from "./zh-CN";
 import { enUS } from "./en-US";
@@ -35,6 +35,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("kankan-locale", l);
     setLocaleState(l);
   }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = locale === "en-US" ? "en" : "zh-CN";
+  }, [locale]);
 
   return (
     <I18nContext.Provider value={{ locale, t: dictionaries[locale], setLocale }}>

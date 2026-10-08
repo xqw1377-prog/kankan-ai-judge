@@ -2,26 +2,26 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { X, Camera, ImagePlus, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useProfile } from "@/hooks/useProfile";
 import { useI18n } from "@/lib/i18n";
-import AiConsentDialog, { hasAiConsent } from "@/components/AiConsentDialog";
-import { ensureAnalysisSession } from "@/lib/ensureAnalysisSession";
+import AiConsentDialog, { hasAiConsent, setAiConsent } from "@/components/AiConsentDialog";
+import TurnstileWidget from "@/components/TurnstileWidget";
+import { ensureAnalysisSession, type AnalysisSessionUser } from "@/lib/ensureAnalysisSession";
 import { toFoodAnalysis } from "@/lib/foodAnalysis";
 import { GUEST_FREE_LIMIT } from "@/lib/guestQuota";
 import { inspectImages } from "@/lib/imageGuard";
 import { readInvokeFailure } from "@/lib/invokeFailure";
 import { scanAttemptKey } from "@/lib/scanAttempt";
 import { takePhoto, pickPhoto } from "@/lib/camera";
+import { anonymousAccessGate, readTurnstileSiteKey } from "@/lib/turnstileGate";
 import type { AppendTarget } from "@/lib/mealAppend";
 
 const MAX_PHOTOS = 5;
-type FailCode = "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit";
+type FailCode = "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit" | "captcha";
 
 /** /scan is the single capture flow: capture/pick → preview → add more → analyze → Result. */
 const Scan = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile } = useProfile();
   const { t, locale } = useI18n();
 
   const initial: string[] = (() => {
@@ -37,11 +37,14 @@ const Scan = () => {
   const [slowLevel, setSlowLevel] = useState(0);
   const [currentPreview, setCurrentPreview] = useState(0);
   const [showConsent, setShowConsent] = useState(false);
-  const [consentGranted, setConsentGranted] = useState(hasAiConsent());
+  const [consentUserId, setConsentUserId] = useState<string | null>(null);
+  const [showCaptcha, setShowCaptcha] = useState(false);
   const [failure, setFailure] = useState<FailCode | null>(null);
   const [imageError, setImageError] = useState("");
   const cancelledRef = useRef(false);
   const runningRef = useRef(false);
+  const captchaTokenRef = useRef<string | null>(null);
+  const analyzeRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     if (phase !== "analyzing" || images.length <= 1) return;
@@ -66,35 +69,56 @@ const Scan = () => {
       const checked = inspectImages(images);
       if (!checked.ok) return fail("image", (checked as { error: string }).error);
 
-      const session = await ensureAnalysisSession(supabase.auth);
-      if (session === "signin") return fail("signin");
+      let knownUser: AnalysisSessionUser | null = null;
+      const session = await ensureAnalysisSession(supabase.auth, {
+        captchaReady: Boolean(captchaTokenRef.current),
+        onUser: (user) => { knownUser = user; },
+      });
+      const needsAnonymous = session === "captcha" || Boolean(knownUser?.isAnonymous);
+      if (needsAnonymous) {
+        const gate = anonymousAccessGate({
+          prod: Boolean(import.meta.env.PROD),
+          siteKey: readTurnstileSiteKey(),
+          token: captchaTokenRef.current,
+          needsAnonymous: true,
+        });
+        if (gate === "closed") return fail("captcha");
+        if (gate === "challenge") {
+          setShowCaptcha(true);
+          return;
+        }
+      }
+      if (session !== "ready" || !knownUser) return fail("signin");
+      const signedIn = knownUser as AnalysisSessionUser;
+      if (!hasAiConsent(signedIn.id)) {
+        setConsentUserId(signedIn.id);
+        setShowConsent(true);
+        setShowCaptcha(false);
+        return;
+      }
 
-      const userContext = profile ? {
-        goal: profile.goal,
-        allergies: profile.allergies,
-        diet_preference: profile.diet_preference,
-      } : {};
+      const anonymous = signedIn.isAnonymous;
+      const idempotencyKey = anonymous ? await scanAttemptKey(images) : null;
+      const body = {
+        ...(images.length === 1 ? { imageBase64: images[0] } : { imagesBase64: images }),
+        language: locale,
+        ...(idempotencyKey ? { idempotencyKey } : {}),
+        ...(captchaTokenRef.current ? { turnstileToken: captchaTokenRef.current } : {}),
+      };
       try {
-        const { data: sessionAfter } = await supabase.auth.getSession();
-        const anonymous = sessionAfter.session?.user?.is_anonymous === true;
-        const idempotencyKey = anonymous ? await scanAttemptKey(images) : null;
-        const body = {
-          ...(images.length === 1 ? { imageBase64: images[0] } : { imagesBase64: images }),
-          userContext,
-          language: locale,
-          ...(idempotencyKey ? { idempotencyKey } : {}),
-        };
         const { data, error } = await supabase.functions.invoke("analyze-food", { body });
         const f = await readInvokeFailure(data, error);
         const message = f.message;
         if (error || f.code || message) {
           const code: FailCode = f.code === GUEST_FREE_LIMIT
             ? "guest_limit"
-            : /LOVABLE_API_KEY|not configured|api[_ ]?key/i.test(message)
-              ? "missing_key"
-              : /没能识别|无法识别|不是食物|unrecognized/i.test(message)
-                ? "unrecognized"
-                : "unavailable";
+            : /turnstile|人机验证/i.test(message)
+              ? "captcha"
+              : /LOVABLE_API_KEY|not configured|api[_ ]?key/i.test(message)
+                ? "missing_key"
+                : /没能识别|无法识别|不是食物|unrecognized/i.test(message)
+                  ? "unrecognized"
+                  : "unavailable";
           return fail(code);
         }
         const result = toFoodAnalysis(data);
@@ -109,16 +133,17 @@ const Scan = () => {
       clearTimeout(t6);
       runningRef.current = false;
     }
-  }, [images, profile, locale, navigate, appendTo]);
+  }, [images, locale, navigate, appendTo]);
+
+  analyzeRef.current = analyze;
 
   // Auto-start when an entry point already handed over photos.
   const autoStartedRef = useRef(false);
   useEffect(() => {
     if (phase !== "analyzing" || autoStartedRef.current) return;
-    if (!consentGranted) { setShowConsent(true); return; }
     autoStartedRef.current = true;
-    analyze();
-  }, [phase, consentGranted, analyze]);
+    void analyze();
+  }, [phase, analyze]);
 
   const startAnalysis = () => {
     if (images.length === 0) return;
@@ -145,7 +170,9 @@ const Scan = () => {
 
   const failureText = failure === "signin"
     ? t.scanCloudNeedsSignIn
-    : failure === "image"
+    : failure === "captcha"
+      ? t.captchaClosed
+      : failure === "image"
       ? imageError
       : failure === "missing_key"
         ? t.analysisMissingKey
@@ -263,6 +290,10 @@ const Scan = () => {
             <button onClick={() => navigate("/login")} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
               {t.loginSignIn}
             </button>
+          ) : failure === "captcha" ? (
+            <button onClick={() => { setFailure(null); setShowCaptcha(true); }} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
+              {t.retry}
+            </button>
           ) : failure === "image" ? (
             <button onClick={() => { setFailure(null); setPhase("capture"); }} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
               {t.scanTakeAnother}
@@ -275,6 +306,22 @@ const Scan = () => {
           <button onClick={handleCancel} className="text-sm text-muted-foreground underline">
             {t.backHome}
           </button>
+        </div>
+      ) : showCaptcha ? (
+        <div className="flex flex-col items-center gap-4 max-w-sm text-center">
+          <p className="text-base font-semibold text-card-foreground">{t.captchaPrompt}</p>
+          <TurnstileWidget
+            siteKey={readTurnstileSiteKey()}
+            onToken={(token) => {
+              captchaTokenRef.current = token;
+              setShowCaptcha(false);
+              void analyzeRef.current();
+            }}
+            onError={() => {
+              setShowCaptcha(false);
+              fail("captcha");
+            }}
+          />
         </div>
       ) : (
         <div className="flex flex-col items-center gap-4">
@@ -295,8 +342,16 @@ const Scan = () => {
 
       <AiConsentDialog
         open={showConsent}
-        onAgree={() => { setShowConsent(false); setConsentGranted(true); }}
-        onDecline={() => { setShowConsent(false); setPhase("capture"); }}
+        onAgree={() => {
+          if (consentUserId) setAiConsent(consentUserId);
+          setShowConsent(false);
+          void analyzeRef.current();
+        }}
+        onDecline={() => {
+          setShowConsent(false);
+          autoStartedRef.current = false;
+          setPhase("capture");
+        }}
       />
     </div>
   );

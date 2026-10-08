@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { setAiConsent } from "@/components/AiConsentDialog";
 import { I18nProvider } from "@/lib/i18n";
 import { GUEST_FREE_LIMIT } from "@/lib/guestQuota";
 import Login from "@/pages/Login";
@@ -46,8 +47,8 @@ function renderScan() {
 
 describe("guest scan limit", () => {
   beforeEach(() => {
-    localStorage.setItem("kankan_ai_consent_version", "2026-10-06");
-    localStorage.removeItem("kankan_ai_consent");
+    localStorage.clear();
+    setAiConsent("anon-user");
     getSession.mockResolvedValue({ data: { session: null } });
     signInAnonymously.mockResolvedValue({
       data: { session: { user: { id: "anon-user", is_anonymous: true } } },

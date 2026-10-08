@@ -2,6 +2,7 @@ import { clearPasswordSetupPending } from "@/lib/anonymousUpgrade";
 import { forgetPendingClaim } from "@/lib/guestClaim";
 import { clearUpgradeHandoff } from "@/lib/guestHandoff";
 import { clearGuestLocalData, clearScopedLocalData } from "@/lib/localData";
+import { markScopeDeleted } from "@/lib/mealWriteGuard";
 
 export async function deleteSignedInAccount(input: {
   userId: string;
@@ -13,6 +14,7 @@ export async function deleteSignedInAccount(input: {
     ? (result.data as { deleted?: unknown }).deleted === true
     : false;
   if (result.error || !deleted) return "failed";
+  markScopeDeleted(input.userId);
   clearScopedLocalData(input.userId);
   clearGuestLocalData();
   clearUpgradeHandoff();

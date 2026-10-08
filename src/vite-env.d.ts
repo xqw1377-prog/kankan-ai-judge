@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string;
   readonly VITE_SUPABASE_PUBLISHABLE_KEY: string;
   readonly VITE_SUPABASE_PROJECT_ID?: string;
+  /** Public Cloudflare Turnstile site key. Production fails closed when this is empty. */
+  readonly VITE_TURNSTILE_SITE_KEY?: string;
 }
 
 interface ImportMeta {

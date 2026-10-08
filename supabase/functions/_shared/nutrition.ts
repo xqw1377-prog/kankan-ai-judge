@@ -40,7 +40,7 @@ export function targetsFromBody(body: BodyInput): Targets | null {
   const height = Number(body.height_cm);
   const weight = Number(body.weight_kg);
   if (!gender || !activity || !goal) return null;
-  if (!Number.isFinite(age) || age < 10 || age > 100) return null;
+  if (!Number.isFinite(age) || age < 18 || age > 100) return null;
   if (!Number.isFinite(height) || height < 100 || height > 230) return null;
   if (!Number.isFinite(weight) || weight < 30 || weight > 250) return null;
 
