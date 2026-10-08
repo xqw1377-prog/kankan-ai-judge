@@ -4,7 +4,7 @@
  * - TURNSTILE_SECRET_KEY — secret, Supabase edge functions only
  * - KANKAN_ENV=production — edge functions fail closed when the secret is absent
  *
- * TODO: set VITE_TURNSTILE_SITE_KEY before the public launch.
+ * VITE_TURNSTILE_SITE_KEY is committed in the root .env (public value).
  * A production build with no site key must not start an anonymous session or the first AI analysis.
  */
 

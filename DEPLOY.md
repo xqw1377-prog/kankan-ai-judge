@@ -38,11 +38,11 @@ Edge Functions 由 Supabase 平台注入：
 
 - `LOVABLE_API_KEY`
 - `TURNSTILE_SECRET_KEY`：Cloudflare Turnstile 的密钥，只放在函数环境里。匿名用户的第一次食物分析会先做 siteverify。
-- `KANKAN_ENV`：公开环境设为 `production`。这时如果没有 `TURNSTILE_SECRET_KEY`，分析会失败关闭（503），不会放行。非生产环境缺少密钥时函数仍可本地运行，发布前必须补上。TODO：上线前设置这两项。
+- `KANKAN_ENV`：公开环境设为 `production`。这时如果没有 `TURNSTILE_SECRET_KEY`，分析会失败关闭（503），不会放行。非生产环境缺少密钥时函数仍可本地运行。这两项已于 2026-10-08 在 Lovable Cloud → Secrets 中设置。
 
 前端还需要：
 
-- `VITE_TURNSTILE_SITE_KEY`：Turnstile 的站点密钥（公开）。生产构建里如果它为空，不会调用 `signInAnonymously`，也不会上传照片做第一次试用分析。
+- `VITE_TURNSTILE_SITE_KEY`：Turnstile 的站点密钥（公开）。生产构建里如果它为空，不会调用 `signInAnonymously`，也不会上传照片做第一次试用分析。它已提交在仓库根目录 `.env` 里（与 `VITE_SUPABASE_*` 一样是公开值），Lovable 和 Vercel 构建都会读取，无需在面板里另配。Turnstile 小组件的允许域名：`kankanai.cc`、`www.kankanai.cc`、`kankan-eye-spy.lovable.app`（`*.vercel.app` 预览会显示域名错误，属正常）。
 
 ## 2b. 域名
 
