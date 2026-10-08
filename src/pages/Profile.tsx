@@ -41,11 +41,11 @@ const Profile = () => {
   const [deleteStep, setDeleteStep] = useState<null | "explain" | "confirm">(null);
   const [deleting, setDeleting] = useState(false);
   const [syncingUpgrade, setSyncingUpgrade] = useState(false);
+  const [aiConsentOn, setAiConsentOn] = useState(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const handoffRaw = useSyncExternalStore(subscribeUpgradeHandoff, upgradeHandoffSnapshot, () => "");
   const showUpgradeRetry = handoffRaw.includes("pending_sync")
     && pendingUpgradeSyncFor(authUser?.id, Boolean(authUser?.is_anonymous));
-  const [aiConsentOn, setAiConsentOn] = useState(false);
-  const [authUser, setAuthUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
