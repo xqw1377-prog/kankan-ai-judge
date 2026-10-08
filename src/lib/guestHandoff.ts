@@ -38,12 +38,29 @@ export function readUpgradeHandoff(): UpgradeHandoff | null {
   }
 }
 
+const handoffListeners = new Set<() => void>();
+
+function emitUpgradeHandoff() {
+  for (const listener of handoffListeners) listener();
+}
+
+export function subscribeUpgradeHandoff(listener: () => void) {
+  handoffListeners.add(listener);
+  return () => { handoffListeners.delete(listener); };
+}
+
+export function upgradeHandoffSnapshot(): string {
+  return localStorage.getItem(UPGRADE_KEY) ?? "";
+}
+
 function writeUpgradeHandoff(marker: UpgradeHandoff) {
   localStorage.setItem(UPGRADE_KEY, JSON.stringify(marker));
+  emitUpgradeHandoff();
 }
 
 export function clearUpgradeHandoff() {
   localStorage.removeItem(UPGRADE_KEY);
+  emitUpgradeHandoff();
 }
 
 /** Remember that this anonymous user is waiting to become permanent. */

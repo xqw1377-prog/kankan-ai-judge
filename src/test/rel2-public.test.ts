@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { hasAiConsent, setAiConsent } from "@/components/AiConsentDialog";
 import { canShowLogout } from "@/lib/accountSession";
 import { commitVerifiedUpgrade, noteVerificationHandoff, readUpgradeHandoff } from "@/lib/guestHandoff";
+import { nextAutomaticUpgradeDelay, upgradeSyncAttemptAllowed, UPGRADE_SYNC_AUTOMATIC_LIMIT } from "@/lib/upgradeSyncRetry";
 import {
   GUEST_SCOPE,
   readMeals,
@@ -19,8 +20,8 @@ import {
 } from "@/lib/mealWriteGuard";
 import { calculateNutrition } from "@/lib/nutrition";
 import { anonymousAccessGate } from "@/lib/turnstileGate";
-import { applyProfileAdvice, avoidanceNote } from "../../supabase/functions/_shared/profileAdvice.ts";
-import { turnstileServerDecision } from "../../supabase/functions/_shared/turnstileGate.ts";
+import { ADVICE_MAX_CHARS, applyProfileAdvice, avoidanceNote } from "../../supabase/functions/_shared/profileAdvice.ts";
+import { isKankanPublicOrigin, turnstileServerDecision } from "../../supabase/functions/_shared/turnstileGate.ts";
 
 function meal(id: string, name: string): StoredMeal {
   return {
@@ -89,6 +90,20 @@ describe("REL-2 consent, deletion, upgrade, logout, turnstile", () => {
     expect(readProfile(GUEST_SCOPE)?.allergies).toBe("花生");
     expect(readMeals(GUEST_SCOPE)).toHaveLength(1);
     expect(readMeals(anon)[0]?.pendingSync).toBe(true);
+    expect(upgradeSyncAttemptAllowed(0)).toBe(true);
+    expect(upgradeSyncAttemptAllowed(UPGRADE_SYNC_AUTOMATIC_LIMIT - 1)).toBe(true);
+    expect(upgradeSyncAttemptAllowed(UPGRADE_SYNC_AUTOMATIC_LIMIT)).toBe(false);
+    expect(nextAutomaticUpgradeDelay(0)).toBe(1_000);
+    expect(nextAutomaticUpgradeDelay(1)).toBe(4_000);
+    expect(nextAutomaticUpgradeDelay(2)).toBe(12_000);
+    expect(nextAutomaticUpgradeDelay(3)).toBeNull();
+    const hook = readFileSync("src/hooks/useVerifiedUpgradeHandoff.ts", "utf8");
+    expect(hook).toContain('addEventListener("focus"');
+    expect(hook).toContain('addEventListener("online"');
+    expect(hook).toContain("visibilitychange");
+    expect(hook).toContain("nextAutomaticUpgradeDelay");
+    expect(readFileSync("src/pages/Profile.tsx", "utf8")).toContain('data-testid="retry-upgrade-sync"');
+    expect(readFileSync("src/lib/i18n/zh-CN.ts", "utf8")).toContain("同步未完成，重试");
     const saved = await commitVerifiedUpgrade({ userId: anon, isAnonymous: false }, async () => true);
     expect(saved.status).toBe("adopted");
     expect(readUpgradeHandoff()?.state).toBe("adopted");
@@ -117,6 +132,18 @@ describe("REL-2 consent, deletion, upgrade, logout, turnstile", () => {
     expect(anonymousAccessGate({ prod: true, siteKey: "", token: null, needsAnonymous: false })).toBe("allow");
     expect(turnstileServerDecision({ secret: "", production: true, token: "", verified: null })).toBe("unconfigured");
     expect(turnstileServerDecision({ secret: "", production: false, token: "", verified: null })).toBe("allow");
+    expect(turnstileServerDecision({ secret: "", production: false, token: "", verified: null, publicOrigin: true })).toBe("unconfigured");
+    expect(isKankanPublicOrigin("https://kankanai.cc")).toBe(true);
+    expect(isKankanPublicOrigin("https://www.kankanai.cc/")).toBe(true);
+    expect(isKankanPublicOrigin("https://preview.vercel.app")).toBe(false);
+    const analyzeFood = readFileSync("supabase/functions/analyze-food/index.ts", "utf8");
+    const replayAt = analyzeFood.indexOf('if (early === "replay"');
+    const captchaAt = analyzeFood.indexOf("await requireAnonymousTurnstile");
+    const modelAt = analyzeFood.indexOf("await completeToolCall");
+    expect(replayAt).toBeGreaterThan(-1);
+    expect(captchaAt).toBeGreaterThan(replayAt);
+    expect(modelAt).toBeGreaterThan(captchaAt);
+    expect(analyzeFood).toContain('req.headers.get("origin")');
     expect(turnstileServerDecision({ secret: "sec", production: true, token: "", verified: null })).toBe("missing");
     expect(turnstileServerDecision({ secret: "sec", production: true, token: "tok", verified: false })).toBe("rejected");
     expect(turnstileServerDecision({ secret: "sec", production: true, token: "tok", verified: true })).toBe("allow");
@@ -139,6 +166,25 @@ describe("REL-2 consent, deletion, upgrade, logout, turnstile", () => {
     expect(advised.suggestion).toContain("可以配菜");
     expect(advised.suggestion).toContain("减重");
     expect(advised.suggestion).toContain("忌口提醒");
+    const many = Array.from({ length: 8 }, (_, index) => `花生${index}`);
+    const noteLong = avoidanceNote("花生", many, "zh-CN");
+    expect(noteLong).toContain("花生0、花生1、花生2、花生3、花生4等");
+    expect(noteLong).not.toContain("花生5");
+    expect(noteLong).toContain("不是医学过敏原检测");
+    const capped = applyProfileAdvice({
+      ingredients: many.map((name) => ({ name })),
+      suggestion: "模".repeat(2000),
+    }, { goal: "fat_loss", allergies: "花生", diet_preference: "少油" }, "zh-CN");
+    expect(capped.suggestion.length).toBeLessThanOrEqual(ADVICE_MAX_CHARS);
+    expect(capped.suggestion.endsWith("也不能当作能不能吃的结论。")).toBe(true);
+    expect(capped.suggestion.startsWith("模")).toBe(true);
+    expect(capped.suggestion).toContain("减重");
+    const crowded = applyProfileAdvice({
+      ingredients: many.map((name) => ({ name })),
+      suggestion: "模".repeat(2000),
+    }, { goal: "fat_loss", allergies: "花生", diet_preference: "少油".repeat(500) }, "zh-CN");
+    expect(crowded.suggestion.length).toBeLessThanOrEqual(ADVICE_MAX_CHARS);
+    expect(crowded.suggestion.endsWith("也不能当作能不能吃的结论。")).toBe(true);
     const analyze = readFileSync("supabase/functions/analyze-food/index.ts", "utf8");
     const prompt = analyze.slice(analyze.indexOf("const systemPrompt"), analyze.indexOf("await completeToolCall"));
     expect(prompt).not.toContain("contextStr");

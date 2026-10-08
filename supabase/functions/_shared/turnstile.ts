@@ -1,5 +1,5 @@
 import { json } from "./guard.ts";
-import { turnstileServerDecision } from "./turnstileGate.ts";
+import { isKankanPublicOrigin, turnstileServerDecision } from "./turnstileGate.ts";
 
 async function siteverify(secret: string, token: string): Promise<boolean> {
   const body = new URLSearchParams({ secret, response: token });
@@ -17,6 +17,7 @@ async function siteverify(secret: string, token: string): Promise<boolean> {
 export async function requireAnonymousTurnstile(
   token: unknown,
   cors: Record<string, string>,
+  origin?: string | null,
 ): Promise<Response | null> {
   const secret = Deno.env.get("TURNSTILE_SECRET_KEY") ?? "";
   const production = Deno.env.get("KANKAN_ENV") === "production";
@@ -28,6 +29,7 @@ export async function requireAnonymousTurnstile(
     production,
     token: presented,
     verified,
+    publicOrigin: isKankanPublicOrigin(origin),
   });
   if (decision === "allow") return null;
   const status = decision === "unconfigured" ? 503 : 403;

@@ -521,6 +521,7 @@ export const enUS: Dictionary = {
   logout: "Log Out",
   logoutConfirm: "Log out of this account? You will need your email and password to sign in again.",
   anonTrialActions: "A trial account cannot log out. Register and keep the record, or delete the trial account.",
+  upgradeSyncRetry: "Sync didn't finish. Retry",
   loginEmailLabel: "Email",
   loginPasswordLabel: "Password",
   loginEmailPlaceholder: "Enter your email",

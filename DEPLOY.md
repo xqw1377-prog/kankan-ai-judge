@@ -38,7 +38,7 @@ Edge Functions 由 Supabase 平台注入：
 
 - `LOVABLE_API_KEY`
 - `TURNSTILE_SECRET_KEY`：Cloudflare Turnstile 的密钥，只放在函数环境里。匿名用户的第一次食物分析会先做 siteverify。
-- `KANKAN_ENV`：公开环境设为 `production`。这时如果没有 `TURNSTILE_SECRET_KEY`，分析会失败关闭（503），不会放行。非生产环境缺少密钥时函数仍可本地运行。这两项已于 2026-10-08 在 Lovable Cloud → Secrets 中设置。
+- `KANKAN_ENV`：公开环境设为 `production`。这时如果没有 `TURNSTILE_SECRET_KEY`，分析会失败关闭（503），不会放行。非生产环境缺少密钥时函数仍可本地运行。这两项已于 2026-10-08 在 Lovable Cloud → Secrets 中设置。请求的 Origin 是 `https://kankanai.cc` 或 `https://www.kankanai.cc` 时，即使 `KANKAN_ENV` 没设，缺少密钥也会失败关闭。
 
 前端还需要：
 

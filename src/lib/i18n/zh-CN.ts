@@ -521,6 +521,7 @@ export const zhCN: Dictionary = {
   logout: "退出登录",
   logoutConfirm: "确定要退出这个账号吗？需要用邮箱和密码才能再次登录。",
   anonTrialActions: "试用账号不能退出登录。可以注册并保留记录，或删除试用账号。",
+  upgradeSyncRetry: "同步未完成，重试",
   loginEmailLabel: "邮箱",
   loginPasswordLabel: "密码",
   loginEmailPlaceholder: "请输入邮箱",

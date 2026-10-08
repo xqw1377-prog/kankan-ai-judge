@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useSyncExternalStore } from "react";
 
 import { useNavigate } from "react-router-dom";
 import { ChevronRight, Calendar, Utensils, Globe, Camera, X, Check, LogOut } from "lucide-react";
@@ -13,6 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { isProfileComplete } from "@/lib/nutrition";
 import { useToast } from "@/hooks/use-toast";
 import { deleteSignedInAccount } from "@/lib/deleteAccount";
+import { subscribeUpgradeHandoff, upgradeHandoffSnapshot } from "@/lib/guestHandoff";
+import { pendingUpgradeSyncFor, syncVerifiedUpgradeNow } from "@/hooks/useVerifiedUpgradeHandoff";
 import { avatarFileAllowed, NICKNAME_MAX } from "@/lib/profileFields";
 
 function calcStreak(dates: string[]): number {
@@ -38,6 +40,10 @@ const Profile = () => {
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [deleteStep, setDeleteStep] = useState<null | "explain" | "confirm">(null);
   const [deleting, setDeleting] = useState(false);
+  const [syncingUpgrade, setSyncingUpgrade] = useState(false);
+  const handoffRaw = useSyncExternalStore(subscribeUpgradeHandoff, upgradeHandoffSnapshot, () => "");
+  const showUpgradeRetry = handoffRaw.includes("pending_sync")
+    && pendingUpgradeSyncFor(authUser?.id, Boolean(authUser?.is_anonymous));
   const [aiConsentOn, setAiConsentOn] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -102,6 +108,22 @@ const Profile = () => {
       }
     }
     setEditingNickname(false);
+  };
+
+  const handleUpgradeRetry = async () => {
+    if (!authUser || syncingUpgrade) return;
+    setSyncingUpgrade(true);
+    try {
+      const result = await syncVerifiedUpgradeNow({
+        userId: authUser.id,
+        isAnonymous: Boolean(authUser.is_anonymous),
+      });
+      if (result.status === "pending_sync") {
+        toast({ title: t.profileSaveFailed, variant: "destructive" });
+      }
+    } finally {
+      setSyncingUpgrade(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -295,6 +317,17 @@ const Profile = () => {
           <h3 className="text-sm font-semibold text-muted-foreground">{t.accountAndData}</h3>
           {authUser?.is_anonymous && (
             <p className="text-sm text-muted-foreground leading-relaxed">{t.anonTrialActions}</p>
+          )}
+          {showUpgradeRetry && (
+            <button
+              type="button"
+              data-testid="retry-upgrade-sync"
+              disabled={syncingUpgrade}
+              onClick={() => void handleUpgradeRetry()}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+            >
+              {t.upgradeSyncRetry}
+            </button>
           )}
           <div className="glass rounded-xl shadow-card">
             <button

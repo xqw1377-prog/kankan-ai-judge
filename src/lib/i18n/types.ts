@@ -533,6 +533,7 @@ export interface Dictionary {
   logout: string;
   logoutConfirm: string;
   anonTrialActions: string;
+  upgradeSyncRetry: string;
   loginEmailLabel: string;
   loginPasswordLabel: string;
   loginEmailPlaceholder: string;

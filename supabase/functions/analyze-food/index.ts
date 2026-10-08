@@ -57,7 +57,7 @@ serve(async (req) => {
     if (early === "replay" && exact) return json(200, exact, corsHeaders);
     if (early === "block") return json(403, GUEST_LIMIT_BODY, corsHeaders);
     if (auth.isAnonymous) {
-      const captcha = await requireAnonymousTurnstile(body.turnstileToken, corsHeaders);
+      const captcha = await requireAnonymousTurnstile(body.turnstileToken, corsHeaders, req.headers.get("origin"));
       if (captcha) return captcha;
     }
     const limited = await enforceAiRateLimit(auth.supabase, auth.userId, corsHeaders);
