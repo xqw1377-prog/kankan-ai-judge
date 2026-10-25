@@ -123,7 +123,7 @@ describe("r2b source contracts", () => {
     expect(claim).toContain("issue_guest_claim_token");
     expect(claim).toContain("claim_guest_meals");
     const profile = readFileSync("src/pages/Profile.tsx", "utf8");
-    expect(profile).toContain("if (!authReady || !profileReady)");
+    expect(profile).toContain("if (!authReady || !profileReady || !authLoaded)");
     expect(profile).toContain("t.myPage");
     expect(profile).toContain("profileMissingPrompt");
     expect(profile).not.toContain("profileSetupTitle");

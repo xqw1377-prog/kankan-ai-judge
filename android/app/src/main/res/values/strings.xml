@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">KanKanAI</string>
+    <string name="title_activity_main">KanKanAI</string>
+    <string name="package_name">cc.kankanai</string>
+    <string name="custom_url_scheme">cc.kankanai</string>
+    <string name="camera_usage">用于拍摄这一餐的食物照片，只供这一次估算热量、蛋白质、脂肪和碳水。照片不会另存进文件库。</string>
+    <string name="photo_library_usage">用于从相册选择这一餐的食物照片，只供这一次估算。不会浏览相册里的其他内容。</string>
+    <string name="photo_library_add_usage">本应用不会把食物照片写入相册。若系统仍询问，只是为了完成你刚选择的这一张照片。</string>
+</resources>

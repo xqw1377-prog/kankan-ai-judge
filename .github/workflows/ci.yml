@@ -22,6 +22,9 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/kankan
+      # Playwright is a devDependency for the manual production smoke script.
+      # The default job does not install browsers or hit the live site.
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
     steps:
       - uses: actions/checkout@v4
       - name: Reject a Drizzle migration mirror

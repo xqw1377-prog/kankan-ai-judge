@@ -2,9 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { canonicalPath } from "@/lib/routes";
-import { Suspense, type ReactNode } from "react";
+import { Suspense, useEffect, type ReactNode } from "react";
+import { Capacitor } from "@capacitor/core";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { useGuestClaimRecovery } from "@/hooks/useGuestClaimRecovery";
 import { useVerifiedUpgradeHandoff } from "@/hooks/useVerifiedUpgradeHandoff";
@@ -52,6 +53,28 @@ function ClaimRetryBar() {
   );
 }
 
+function NativeShellBridge() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    let stop = false;
+    const unsubs: Array<() => void> = [];
+    void (async () => {
+      const { installCameraRestore, installNativeAuthLinks } = await import("@/lib/nativeShell");
+      if (stop) return;
+      unsubs.push(await installNativeAuthLinks((path) => navigate(path, { replace: true })));
+      unsubs.push(await installCameraRestore((dataUrl) => {
+        navigate("/scan", { replace: true, state: { images: [dataUrl] } });
+      }));
+    })();
+    return () => {
+      stop = true;
+      unsubs.forEach((remove) => remove());
+    };
+  }, [navigate]);
+  return null;
+}
+
 function Page({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   return (
@@ -72,6 +95,7 @@ const App = () => (
         <BrowserRouter>
           <div className="h-full bg-muted">
             <div className="mx-auto flex h-full w-full flex-col bg-background sm:max-w-[560px] sm:shadow-card lg:max-w-[640px]">
+            <NativeShellBridge />
             <ClaimRetryBar />
             <GuestUpgradeWatcher />
             <Routes>

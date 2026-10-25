@@ -7,7 +7,7 @@ type Section = { h: string; p?: string; li?: string[] };
 
 const ZH: { title: string; updated: string; sections: Section[] } = {
   title: "隐私政策",
-  updated: `最后更新：2026年10月7日 · AI 数据说明版本 ${AI_CONSENT_VERSION}`,
+  updated: `最后更新：2026年10月25日 · AI 数据说明版本 ${AI_CONSENT_VERSION}`,
   sections: [
     { h: "1. 引言", p: "本政策说明 KanKan（以下简称“本应用”）实际收集哪些数据、如何处理，以及您的权利。本页描述的就是应用当前的真实行为。" },
     {
@@ -51,7 +51,7 @@ const ZH: { title: string; updated: string; sections: Section[] } = {
         "在“我的”页查看和修改资料，可随时留空可选项。",
         "删除任意一条饮食记录。",
         "撤回 AI 数据处理同意。",
-        "在「我的 → 账号与数据 → 删除账号」中删除账号。页面会说明将清除的内容，并要求再次确认。确认后，服务端删除该账号的资料、饮食记录、分析草稿、调用记录、餐后反馈、习惯和认领凭证，并注销登录身份。匿名试用账号也可以这样删除。",
+        "在「我的 → 账号与数据 → 删除账号」中删除账号。页面会说明将清除的内容，并要求再次确认。确认后，服务端删除该账号的资料、饮食记录、分析草稿、调用记录、餐后反馈、习惯和认领凭证，并注销登录身份。匿名试用在同一位置显示为「清除试用」，确认后按同样流程删除。",
       ],
     },
     { h: "8. 年龄", p: "KanKan V1 面向 18 岁及以上，不面向未成年人，我们不会故意收集未成年人的个人信息。" },
@@ -62,7 +62,7 @@ const ZH: { title: string; updated: string; sections: Section[] } = {
 
 const EN: typeof ZH = {
   title: "Privacy Policy",
-  updated: `Last updated: Oct 7, 2026 · AI data notice version ${AI_CONSENT_VERSION}`,
+  updated: `Last updated: Oct 25, 2026 · AI data notice version ${AI_CONSENT_VERSION}`,
   sections: [
     { h: "1. Introduction", p: "This policy describes what KanKan actually collects, how it is processed, and your rights. It matches the app's current behavior." },
     {
@@ -106,7 +106,7 @@ const EN: typeof ZH = {
         "View and edit your profile; optional fields can stay empty.",
         "Delete any meal record.",
         "Revoke AI processing consent.",
-        "Delete the account from Profile → Account & data → Delete account. The screen explains what will be removed and asks you to confirm again. The server then deletes that account's profile, meal log, analysis drafts, usage records, meal feedback, habits, and claim tokens, and removes the sign-in identity. Anonymous trial accounts can be deleted the same way.",
+        "Delete the account from Profile → Account & data → Delete account. The screen explains what will be removed and asks you to confirm again. The server then deletes that account's profile, meal log, analysis drafts, usage records, meal feedback, habits, and claim tokens, and removes the sign-in identity. An anonymous trial shows “Clear trial” in that same place and, after confirmation, is deleted the same way.",
       ],
     },
     { h: "8. Age", p: "KanKan V1 is for people 18 and older. It is not intended for minors, and we do not knowingly collect their personal information." },

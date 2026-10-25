@@ -119,7 +119,12 @@ describe("REL-2 consent, deletion, upgrade, logout, turnstile", () => {
     const profile = readFileSync("src/pages/Profile.tsx", "utf8");
     const logout = profile.indexOf('data-testid="logout-account"');
     expect(profile.lastIndexOf("canShowLogout(authUser)", logout)).toBeGreaterThan(-1);
+    expect(profile).toContain('data-testid="register-keep-record"');
+    expect(profile).toContain('data-testid={showLogout ? "delete-account" : "clear-trial"}');
     expect(profile).toContain("anonTrialActions");
+    const scan = readFileSync("src/pages/Scan.tsx", "utf8");
+    expect(scan).toContain('fail("captcha_unconfigured")');
+    expect(scan.indexOf('failure === "captcha_unconfigured"')).toBeGreaterThan(-1);
     expect(readFileSync("src/lib/i18n/zh-CN.ts", "utf8")).not.toContain("本地数据不会丢失");
     expect(readFileSync("src/lib/i18n/en-US.ts", "utf8")).not.toContain("local data will be preserved");
   });

@@ -11,6 +11,11 @@ export default tseslint.config(
     // generated Supabase client. Product code stays on the rules below.
     ignores: [
       "dist",
+      "android/app/build/**",
+      "android/build/**",
+      "android/app/src/main/assets/**",
+      "ios/App/App/public/**",
+      "ios/App/build/**",
       "src/integrations/supabase/client.ts",
       "src/integrations/supabase/previewAuthStorage.ts",
       "src/integrations/supabase/types.ts",
@@ -31,6 +36,15 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
+    },
+  },
+  {
+    files: ["playwright.config.ts", "capacitor.config.ts", "e2e/**/*.ts"],
+    languageOptions: {
+      globals: globals.node,
+    },
+    rules: {
+      "react-refresh/only-export-components": "off",
     },
   },
 );

@@ -14,6 +14,34 @@ dist
 dist-ssr
 *.local
 
+# package-lock.json is the only lockfile. Lovable may recreate these;
+# CI rejects them if they are committed.
+bun.lock
+bun.lockb
+playwright-report
+test-results
+blob-report
+
+# Capacitor native build output and machine paths. Never commit keystores.
+# Web assets are copied by `npx cap sync` and contain the built public env.
+android/app/build
+android/build
+android/.gradle
+android/local.properties
+android/captures
+android/.idea
+android/app/src/main/assets/public
+android/app/src/main/assets/capacitor.config.json
+*.keystore
+*.jks
+ios/App/Pods
+ios/App/build
+ios/DerivedData
+ios/**/xcuserdata
+*.xcuserstate
+ios/App/App/public
+ios/App/App/capacitor.config.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

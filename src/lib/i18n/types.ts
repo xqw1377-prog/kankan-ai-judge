@@ -533,6 +533,10 @@ export interface Dictionary {
   logout: string;
   logoutConfirm: string;
   anonTrialActions: string;
+  registerKeepRecord: string;
+  clearTrial: string;
+  clearTrialConfirm: string;
+  clearTrialDone: string;
   upgradeSyncRetry: string;
   loginEmailLabel: string;
   loginPasswordLabel: string;
@@ -620,6 +624,7 @@ export interface Dictionary {
   scanCloudNeedsSignIn: string;
   captchaPrompt: string;
   captchaClosed: string;
+  captchaFailed: string;
   mealNotFound: string;
   deleteMealConfirm: string;
   mealDeleted: string;
