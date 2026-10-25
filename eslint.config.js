@@ -33,4 +33,13 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  {
+    files: ["playwright.config.ts", "e2e/**/*.ts"],
+    languageOptions: {
+      globals: globals.node,
+    },
+    rules: {
+      "react-refresh/only-export-components": "off",
+    },
+  },
 );

@@ -127,7 +127,8 @@ describe("account deletion", () => {
     expect(fn).toContain("auth.admin.deleteUser(auth.userId)");
     expect(fn).not.toContain("body.userId");
     expect(guard).toContain("auth.getUser");
-    expect(readFileSync("src/pages/Profile.tsx", "utf8")).toContain('data-testid="delete-account"');
+    expect(readFileSync("src/pages/Profile.tsx", "utf8")).toContain('"delete-account"');
+    expect(readFileSync("src/pages/Profile.tsx", "utf8")).toContain('"clear-trial"');
     expect(readFileSync("src/pages/Profile.tsx", "utf8")).toContain("t.accountAndData");
     const privacy = readFileSync("src/pages/Privacy.tsx", "utf8");
     expect(privacy).toContain("账号与数据");

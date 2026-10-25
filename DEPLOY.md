@@ -42,7 +42,7 @@ Edge Functions 由 Supabase 平台注入：
 
 前端还需要：
 
-- `VITE_TURNSTILE_SITE_KEY`：Turnstile 的站点密钥（公开）。生产构建里如果它为空，不会调用 `signInAnonymously`，也不会上传照片做第一次试用分析。它已提交在仓库根目录 `.env` 里（与 `VITE_SUPABASE_*` 一样是公开值），Lovable 和 Vercel 构建都会读取，无需在面板里另配。Turnstile 小组件的允许域名：`kankanai.cc`、`www.kankanai.cc`、`kankan-eye-spy.lovable.app`（`*.vercel.app` 预览会显示域名错误，属正常）。
+- `VITE_TURNSTILE_SITE_KEY`：Turnstile 的站点密钥（公开）。生产构建里如果它为空，不会调用 `signInAnonymously`，也不会上传照片做第一次试用分析；扫描页只提示人机验证未配置，不会打开一个空的 Turnstile 组件。非生产构建缺少该变量时，本地分析仍可继续。它已提交在仓库根目录 `.env` 里（与 `VITE_SUPABASE_*` 一样是公开值），Lovable 和 Vercel 构建都会读取。若构建环境覆盖了 `.env`，生产必须另行设置这个变量名，值不要写进文档。Turnstile 小组件的允许域名：`kankanai.cc`、`www.kankanai.cc`、`kankan-eye-spy.lovable.app`（`*.vercel.app` 预览会显示域名错误，属正常）。
 
 ## 2b. 域名
 
@@ -64,6 +64,17 @@ supabase functions deploy delete-account
 ```
 
 前端是静态站点。`npm run build` 的产物在 `dist/`。`vercel.json` 把所有路径转到 `index.html`。托管方在构建前设置上面的 `VITE_` 变量。
+
+## 2c. 线上冒烟
+
+不注册账号，也不调用食物分析。对 `https://www.kankanai.cc` 打开首页、登录页、隐私政策、用户协议，并确认正文已经渲染（不只是 HTTP 200）。
+
+```sh
+npx playwright install chromium
+npm run smoke:prod
+```
+
+CI 里的 `npm test` 不跑这组检查，也不下载浏览器。
 
 在 Supabase Auth 的重定向地址里加上生产站点的源，以及 `{生产源}/login` 和 `{生产源}/reset-password`。匿名升级只先提交邮箱，验证链接回到 `/login` 后再设置密码。这要求：Authentication 里打开 Manual Linking；开启邮箱确认；配置可用的自定义 SMTP（平台自带邮箱不适合生产）。注册和重置密码使用浏览器当前的源。
 

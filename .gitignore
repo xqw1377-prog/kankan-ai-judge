@@ -14,6 +14,14 @@ dist
 dist-ssr
 *.local
 
+# package-lock.json is the only lockfile. Lovable may recreate these;
+# CI rejects them if they are committed.
+bun.lock
+bun.lockb
+playwright-report
+test-results
+blob-report
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

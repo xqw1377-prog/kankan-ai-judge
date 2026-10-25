@@ -6,7 +6,7 @@ type Section = { h: string; p?: string; li?: string[] };
 
 const ZH: { title: string; updated: string; sections: Section[] } = {
   title: "用户协议",
-  updated: "最后更新：2026年10月7日",
+  updated: "最后更新：2026年10月25日",
   sections: [
     {
       h: "1. 这是什么",
@@ -23,7 +23,7 @@ const ZH: { title: string; updated: string; sections: Section[] } = {
     {
       h: "4. 账号",
       li: [
-        "可以用邮箱和密码登录。正式账号可以退出登录。匿名试用没有邮箱，不能靠退出登录来保住数据：只能注册并保留这个账号，或在「我的」里删除试用账号。删除或换设备后无法找回。",
+        "可以用邮箱和密码登录。正式账号可以退出登录。匿名试用没有邮箱，不能靠退出登录来保住数据：只能「注册保留记录」，或在「我的」里「清除试用」。清除或换设备后无法找回。",
         "从匿名升级时，不会把邮箱和密码一次提交。邮箱验证完成之前不设置密码，密码也不会提前存在这台设备上。",
         "你可以在「我的 → 账号与数据 → 删除账号」中删除账号。删除前会说明清除范围并再次确认。删除后不能再登录，服务端上的该账号数据会被清除。",
       ],
@@ -41,7 +41,7 @@ const ZH: { title: string; updated: string; sections: Section[] } = {
 
 const EN: typeof ZH = {
   title: "Terms of Service",
-  updated: "Last updated: Oct 7, 2026",
+  updated: "Last updated: Oct 25, 2026",
   sections: [
     {
       h: "1. What this is",
@@ -58,7 +58,7 @@ const EN: typeof ZH = {
     {
       h: "4. Accounts",
       li: [
-        "You can sign in with email and password. A permanent account can log out. An anonymous trial has no email and cannot keep its data by logging out: register and keep the same account, or delete the trial from Profile. After deletion, or on another device, it cannot be recovered.",
+        "You can sign in with email and password. A permanent account can log out. An anonymous trial has no email and cannot keep its data by logging out: use “Register and keep the record”, or “Clear trial” on Profile. After that, or on another device, it cannot be recovered.",
         "Upgrading an anonymous account does not send email and password together. No password is set before the email is verified, and the password is not stored on the device ahead of time.",
         "You can delete the account from Profile → Account & data → Delete account. The screen explains what is removed and asks you to confirm again. After deletion you cannot sign in, and that account's data is removed on the server.",
       ],

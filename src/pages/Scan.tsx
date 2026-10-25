@@ -16,7 +16,7 @@ import { anonymousAccessGate, readTurnstileSiteKey } from "@/lib/turnstileGate";
 import type { AppendTarget } from "@/lib/mealAppend";
 
 const MAX_PHOTOS = 5;
-type FailCode = "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit" | "captcha";
+type FailCode = "missing_key" | "unavailable" | "unrecognized" | "signin" | "image" | "guest_limit" | "captcha" | "captcha_unconfigured";
 
 /** /scan is the single capture flow: capture/pick → preview → add more → analyze → Result. */
 const Scan = () => {
@@ -82,7 +82,7 @@ const Scan = () => {
           token: captchaTokenRef.current,
           needsAnonymous: true,
         });
-        if (gate === "closed") return fail("captcha");
+        if (gate === "closed") return fail("captcha_unconfigured");
         if (gate === "challenge") {
           setShowCaptcha(true);
           return;
@@ -170,8 +170,10 @@ const Scan = () => {
 
   const failureText = failure === "signin"
     ? t.scanCloudNeedsSignIn
-    : failure === "captcha"
+    : failure === "captcha_unconfigured"
       ? t.captchaClosed
+      : failure === "captcha"
+        ? (readTurnstileSiteKey() ? t.captchaFailed : t.captchaClosed)
       : failure === "image"
       ? imageError
       : failure === "missing_key"
@@ -290,7 +292,8 @@ const Scan = () => {
             <button onClick={() => navigate("/login")} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
               {t.loginSignIn}
             </button>
-          ) : failure === "captcha" ? (
+          ) : failure === "captcha_unconfigured" || (failure === "captcha" && !readTurnstileSiteKey()) ? null
+          : failure === "captcha" ? (
             <button onClick={() => { setFailure(null); setShowCaptcha(true); }} className="px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold">
               {t.retry}
             </button>

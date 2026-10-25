@@ -106,6 +106,22 @@ describe("analysis session", () => {
     expect(signInAnonymously).toHaveBeenCalledOnce();
   });
 
+  it("does not sign in anonymously in production before a captcha token", async () => {
+    vi.stubEnv("PROD", true);
+    try {
+      const signInAnonymously = vi.fn();
+      const result = await ensureAnalysisSession({
+        getSession: async () => ({ data: { session: null } }),
+        signInAnonymously,
+      });
+      expect(result).toBe("captcha");
+      expect(signInAnonymously).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.stubEnv("VITE_TURNSTILE_SITE_KEY", "");
+    }
+  });
+
   it("asks for sign-in when anonymous sign-in fails", async () => {
     const result = await ensureAnalysisSession({
       getSession: async () => ({ data: { session: null } }),

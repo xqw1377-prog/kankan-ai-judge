@@ -9,6 +9,8 @@ import { useMeals } from "@/hooks/useMeals";
 import { useI18n } from "@/lib/i18n";
 import { getAiConsentRecord, hasAiConsent, revokeAiConsent } from "@/components/AiConsentDialog";
 import { canShowLogout } from "@/lib/accountSession";
+import { notifyGuestClaimed } from "@/lib/guestClaimSync";
+import { clearGuestLocalData } from "@/lib/localData";
 import { supabase } from "@/integrations/supabase/client";
 import { isProfileComplete } from "@/lib/nutrition";
 import { useToast } from "@/hooks/use-toast";
@@ -38,7 +40,8 @@ const Profile = () => {
   const [editingNickname, setEditingNickname] = useState(false);
   const [nicknameValue, setNicknameValue] = useState("");
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
-  const [deleteStep, setDeleteStep] = useState<null | "explain" | "confirm">(null);
+  const [deleteStep, setDeleteStep] = useState<null | "explain" | "confirm" | "local">(null);
+  const [authLoaded, setAuthLoaded] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [syncingUpgrade, setSyncingUpgrade] = useState(false);
   const [aiConsentOn, setAiConsentOn] = useState(false);
@@ -49,18 +52,24 @@ const Profile = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setAuthUser(data.user);
-      setAiConsentOn(hasAiConsent(data.user?.id));
-    });
+    let live = true;
+    const apply = (user: User | null) => {
+      if (!live) return;
+      setAuthUser(user);
+      setAiConsentOn(hasAiConsent(user?.id));
+      setAuthLoaded(true);
+    };
+    supabase.auth.getUser().then(({ data }) => apply(data.user ?? null)).catch(() => apply(null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthUser(session?.user ?? null);
-      setAiConsentOn(hasAiConsent(session?.user?.id));
+      apply(session?.user ?? null);
     });
-    return () => subscription.unsubscribe();
+    return () => {
+      live = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  if (!authReady || !profileReady) {
+  if (!authReady || !profileReady || !authLoaded) {
     return (
       <div className="h-full flex flex-col items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -146,17 +155,28 @@ const Profile = () => {
     navigate("/login", { replace: true });
   };
 
+  const handleClearLocalTrial = () => {
+    clearGuestLocalData();
+    notifyGuestClaimed();
+    setDeleteStep(null);
+    toast({ title: t.clearTrialDone });
+  };
+
+  const showLogout = canShowLogout(authUser);
+
   return (
     <div className="flex-1 overflow-y-auto">
       <header className="px-5 pt-[max(1rem,env(safe-area-inset-top))] pb-4 flex items-center justify-between">
         <h1 className="text-xl font-bold text-card-foreground">{t.myPage}</h1>
         <div className="flex items-center gap-2">
-          {(!authUser || authUser.is_anonymous) && (
+          {!showLogout && (
             <button
+              type="button"
+              data-testid="register-keep-record"
               onClick={() => navigate("/login", { state: authUser?.is_anonymous ? { upgrade: true } : undefined })}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full glass text-xs font-semibold text-primary border border-primary/20"
             >
-              🔑 {authUser?.is_anonymous ? t.loginSignUp : t.loginSignIn}
+              {t.registerKeepRecord}
             </button>
           )}
           {authUser && !authUser.is_anonymous && (
@@ -312,11 +332,10 @@ const Profile = () => {
         </div>
       </section>
 
-      {authUser && (
-        <section className="px-5 pb-8 space-y-3">
+      <section className="px-5 pb-8 space-y-3">
           <h3 className="text-sm font-semibold text-muted-foreground">{t.accountAndData}</h3>
           {authUser?.is_anonymous && (
-            <p className="text-sm text-muted-foreground leading-relaxed">{t.anonTrialActions}</p>
+            <p className="text-sm text-muted-foreground leading-relaxed" data-testid="anon-trial-actions">{t.anonTrialActions}</p>
           )}
           {showUpgradeRetry && (
             <button
@@ -332,16 +351,17 @@ const Profile = () => {
           <div className="glass rounded-xl shadow-card">
             <button
               type="button"
-              data-testid="delete-account"
-              onClick={() => setDeleteStep("explain")}
+              data-testid={showLogout ? "delete-account" : "clear-trial"}
+              onClick={() => setDeleteStep(authUser ? "explain" : "local")}
               className="w-full flex items-center justify-between px-4 py-3.5 text-sm text-destructive"
             >
-              <span>{t.deleteAccount}</span>
+              <span>{showLogout ? t.deleteAccount : t.clearTrial}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
-          {canShowLogout(authUser) && (
+          {showLogout && (
             <button
+              type="button"
               data-testid="logout-account"
               onClick={() => setShowLogoutDialog(true)}
               className="w-full py-3 rounded-xl border border-destructive/30 text-destructive text-sm font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
@@ -351,19 +371,31 @@ const Profile = () => {
             </button>
           )}
         </section>
-      )}
 
       <AlertDialog open={deleteStep !== null} onOpenChange={(open) => { if (!open && !deleting) setDeleteStep(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{t.deleteAccount}</AlertDialogTitle>
+            <AlertDialogTitle>{deleteStep === "local" ? t.clearTrial : t.deleteAccount}</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteStep === "confirm" ? t.deleteAccountConfirm : t.deleteAccountExplain}
+              {deleteStep === "local"
+                ? t.clearTrialConfirm
+                : deleteStep === "confirm"
+                  ? t.deleteAccountConfirm
+                  : t.deleteAccountExplain}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>{t.cancel}</AlertDialogCancel>
-            {deleteStep === "confirm" ? (
+            {deleteStep === "local" ? (
+              <AlertDialogAction
+                onClick={(event) => {
+                  event.preventDefault();
+                  handleClearLocalTrial();
+                }}
+              >
+                {t.clearTrial}
+              </AlertDialogAction>
+            ) : deleteStep === "confirm" ? (
               <AlertDialogAction
                 disabled={deleting}
                 onClick={(event) => {
@@ -387,6 +419,7 @@ const Profile = () => {
         </AlertDialogContent>
       </AlertDialog>
 
+      {showLogout && (
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -407,6 +440,7 @@ const Profile = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      )}
     </div>
   );
 };
