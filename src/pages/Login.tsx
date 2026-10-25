@@ -12,8 +12,8 @@ import {
   needsPasswordSetup,
   requestAnonymousEmailUpgrade,
   submitUpgradePassword,
-  upgradeEmailRedirect,
 } from "@/lib/anonymousUpgrade";
+import { authReturnUrl } from "@/lib/nativeShell";
 
 type Phase = "signin" | "signup" | "forgot" | "set-password";
 type SessionUser = { id: string; is_anonymous?: boolean; email?: string | null };
@@ -113,7 +113,7 @@ export default function Login() {
       }
       const outcome = await requestAnonymousEmailUpgrade({
         email,
-        redirectTo: upgradeEmailRedirect(window.location.origin),
+        redirectTo: authReturnUrl("/login"),
         anonymousUserId: anonymousUser.id,
         updateEmail: async (nextEmail, redirectTo) => {
           const { data, error } = await supabase.auth.updateUser(
@@ -154,7 +154,7 @@ export default function Login() {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: window.location.origin },
+      options: { emailRedirectTo: authReturnUrl("/login") },
     });
     setLoading(false);
     if (error) {
@@ -207,7 +207,7 @@ export default function Login() {
     if (!email) return;
     setLoading(true);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: authReturnUrl("/reset-password"),
     });
     setLoading(false);
     if (error) {

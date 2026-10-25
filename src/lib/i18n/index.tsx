@@ -10,10 +10,21 @@ const dictionaries: Record<Locale, Dictionary> = {
   "en-US": enUS,
 };
 
-function detectLocale(): Locale {
-  const saved = localStorage.getItem("kankan-locale");
+/** Saved choice wins. Otherwise follow the system language. Non-Chinese systems use English. */
+export function localeFromSignals(saved: string | null, language: string | undefined): Locale {
   if (saved === "en-US" || saved === "zh-CN") return saved;
-  return "zh-CN";
+  return (language || "").toLowerCase().startsWith("zh") ? "zh-CN" : "en-US";
+}
+
+function detectLocale(): Locale {
+  let saved: string | null = null;
+  try {
+    saved = localStorage.getItem("kankan-locale");
+  } catch {
+    saved = null;
+  }
+  const language = typeof navigator === "undefined" ? undefined : navigator.language;
+  return localeFromSignals(saved, language);
 }
 
 interface I18nContextType {
